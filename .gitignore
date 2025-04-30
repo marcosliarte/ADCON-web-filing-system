@@ -1,0 +1,25 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Arquivos de logs
+*.log
+
+# Pastas de uploads
+uploads/
+
+# Arquivos do sistema (se estiver usando Windows ou Mac)
+.DS_Store
+Thumbs.db
+
+# Arquivos de configuração do IDE (ex: VSCode, IntelliJ, etc)
+.vscode/
+.idea/
+
+# Arquivos de ambiente
+.env
+
+# Arquivos gerados por compiladores e minificadores
+dist/
+build/
