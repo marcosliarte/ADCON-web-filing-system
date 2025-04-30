@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Empresas Cadastradas</title>
+  <style>
+    table, th, td { border: 1px solid black; border-collapse: collapse; padding: 8px; }
+    th { cursor: pointer; }
+    .disabled { opacity: 0.5; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <h2>Lista de Empresas</h2>
+
+  <input type="text" id="busca" placeholder="Buscar por nome ou CNPJ">
+  <button onclick="buscarEmpresas()">Buscar</button>
+  <button onclick="window.location.href='cliente-formulario.html'">Cadastrar Nova Empresa</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th onclick="ordenarPor('cnpj')">CNPJ</th>
+        <th onclick="ordenarPor('nome')">Nome</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="lista-empresas">
+      <!-- Empresas serão inseridas aqui -->
+    </tbody>
+  </table>
+
+  <div>
+    <button id="btn-anterior" onclick="paginaAnterior()">Anterior</button>
+    <span id="pagina-atual">Página 1</span>
+    <button id="btn-proximo" onclick="proximaPagina()">Próxima</button>
+  </div>
+
+  <script>
+    let pagina = 1;
+    let ordenacao = 'nome';
+    let termoBusca = '';
+    let totalPaginas = 1;
+
+    async function carregarEmpresas() {
+      try {
+        const response = await fetch(`/api/empresas?pagina=${pagina}&ordem=${ordenacao}&busca=${encodeURIComponent(termoBusca)}`);
+        
+        if (!response.ok) {
+          throw new Error('Erro ao carregar empresas');
+        }
+        
+        const { empresas, totalPaginas: total } = await response.json();
+        totalPaginas = total;
+
+        const tabela = document.getElementById('lista-empresas');
+        tabela.innerHTML = '';
+
+        if (empresas.length === 0) {
+          const linha = document.createElement('tr');
+          linha.innerHTML = `<td colspan="3">Nenhuma empresa encontrada</td>`;
+          tabela.appendChild(linha);
+        } else {
+          empresas.forEach(emp => {
+            const linha = document.createElement('tr');
+            linha.innerHTML = `
+              <td>${formatarCNPJ(emp.cnpj)}</td>
+              <td>${emp.nome}</td>
+              <td>
+                <button onclick="editarEmpresa('${emp._id}')">Editar</button>
+                <button onclick="confirmarExclusao('${emp._id}')">Excluir</button>
+              </td>
+            `;
+            tabela.appendChild(linha);
+          });
+        }
+
+        document.getElementById('pagina-atual').innerText = `Página ${pagina} de ${totalPaginas}`;
+        document.getElementById('btn-anterior').className = pagina <= 1 ? 'disabled' : '';
+        document.getElementById('btn-proximo').className = pagina >= totalPaginas ? 'disabled' : '';
+
+      } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao carregar empresas. Verifique o console para mais detalhes.');
+      }
+    }
+
+    function formatarCNPJ(cnpj) {
+      // Formatação do CNPJ: 00.000.000/0000-00
+      return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+
+    function ordenarPor(campo) {
+      ordenacao = campo;
+      pagina = 1;
+      carregarEmpresas();
+    }
+
+    function buscarEmpresas() {
+      termoBusca = document.getElementById('busca').value;
+      pagina = 1;
+      carregarEmpresas();
+    }
+
+    function proximaPagina() {
+      if (pagina < totalPaginas) {
+        pagina++;
+        carregarEmpresas();
+      }
+    }
+
+    function paginaAnterior() {
+      if (pagina > 1) {
+        pagina--;
+        carregarEmpresas();
+      }
+    }
+
+    function editarEmpresa(id) {
+      window.location.href = `editar.html?id=${id}`;
+    }
+
+    async function confirmarExclusao(id) {
+      if (confirm('Tem certeza que deseja excluir esta empresa?')) {
+        try {
+          const response = await fetch(`/api/empresa/${id}`, {
+            method: 'DELETE'
+          });
+          
+          if (response.ok) {
+            carregarEmpresas();
+          } else {
+            throw new Error('Erro ao excluir empresa');
+          }
+        } catch (error) {
+          console.error('Erro:', error);
+          alert('Erro ao excluir empresa. Verifique o console para mais detalhes.');
+        }
+      }
+    }
+
+    // Carrega empresas ao iniciar e configura busca ao pressionar Enter
+    document.addEventListener('DOMContentLoaded', () => {
+      carregarEmpresas();
+      
+      document.getElementById('busca').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          buscarEmpresas();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

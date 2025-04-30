@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Editar Empresa</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    form { display: grid; grid-gap: 15px; }
+    label { font-weight: bold; }
+    input[type="text"], input[type="file"] { padding: 8px; width: 100%; }
+    button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #45a049; }
+    #mensagem { margin-top: 15px; padding: 10px; border-radius: 4px; }
+    .sucesso { background-color: #dff0d8; color: #3c763d; }
+    .erro { background-color: #f2dede; color: #a94442; }
+    #arquivo-atual { margin-top: 5px; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h2>Editar Empresa</h2>
+  <form id="form-edicao">
+    <input type="hidden" name="id" id="empresa-id">
+    
+    <div>
+      <label for="cnpj">CNPJ:</label>
+      <input type="text" name="cnpj" id="cnpj" required pattern="\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}" 
+             title="Digite um CNPJ válido no formato 00.000.000/0000-00">
+    </div>
+
+    <div>
+      <label for="nome">Nome:</label>
+      <input type="text" name="nome" id="nome" required>
+    </div>
+
+    <div>
+      <label>Arquivo atual:</label>
+      <div id="arquivo-atual"></div>
+      <label for="arquivo">Novo arquivo (deixe em branco para manter o atual):</label>
+      <input type="file" name="arquivo" id="arquivo" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+      <small>Aceitos: PDF, DOC, PNG, JPG (máx. 5MB)</small>
+    </div>
+
+    <div>
+      <button type="submit">Salvar Alterações</button>
+      <button type="button" onclick="window.location.href='empresas.html'">Voltar</button>
+    </div>
+  </form>
+
+  <div id="mensagem"></div>
+
+  <script>
+    // Formatador de CNPJ
+    function formatarCNPJ(cnpj) {
+      if (!cnpj) return '';
+      // Remove tudo que não é dígito
+      const numeros = cnpj.replace(/\D/g, '');
+      // Aplica a formatação
+      return numeros.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+
+    // Máscara de CNPJ
+    document.getElementById('cnpj').addEventListener('input', function(e) {
+      const valor = e.target.value.replace(/\D/g, '');
+      e.target.value = formatarCNPJ(valor);
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+
+    if (!id) {
+      document.getElementById('mensagem').innerText = 'ID da empresa não especificado';
+      document.getElementById('mensagem').className = 'erro';
+      document.getElementById('form-edicao').style.display = 'none';
+    }
+
+    // Carregar dados da empresa
+    async function carregarEmpresa() {
+      try {
+        const response = await fetch(`/api/empresa/${id}`);
+        
+        if (!response.ok) {
+          throw new Error(response.status === 404 ? 'Empresa não encontrada' : 'Erro ao carregar dados');
+        }
+
+        const empresa = await response.json();
+        
+        document.getElementById('empresa-id').value = empresa._id;
+        document.getElementById('cnpj').value = formatarCNPJ(empresa.cnpj);
+        document.getElementById('nome').value = empresa.nome;
+        
+        const arquivoAtual = document.getElementById('arquivo-atual');
+        if (empresa.nomeArquivo) {
+          arquivoAtual.innerHTML = `
+            <a href="/uploads/${empresa.arquivo}" target="_blank">${empresa.nomeArquivo}</a>
+            <button type="button" onclick="removerArquivo()">Remover arquivo</button>
+          `;
+        } else {
+          arquivoAtual.textContent = 'Nenhum arquivo cadastrado';
+        }
+        
+      } catch (err) {
+        console.error(err);
+        document.getElementById('mensagem').innerText = err.message;
+        document.getElementById('mensagem').className = 'erro';
+      }
+    }
+
+    // Remover arquivo existente
+    function removerArquivo() {
+      if (confirm('Deseja realmente remover o arquivo atual?')) {
+        document.getElementById('arquivo-atual').textContent = 'Arquivo será removido ao salvar';
+        document.getElementById('arquivo').setAttribute('data-remover', 'true');
+      }
+    }
+
+    // Atualizar empresa
+    document.getElementById('form-edicao').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const mensagem = document.getElementById('mensagem');
+      mensagem.innerText = '';
+      mensagem.className = '';
+      
+      try {
+        const formData = new FormData(this);
+        
+        // Se marcado para remover, adiciona flag ao FormData
+        if (document.getElementById('arquivo').getAttribute('data-remover') === 'true') {
+          formData.append('removerArquivo', 'true');
+        }
+        
+        // Validação do CNPJ (14 dígitos)
+        const cnpj = formData.get('cnpj').replace(/\D/g, '');
+        if (cnpj.length !== 14) {
+          throw new Error('CNPJ deve conter 14 dígitos');
+        }
+        formData.set('cnpj', cnpj); // Envia apenas números
+
+        const response = await fetch(`/api/empresa/${id}`, {
+          method: 'PUT',
+          body: formData
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          mensagem.innerText = result.mensagem || 'Empresa atualizada com sucesso!';
+          mensagem.className = 'sucesso';
+          
+          // Atualiza o arquivo atual exibido
+          if (result.empresa) {
+            const empresa = result.empresa;
+            const arquivoAtual = document.getElementById('arquivo-atual');
+            
+            if (empresa.nomeArquivo) {
+              arquivoAtual.innerHTML = `
+                <a href="/uploads/${empresa.arquivo}" target="_blank">${empresa.nomeArquivo}</a>
+                <button type="button" onclick="removerArquivo()">Remover arquivo</button>
+              `;
+            } else {
+              arquivoAtual.textContent = 'Nenhum arquivo cadastrado';
+            }
+          }
+          
+          // Limpa o campo de arquivo
+          document.getElementById('arquivo').value = '';
+          document.getElementById('arquivo').removeAttribute('data-remover');
+        } else {
+          throw new Error(result.mensagem || result.erro || 'Erro ao atualizar empresa');
+        }
+      } catch (err) {
+        console.error(err);
+        mensagem.innerText = err.message;
+        mensagem.className = 'erro';
+      }
+    });
+
+    // Carrega os dados ao abrir a página
+    if (id) {
+      carregarEmpresa();
+    }
+  </script>
+</body>
+</html>
