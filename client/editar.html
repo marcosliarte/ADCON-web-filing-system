@@ -4,66 +4,162 @@
   <meta charset="UTF-8">
   <title>Editar Empresa</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; font-weight: bold; margin-bottom: 5px; }
-    input[type="text"], input[type="file"] { width: 100%; padding: 8px; box-sizing: border-box; }
-    .file-info { margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px; }
-    .buttons { margin-top: 20px; }
-    button { padding: 10px 15px; margin-right: 10px; cursor: pointer; }
-    .success { color: green; }
-    .error { color: red; }
-    .loading { color: #666; font-style: italic; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #2c3e50;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+    }
+    .form-container {
+      background-color: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #34495e;
+    }
+    input[type="text"],
+    input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    .file-section {
+      margin-top: 20px;
+      padding: 15px;
+      background: #ecf0f1;
+      border-radius: 4px;
+      border-left: 4px solid #3498db;
+    }
+    .file-actions {
+      margin-top: 10px;
+    }
+    .buttons {
+      margin-top: 25px;
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    button[type="submit"] {
+      background-color: #2ecc71;
+      color: white;
+    }
+    button[type="submit"]:hover {
+      background-color: #27ae60;
+    }
+    #cancelBtn {
+      background-color: #e74c3c;
+      color: white;
+    }
+    #cancelBtn:hover {
+      background-color: #c0392b;
+    }
+    .message {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d5f5e3;
+      color: #27ae60;
+      border-left: 4px solid #2ecc71;
+    }
+    .error {
+      background-color: #fadbd8;
+      color: #e74c3c;
+      border-left: 4px solid #e74c3c;
+    }
+    .loading {
+      color: #7f8c8d;
+      font-style: italic;
+    }
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+    }
+    #removeFile {
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
-  <h1>Editar Empresa</h1>
-  
-  <form id="editForm">
-    <input type="hidden" id="empresaId">
+  <div class="form-container">
+    <h1>Editar Empresa</h1>
     
-    <div class="form-group">
-      <label for="cnpj">CNPJ:</label>
-      <input type="text" id="cnpj" required>
-    </div>
-    
-    <div class="form-group">
-      <label for="nome">Nome:</label>
-      <input type="text" id="nome" required>
-    </div>
-    
-    <div class="form-group">
-      <label>Arquivo Atual:</label>
-      <div id="currentFile" class="file-info loading">Carregando...</div>
+    <form id="editForm">
+      <input type="hidden" id="empresaId">
       
-      <label for="newFile">Novo Arquivo (opcional):</label>
-      <input type="file" id="newFile">
-      
-      <div>
-        <input type="checkbox" id="removeFile">
-        <label for="removeFile">Remover arquivo atual</label>
+      <div class="form-group">
+        <label for="cnpj">CNPJ:</label>
+        <input type="text" id="cnpj" required pattern="\d{2}\.\d{3}\.\d{3}\/\d{4}\-\d{2}" 
+               title="Digite um CNPJ no formato 00.000.000/0000-00">
       </div>
-    </div>
-    
-    <div class="buttons">
-      <button type="submit">Salvar Alterações</button>
-      <button type="button" id="cancelBtn">Cancelar</button>
-    </div>
-    
-    <div id="message" class="message"></div>
-  </form>
+      
+      <div class="form-group">
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" required>
+      </div>
+      
+      <div class="file-section">
+        <label>Arquivo Atual:</label>
+        <div id="currentFile" class="loading">Carregando...</div>
+        
+        <div class="file-actions">
+          <label for="newFile">Substituir por novo arquivo:</label>
+          <input type="file" id="newFile" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+          
+          <div class="checkbox-container">
+            <input type="checkbox" id="removeFile">
+            <label for="removeFile">Remover arquivo atual</label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="buttons">
+        <button type="submit">Salvar Alterações</button>
+        <button type="button" id="cancelBtn">Cancelar</button>
+      </div>
+      
+      <div id="message"></div>
+    </form>
+  </div>
 
   <script>
     // Formatador de CNPJ
     function formatCNPJ(cnpj) {
-      return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+      if (!cnpj) return '';
+      const numeros = cnpj.replace(/\D/g, '');
+      return numeros.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
     }
 
     // Máscara de CNPJ
     document.getElementById('cnpj').addEventListener('input', function(e) {
-      let value = e.target.value.replace(/\D/g, '');
-      if (value.length > 14) value = value.substring(0, 14);
-      e.target.value = formatCNPJ(value);
+      const valor = e.target.value.replace(/\D/g, '');
+      e.target.value = formatCNPJ(valor);
     });
 
     // Obter ID da URL
@@ -74,13 +170,16 @@
     // Carregar dados da empresa
     async function loadEmpresa() {
       try {
-        document.getElementById('message').textContent = 'Carregando dados...';
-        document.getElementById('message').className = 'loading';
+        showMessage('Carregando dados da empresa...', 'loading');
         
         const response = await fetch(`/api/empresa/${empresaId}`);
-        if (!response.ok) throw new Error('Erro ao carregar empresa');
         
-        const data = await response.json();
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao carregar empresa');
+        }
+        
+        const { data } = await response.json();
         
         // Preencher formulário
         document.getElementById('cnpj').value = formatCNPJ(data.cnpj);
@@ -88,20 +187,27 @@
         
         // Atualizar informações do arquivo
         const fileInfo = document.getElementById('currentFile');
-        if (data.arquivo && data.nomeArquivo) {
+        if (data.arquivo) {
           fileInfo.innerHTML = `
-            Arquivo atual: <a href="${data.urlArquivo}" target="_blank">${data.nomeArquivo}</a>
+            <p><strong>Arquivo atual:</strong> ${data.arquivo.nome}</p>
+            <div class="file-actions">
+              <a href="${data.arquivo.url}" target="_blank">
+                <button type="button">Visualizar</button>
+              </a>
+              <a href="${data.arquivo.downloadUrl}" download>
+                <button type="button">Download</button>
+              </a>
+            </div>
           `;
         } else {
-          fileInfo.textContent = 'Nenhum arquivo cadastrado';
+          fileInfo.innerHTML = '<p>Nenhum arquivo cadastrado</p>';
         }
         
-        document.getElementById('message').textContent = '';
+        clearMessage();
         
       } catch (error) {
-        console.error('Erro:', error);
-        document.getElementById('message').textContent = 'Erro ao carregar dados da empresa';
-        document.getElementById('message').className = 'error';
+        console.error('Erro ao carregar empresa:', error);
+        showMessage(`Erro ao carregar dados: ${error.message}`, 'error');
       }
     }
 
@@ -110,13 +216,17 @@
       e.preventDefault();
       
       const messageEl = document.getElementById('message');
-      messageEl.textContent = 'Salvando...';
-      messageEl.className = 'loading';
+      showMessage('Salvando alterações...', 'loading');
       
       try {
         const formData = new FormData();
         formData.append('nome', document.getElementById('nome').value);
-        formData.append('cnpj', document.getElementById('cnpj').value.replace(/\D/g, ''));
+        
+        const cnpj = document.getElementById('cnpj').value.replace(/\D/g, '');
+        if (cnpj.length !== 14) {
+          throw new Error('CNPJ deve conter 14 dígitos');
+        }
+        formData.append('cnpj', cnpj);
         
         if (document.getElementById('removeFile').checked) {
           formData.append('removerArquivo', 'true');
@@ -126,40 +236,61 @@
         if (newFile) {
           formData.append('arquivo', newFile);
         }
-        
+
         const response = await fetch(`/api/empresa/${empresaId}`, {
           method: 'PUT',
           body: formData
         });
-        
+
         const result = await response.json();
         
-        if (result.success) {
-          messageEl.textContent = 'Empresa atualizada com sucesso!';
-          messageEl.className = 'success';
-          // Recarrega os dados atualizados
-          await loadEmpresa();
-        } else {
-          throw new Error(result.mensagem || 'Erro ao atualizar empresa');
+        if (!response.ok) {
+          throw new Error(result.message || 'Erro ao atualizar empresa');
         }
+
+        showMessage('Empresa atualizada com sucesso!', 'success');
+        
+        // Atualizar visualização do arquivo
+        await loadEmpresa();
+        
+        // Limpar seleção de arquivo
+        document.getElementById('newFile').value = '';
+        document.getElementById('removeFile').checked = false;
+        
       } catch (error) {
-        console.error('Erro:', error);
-        messageEl.textContent = error.message;
-        messageEl.className = 'error';
+        console.error('Erro ao atualizar empresa:', error);
+        showMessage(`Erro: ${error.message}`, 'error');
       }
     });
 
+    // Funções auxiliares para mensagens
+    function showMessage(text, type) {
+      const messageEl = document.getElementById('message');
+      messageEl.textContent = text;
+      messageEl.className = `message ${type}`;
+    }
+
+    function clearMessage() {
+      const messageEl = document.getElementById('message');
+      messageEl.textContent = '';
+      messageEl.className = 'message';
+    }
+
     // Botão cancelar
     document.getElementById('cancelBtn').addEventListener('click', function() {
-      window.location.href = 'empresas.html';
+      if (confirm('Tem certeza que deseja cancelar? Todas as alterações não salvas serão perdidas.')) {
+        window.location.href = 'empresas.html';
+      }
     });
 
     // Carregar dados ao iniciar
     if (empresaId) {
       loadEmpresa();
     } else {
-      document.getElementById('message').textContent = 'ID da empresa não especificado';
-      document.getElementById('message').className = 'error';
+      showMessage('ID da empresa não especificado na URL', 'error');
+      document.getElementById('editForm').querySelectorAll('input, button').forEach(el => {
+        el.disabled = true;
+      });
     }
   </script>
 </body>

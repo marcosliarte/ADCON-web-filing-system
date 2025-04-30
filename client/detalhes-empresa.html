@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Detalhes da Empresa</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      color: #333;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 10px;
+    }
+    .section {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: white;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .section h2 {
+      margin-top: 0;
+      color: #444;
+      font-size: 1.2em;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 10px;
+    }
+    .info-item {
+      margin-bottom: 10px;
+      display: contents;
+    }
+    .info-label {
+      font-weight: bold;
+      color: #555;
+    }
+    .info-value {
+      word-break: break-word;
+    }
+    .document-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .document-info {
+      flex-grow: 1;
+    }
+    .document-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .action-buttons {
+      margin-top: 30px;
+      display: flex;
+      gap: 15px;
+      justify-content: flex-end;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+    .btn-print {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .btn-print:hover {
+      background-color: #45a049;
+    }
+    .btn-share {
+      background-color: #2196F3;
+      color: white;
+    }
+    .btn-share:hover {
+      background-color: #0b7dda;
+    }
+    .btn-edit {
+      background-color: #ff9800;
+      color: white;
+    }
+    .btn-edit:hover {
+      background-color: #e68a00;
+    }
+    .btn-back {
+      background-color: #f44336;
+      color: white;
+    }
+    .btn-back:hover {
+      background-color: #da190b;
+    }
+    .btn-download {
+      background-color: #9c27b0;
+      color: white;
+    }
+    .btn-download:hover {
+      background-color: #7b1fa2;
+    }
+    .btn-view {
+      background-color: #4caf50;
+      color: white;
+    }
+    .btn-view:hover {
+      background-color: #3e8e41;
+    }
+    .loading {
+      display: inline-block;
+      margin-left: 10px;
+    }
+    .error-message {
+      color: #d32f2f;
+      background-color: #fde0e0;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+    #visualizador-container {
+      margin-top: 20px;
+      display: none;
+    }
+    #visualizador-arquivo {
+      width: 100%;
+      height: 500px;
+      border: 1px solid #ddd;
+    }
+    @media print {
+      .action-buttons {
+        display: none;
+      }
+      body {
+        background-color: white;
+        margin: 0;
+        padding: 10px;
+      }
+      .container {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      #visualizador-container {
+        display: none !important;
+      }
+    }
+    @media (max-width: 600px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+      .info-item {
+        display: block;
+        margin-bottom: 10px;
+      }
+      .action-buttons {
+        flex-direction: column;
+        align-items: flex-end;
+      }
+      #visualizador-arquivo {
+        height: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Detalhes da Empresa</h1>
+    
+    <div id="loading" class="loading">Carregando dados da empresa...</div>
+    
+    <div id="error-container" style="display: none;">
+      <div class="error-message" id="error-message"></div>
+      <button class="btn btn-back" onclick="window.history.back()">Voltar</button>
+    </div>
+    
+    <div id="content" style="display: none;">
+      <div class="section">
+        <h2>Informações Básicas</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">ID:</span>
+            <span class="info-value" id="empresa-id"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Nome:</span>
+            <span class="info-value" id="nome-empresa"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">CNPJ:</span>
+            <span class="info-value" id="cnpj-empresa"></span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section" id="arquivo-section" style="display: none;">
+        <h2>Documento Anexado</h2>
+        <div class="document-container">
+          <div class="document-info">
+            <span id="nome-arquivo"></span>
+            <span id="tipo-arquivo" style="display: none;"></span>
+          </div>
+          <div class="document-actions">
+            <button class="btn btn-download" id="btn-download">Download</button>
+            <button class="btn btn-view" id="btn-visualizar">Visualizar</button>
+          </div>
+        </div>
+        <div id="visualizador-container">
+          <iframe id="visualizador-arquivo"></iframe>
+        </div>
+      </div>
+      
+      <div class="action-buttons">
+        <button class="btn btn-back" onclick="window.history.back()">Voltar</button>
+        <button class="btn btn-edit" id="btn-editar">Editar</button>
+        <button class="btn btn-share" id="btn-compartilhar">Compartilhar</button>
+        <button class="btn btn-print" onclick="window.print()">Imprimir</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // URL base para acessar os arquivos na pasta uploads
+    const BASE_UPLOADS_URL = '/uploads/';
+
+    // Função para carregar os dados da empresa
+    async function carregarDadosEmpresa() {
+      try {
+        mostrarLoading(true);
+        esconderErro();
+        esconderConteudo();
+        
+        // Obtém o ID da empresa da URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const empresaId = urlParams.get('id');
+        
+        if (!empresaId) {
+          throw new Error('ID da empresa não fornecido na URL');
+        }
+        
+        // Faz a requisição para a API
+        const response = await fetch(`/api/empresa/${empresaId}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erro ao carregar dados da empresa');
+        }
+        
+        const { data } = await response.json();
+        
+        // Preenche os dados na página
+        document.getElementById('empresa-id').textContent = data.id;
+        document.getElementById('nome-empresa').textContent = data.nome;
+        document.getElementById('cnpj-empresa').textContent = formatarCNPJ(data.cnpj);
+        
+        // Configura o botão de edição
+        document.getElementById('btn-editar').onclick = () => {
+            window.location.href = `editar.html?id=${data.id}`;
+        };
+        
+        // Configura o botão de compartilhamento
+        document.getElementById('btn-compartilhar').onclick = () => {
+          compartilharEmpresa(data);
+        };
+        
+        // Trata o arquivo anexado, se existir
+        if (data.arquivo) {
+          const nomeArquivo = data.arquivo.nome;
+          const extensao = nomeArquivo.split('.').pop().toLowerCase();
+          const urlArquivo = BASE_UPLOADS_URL + nomeArquivo;
+          const urlDownload = `/api/empresa/${data.id}/arquivo/download`;
+          
+          document.getElementById('nome-arquivo').textContent = nomeArquivo;
+          document.getElementById('tipo-arquivo').textContent = extensao;
+          
+          // Configura o botão de download
+          document.getElementById('btn-download').onclick = () => {
+            window.location.href = urlDownload;
+          };
+          
+          // Configura o botão de visualização
+          document.getElementById('btn-visualizar').onclick = () => {
+            visualizarDocumento(urlArquivo, extensao);
+          };
+          
+          document.getElementById('arquivo-section').style.display = 'block';
+        }
+        
+        mostrarConteudo();
+        
+      } catch (error) {
+        console.error('Erro ao carregar dados da empresa:', error);
+        mostrarErro(error.message);
+      } finally {
+        mostrarLoading(false);
+      }
+    }
+    
+    // Função para visualizar o documento
+    function visualizarDocumento(url, extensao) {
+      const visualizador = document.getElementById('visualizador-arquivo');
+      const container = document.getElementById('visualizador-container');
+      
+      // Tipos que podem ser exibidos diretamente no iframe
+      const tiposExibiveis = ['pdf', 'png', 'jpg', 'jpeg'];
+      
+      if (tiposExibiveis.includes(extensao)) {
+        // Mostra o visualizador
+        if (extensao === 'pdf') {
+          // Para PDF, usamos o visualizador do navegador
+          visualizador.src = url + '#view=FitH';
+        } else {
+          // Para imagens, exibe diretamente
+          visualizador.src = url;
+        }
+        container.style.display = 'block';
+        
+        // Rola a página até o visualizador
+        container.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        // Para outros tipos de arquivo, abre em nova aba
+        window.open(url, '_blank');
+      }
+    }
+    
+    // Função para formatar CNPJ
+    function formatarCNPJ(cnpj) {
+      if (!cnpj) return "Não informado";
+      return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+    
+    // Função para compartilhar dados da empresa
+    function compartilharEmpresa(empresa) {
+      // Verifica se a API de compartilhamento está disponível
+      if (navigator.share) {
+        navigator.share({
+          title: `Dados da Empresa: ${empresa.nome}`,
+          text: `CNPJ: ${formatarCNPJ(empresa.cnpj)}\n` +
+                `ID: ${empresa.id}`,
+          url: window.location.href
+        })
+        .catch(error => console.log('Erro ao compartilhar:', error));
+      } else {
+        // Fallback para navegadores que não suportam a API de compartilhamento
+        alert('Copie o link para compartilhar:\n' + window.location.href);
+      }
+    }
+    
+    // Funções auxiliares de UI
+    function mostrarLoading(mostrar) {
+      document.getElementById('loading').style.display = mostrar ? 'block' : 'none';
+    }
+    
+    function mostrarConteudo() {
+      document.getElementById('content').style.display = 'block';
+    }
+    
+    function esconderConteudo() {
+      document.getElementById('content').style.display = 'none';
+    }
+    
+    function mostrarErro(mensagem) {
+      document.getElementById('error-message').textContent = mensagem;
+      document.getElementById('error-container').style.display = 'block';
+    }
+    
+    function esconderErro() {
+      document.getElementById('error-container').style.display = 'none';
+    }
+    
+    // Carrega os dados quando a página é aberta
+    document.addEventListener('DOMContentLoaded', carregarDadosEmpresa);
+  </script>
+</body>
+</html>

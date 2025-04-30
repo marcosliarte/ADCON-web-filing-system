@@ -56,7 +56,7 @@
         const result = await response.json();
 
         // Exibindo a resposta no frontend
-        document.getElementById('mensagem').innerText = result.mensagem || result.erro || 'Erro no envio';
+        document.getElementById('mensagem').innerText = result.mensagem || result.erro || 'Cadastro realizado com sucesso!';
       } catch (error) {
         // Captura de erro em caso de falha na comunicação
         console.error('Erro ao enviar dados:', error);
