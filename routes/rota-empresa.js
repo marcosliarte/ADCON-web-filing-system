@@ -39,13 +39,38 @@ function limparCNPJ(cnpj) {
   return cnpj.replace(/[^\d]/g, '');
 }
 
-// Validação de CNPJ
 function validarCNPJ(cnpj) {
-  if (!/^\d{14}$/.test(cnpj)) return false;
+  const cnpjLimpo = limparCNPJ(cnpj);
+  if (!/^\d{14}$/.test(cnpjLimpo)) return false;
   
-  // Implementação da validação de dígitos verificadores do CNPJ
-  // (pode ser adicionada posteriormente para validação mais robusta)
+  // Validação dos dígitos verificadores
+  let tamanho = cnpjLimpo.length - 2;
+  let numeros = cnpjLimpo.substring(0, tamanho);
+  const digitos = cnpjLimpo.substring(tamanho);
+  let soma = 0;
+  let pos = tamanho - 7;
   
+  for (let i = tamanho; i >= 1; i--) {
+    soma += numeros.charAt(tamanho - i) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  
+  let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+  if (resultado != digitos.charAt(0)) return false;
+  
+  tamanho = tamanho + 1;
+  numeros = cnpjLimpo.substring(0, tamanho);
+  soma = 0;
+  pos = tamanho - 7;
+  
+  for (let i = tamanho; i >= 1; i--) {
+    soma += numeros.charAt(tamanho - i) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  
+  resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+  if (resultado != digitos.charAt(1)) return false;
+    
   return true;
 }
 
@@ -55,29 +80,54 @@ router.post('/empresa', upload.single('arquivo'), async (req, res) => {
     const { cnpj, nome } = req.body;
 
     if (!cnpj || !nome || !req.file) {
-      return res.status(400).json({ mensagem: 'Todos os campos são obrigatórios (CNPJ, nome, arquivo).' });
+      return res.status(400).json({ 
+        mensagem: 'Todos os campos são obrigatórios (CNPJ, nome, arquivo).',
+        camposFaltantes: {
+          cnpj: !cnpj,
+          nome: !nome,
+          arquivo: !req.file
+        }
+      });
     }
 
     const cnpjLimpo = limparCNPJ(cnpj);
 
     if (!validarCNPJ(cnpjLimpo)) {
-      return res.status(400).json({ mensagem: 'CNPJ inválido. Deve conter exatamente 14 dígitos numéricos.' });
+      return res.status(400).json({ 
+        mensagem: 'CNPJ inválido. Verifique o número digitado.',
+        cnpj: cnpjLimpo
+      });
     }
 
     const empresaExistente = await Empresa.findOne({ cnpj: cnpjLimpo });
     if (empresaExistente) {
-      return res.status(400).json({ mensagem: 'CNPJ já cadastrado.' });
+      return res.status(400).json({ 
+        mensagem: 'CNPJ já cadastrado.',
+        empresaExistente: {
+          id: empresaExistente._id,
+          nome: empresaExistente.nome
+        }
+      });
     }
 
     const novaEmpresa = new Empresa({
       cnpj: cnpjLimpo,
       nome,
       arquivo: req.file.filename,
-      nomeArquivo: req.file.originalname
+      nomeArquivo: req.file.originalname,
+      dataCadastro: new Date()
     });
 
     await novaEmpresa.save();
-    res.status(201).json({ mensagem: 'Cadastro realizado com sucesso!' });
+    
+    res.status(201).json({ 
+      mensagem: 'Cadastro realizado com sucesso!',
+      empresa: {
+        id: novaEmpresa._id,
+        nome: novaEmpresa.nome,
+        cnpj: novaEmpresa.cnpj
+      }
+    });
 
   } catch (err) {
     console.error('Erro ao salvar empresa:', err);
@@ -87,29 +137,34 @@ router.post('/empresa', upload.single('arquivo'), async (req, res) => {
     }
 
     if (err.message === 'Tipo de arquivo não permitido') {
-      return res.status(400).json({ mensagem: 'Tipo de arquivo não permitido. Envie apenas PDF, DOC, PNG, JPG, etc.' });
+      return res.status(400).json({ 
+        mensagem: 'Tipo de arquivo não permitido. Envie apenas: PDF, DOC, DOCX, PNG, JPG, JPEG.',
+        tiposPermitidos: ['.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg']
+      });
     }
 
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ mensagem: 'O arquivo excede o tamanho máximo de 5MB.' });
+        return res.status(400).json({ 
+          mensagem: 'O arquivo excede o tamanho máximo de 5MB.',
+          tamanhoMaximo: '5MB'
+        });
       }
       return res.status(400).json({ mensagem: 'Erro no upload do arquivo.' });
     }
 
-    if (err.message.includes('ENOENT') || err.message.includes('Error')) {
-      return res.status(500).json({ mensagem: 'Erro no processamento do arquivo.' });
-    }
-
-    res.status(500).json({ mensagem: 'Erro interno do servidor' });
+    res.status(500).json({ 
+      mensagem: 'Erro interno do servidor',
+      erro: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 });
 
-// GET - Listar empresas com paginação, ordenação e busca
+// GET - Listar empresas com paginação
 router.get('/empresas', async (req, res) => {
   try {
-    const { pagina = 1, ordem = 'nome', busca = '' } = req.query;
-    const limite = 10; // Número de itens por página
+    const { pagina = 1, limite = 10, busca = '' } = req.query;
     const skip = (pagina - 1) * limite;
 
     const query = {};
@@ -122,9 +177,9 @@ router.get('/empresas', async (req, res) => {
 
     const [empresas, total] = await Promise.all([
       Empresa.find(query)
-        .sort({ [ordem]: 1 })
+        .sort({ nome: 1 })
         .skip(skip)
-        .limit(limite),
+        .limit(Number(limite)),
       Empresa.countDocuments(query)
     ]);
 
@@ -132,84 +187,171 @@ router.get('/empresas', async (req, res) => {
 
     res.json({
       empresas,
-      totalPaginas,
-      paginaAtual: Number(pagina)
+      paginacao: {
+        pagina: Number(pagina),
+        limite: Number(limite),
+        total,
+        totalPaginas
+      }
     });
 
   } catch (err) {
     console.error('Erro ao listar empresas:', err);
-    res.status(500).json({ mensagem: 'Erro interno do servidor.' });
+    res.status(500).json({ 
+      mensagem: 'Erro interno do servidor',
+      erro: err.message
+    });
   }
 });
 
-// PUT - Atualizar empresa
+// GET - Obter empresa por ID
+router.get('/empresa/:id', async (req, res) => {
+  try {
+    const empresa = await Empresa.findById(req.params.id);
+    if (!empresa) {
+      return res.status(404).json({ 
+        mensagem: 'Empresa não encontrada.',
+        id: req.params.id
+      });
+    }
+    
+    res.json({
+      _id: empresa._id,
+      cnpj: empresa.cnpj,
+      nome: empresa.nome,
+      arquivo: empresa.arquivo,
+      nomeArquivo: empresa.nomeArquivo,
+      dataCadastro: empresa.dataCadastro,
+      urlArquivo: `/uploads/${empresa.arquivo}`
+    });
+    
+  } catch (err) {
+    console.error('Erro ao buscar empresa:', err);
+    if (err.kind === 'ObjectId') {
+      return res.status(400).json({ 
+        mensagem: 'ID inválido.',
+        id: req.params.id
+      });
+    }
+    res.status(500).json({ 
+      mensagem: 'Erro interno do servidor',
+      erro: err.message
+    });
+  }
+});
+
 router.put('/empresa/:id', upload.single('arquivo'), async (req, res) => {
   try {
-    const { nome, cnpj } = req.body;
+    const { nome, cnpj, removerArquivo } = req.body;
+    const empresaId = req.params.id;
 
+    // Validação básica
     if (!nome || !cnpj) {
-      return res.status(400).json({ mensagem: 'Nome e CNPJ são obrigatórios.' });
+      return res.status(400).json({
+        success: false,
+        message: 'Nome e CNPJ são obrigatórios'
+      });
     }
 
+    // Formata e valida CNPJ
     const cnpjLimpo = limparCNPJ(cnpj);
-
     if (!validarCNPJ(cnpjLimpo)) {
-      return res.status(400).json({ mensagem: 'CNPJ inválido. Deve conter exatamente 14 dígitos numéricos.' });
+      return res.status(400).json({
+        success: false,
+        message: 'CNPJ inválido (deve conter 14 dígitos)'
+      });
     }
 
-    // Verifica se o CNPJ já existe em outra empresa
-    const empresaComCNPJ = await Empresa.findOne({ cnpj: cnpjLimpo, _id: { $ne: req.params.id } });
-    if (empresaComCNPJ) {
-      return res.status(400).json({ mensagem: 'CNPJ já está em uso por outra empresa.' });
+    // Verifica se empresa existe
+    const empresa = await Empresa.findById(empresaId);
+    if (!empresa) {
+      return res.status(404).json({
+        success: false,
+        message: 'Empresa não encontrada'
+      });
     }
 
-    const dadosAtualizados = {
+    // Verifica CNPJ duplicado
+    const cnpjExistente = await Empresa.findOne({ 
+      cnpj: cnpjLimpo, 
+      _id: { $ne: empresaId } 
+    });
+    if (cnpjExistente) {
+      return res.status(400).json({
+        success: false,
+        message: 'CNPJ já está em uso por outra empresa'
+      });
+    }
+
+    // Prepara dados para atualização
+    const updateData = {
       nome,
       cnpj: cnpjLimpo
     };
 
+    // Tratamento do arquivo
     if (req.file) {
-      // Remove o arquivo antigo se existir
-      const empresa = await Empresa.findById(req.params.id);
-      if (empresa && empresa.arquivo) {
-        const caminhoArquivo = path.join('uploads', empresa.arquivo);
-        if (fs.existsSync(caminhoArquivo)) {
-          fs.unlinkSync(caminhoArquivo);
+      // Remove arquivo antigo se existir
+      if (empresa.arquivo) {
+        const caminhoAntigo = path.join(__dirname, '../uploads', empresa.arquivo);
+        if (fs.existsSync(caminhoAntigo)) {
+          fs.unlinkSync(caminhoAntigo);
         }
       }
-      
-      dadosAtualizados.arquivo = req.file.filename;
-      dadosAtualizados.nomeArquivo = req.file.originalname;
+      updateData.arquivo = req.file.filename;
+    } else if (removerArquivo === 'true') {
+      // Remove arquivo existente
+      if (empresa.arquivo) {
+        const caminhoAntigo = path.join(__dirname, '../uploads', empresa.arquivo);
+        if (fs.existsSync(caminhoAntigo)) {
+          fs.unlinkSync(caminhoAntigo);
+        }
+      }
+      updateData.arquivo = undefined;
     }
 
+    // Atualiza no banco
     const empresaAtualizada = await Empresa.findByIdAndUpdate(
-      req.params.id,
-      dadosAtualizados,
-      { new: true, runValidators: true }
+      empresaId,
+      updateData,
+      { new: true, runValidators: true, omitUndefined: true }
     );
 
-    if (!empresaAtualizada) {
-      return res.status(404).json({ mensagem: 'Empresa não encontrada.' });
+    // Resposta de sucesso
+    res.json({
+      success: true,
+      message: 'Empresa atualizada com sucesso',
+      data: {
+        id: empresaAtualizada._id,
+        cnpj: empresaAtualizada.cnpj,
+        nome: empresaAtualizada.nome,
+        arquivo: empresaAtualizada.arquivo || null
+      }
+    });
+
+  } catch (error) {
+    console.error('Erro na atualização:', error);
+    
+    // Tratamento de erros
+    let statusCode = 500;
+    let errorMessage = 'Erro interno no servidor';
+
+    if (error.name === 'ValidationError') {
+      statusCode = 400;
+      errorMessage = 'Dados inválidos';
+    } 
+    else if (error instanceof multer.MulterError) {
+      statusCode = 400;
+      errorMessage = error.code === 'LIMIT_FILE_SIZE' 
+        ? 'Arquivo muito grande (máx. 5MB)' 
+        : 'Erro no upload do arquivo';
     }
 
-    res.json({ mensagem: 'Empresa atualizada com sucesso!', empresa: empresaAtualizada });
-
-  } catch (err) {
-    console.error('Erro ao atualizar empresa:', err);
-
-    if (err.message === 'Tipo de arquivo não permitido') {
-      return res.status(400).json({ mensagem: 'Tipo de arquivo não permitido. Envie apenas PDF, DOC, PNG, JPG, etc.' });
-    }
-
-    if (err instanceof multer.MulterError) {
-      return res.status(400).json({ mensagem: 'Erro no upload do arquivo.' });
-    }
-
-    if (err.kind === 'ObjectId') {
-      return res.status(400).json({ mensagem: 'ID inválido.' });
-    }
-
-    res.status(500).json({ mensagem: 'Erro interno do servidor.' });
+    res.status(statusCode).json({
+      success: false,
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -217,25 +359,44 @@ router.put('/empresa/:id', upload.single('arquivo'), async (req, res) => {
 router.delete('/empresa/:id', async (req, res) => {
   try {
     const empresa = await Empresa.findById(req.params.id);
-
     if (!empresa) {
-      return res.status(404).json({ mensagem: 'Empresa não encontrada.' });
+      return res.status(404).json({ 
+        mensagem: 'Empresa não encontrada.',
+        id: req.params.id
+      });
     }
 
     // Remove o arquivo do sistema se existir
-    const caminhoArquivo = path.join('uploads', empresa.arquivo);
-    if (fs.existsSync(caminhoArquivo)) {
-      fs.unlinkSync(caminhoArquivo);
+    if (empresa.arquivo) {
+      const caminhoArquivo = path.join('uploads', empresa.arquivo);
+      if (fs.existsSync(caminhoArquivo)) {
+        fs.unlinkSync(caminhoArquivo);
+      }
     }
 
     await Empresa.deleteOne({ _id: req.params.id });
-    res.json({ mensagem: 'Empresa removida com sucesso.' });
+    
+    res.json({ 
+      mensagem: 'Empresa removida com sucesso.',
+      empresa: {
+        id: empresa._id,
+        nome: empresa.nome,
+        cnpj: empresa.cnpj
+      }
+    });
+    
   } catch (err) {
     console.error('Erro ao remover empresa:', err);
     if (err.kind === 'ObjectId') {
-      return res.status(400).json({ mensagem: 'ID inválido.' });
+      return res.status(400).json({ 
+        mensagem: 'ID inválido.',
+        id: req.params.id
+      });
     }
-    res.status(500).json({ mensagem: 'Erro interno do servidor.' });
+    res.status(500).json({ 
+      mensagem: 'Erro interno do servidor',
+      erro: err.message
+    });
   }
 });
 

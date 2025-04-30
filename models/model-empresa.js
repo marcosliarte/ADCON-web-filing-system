@@ -1,15 +1,14 @@
 const mongoose = require('mongoose');
 
-// Esquema da empresa
 const empresaSchema = new mongoose.Schema({
   cnpj: { 
     type: String, 
     required: true, 
-    unique: true, // Garante que o CNPJ não se repita no banco
+    unique: true,
     trim: true,
     validate: {
       validator: function(v) {
-        return /^\d{14}$/.test(v); // CNPJ com exatamente 14 dígitos numéricos
+        return /^\d{14}$/.test(v);
       },
       message: props => `${props.value} não é um CNPJ válido!`
     }
@@ -20,8 +19,8 @@ const empresaSchema = new mongoose.Schema({
     trim: true
   },
   arquivo: { 
-    type: String, 
-    required: true
+    type: String,
+    required: false
   }
 });
 
