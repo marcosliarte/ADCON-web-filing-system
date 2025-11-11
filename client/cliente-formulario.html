@@ -1,104 +1,501 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Cadastro de Empresa</title>
+    <meta charset="UTF-8">
+    <title>ADCON - Cadastro de Empresa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 900px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group-full { grid-column: 1 / -1; }
+        label { margin-bottom: 0.5rem; font-weight: bold; font-size: 0.9rem; }
+        input, select { width: 100%; padding: 0.7rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        input:focus, select:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,.25); }
+        .radio-group {
+            display: flex;
+            align-items: center; /* Alinha verticalmente os botões e labels */
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .radio-group label { font-weight: normal; margin-right: 0.5rem; }
+        .navigation-buttons { margin-top: 2rem; display: flex; justify-content: space-between; }
+        button { background-color: #007bff; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-add { background-color: #28a745; font-size: 0.9rem; padding: 0.5rem 1rem; }
+        .btn-add:hover { background-color: #218838; }
+        .socio-card, .alteracao-card { border: 1px solid #ddd; border-radius: 5px; padding: 1rem; margin-top: 1rem; background-color: #f8f9fa; }
+        .socio-card h3, .alteracao-card h3 { margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; }
+        #mensagem { margin-top: 1.5rem; padding: 1rem; border-radius: 5px; text-align: center; display: none; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
 </head>
 <body style="display: none;">
-  <!-- Script de bloqueio de acesso e exibição de conteúdo -->
-  <script>
-    if (localStorage.getItem('token')) {
-      document.body.style.display = 'block';
-    } else {
-      window.location.replace('login.html');
-    }
-  </script>
+    <div id="header-placeholder"></div>
 
-  <h2>Cadastro de Empresa</h2>
-  <form id="formulario-empresa">
-    <div id="etapa-1">
-      <label for="cnpj">CNPJ:</label>
-      <input type="text" id="cnpj" name="cnpj" required><br>
-      <button type="button" onclick="proximaEtapa(2)">Avançar</button>
+    <div class="container">
+        <h1>Cadastro de Nova Empresa</h1>
+        <form id="formulario-empresa">
+            <!-- ETAPA 1: DADOS DA EMPRESA -->
+            <div id="step-1" class="step active">
+                <h2><span style="font-size: 1.5rem;">1.</span> Dados da Empresa</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="cnpj">CNPJ</label>
+                        <input type="text" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="data_abertura">Data de Abertura</label>
+                        <input type="date" id="data_abertura" name="data_abertura" required>
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label for="nome_empresarial">Nome Empresarial</label>
+                        <input type="text" id="nome_empresarial" name="nome_empresarial" required>
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label for="nome_fantasia">Nome Fantasia (Opcional)</label>
+                        <input type="text" id="nome_fantasia" name="nome_fantasia">
+                    </div>
+                    <div class="form-group">
+                        <label for="capital_social">Capital Social</label>
+                        <input type="text" id="capital_social" name="capital_social" placeholder="R$ 0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="atividade_principal">Atividade Principal (CNAE)</label>
+                        <input type="text" id="atividade_principal" name="atividade_principal" placeholder="00.00-0-00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Porte</label>
+                        <div class="radio-group">
+                            <input type="radio" id="porte_mei" name="porte" value="MEI" required> <label for="porte_mei">MEI</label>
+                            <input type="radio" id="porte_me" name="porte" value="ME"> <label for="porte_me">ME</label>
+                            <input type="radio" id="porte_epp" name="porte" value="EPP"> <label for="porte_epp">EPP</label>
+                            <input type="radio" id="porte_outros" name="porte" value="Outros"> <label for="porte_outros">Outros</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Natureza Jurídica</label>
+                        <div class="radio-group">
+                            <input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required> <label for="natureza_individual">Individual</label>
+                            <input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada"> <label for="natureza_limitada">Limitada</label>
+                            <input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros"> <label for="natureza_outros">Outros</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Possui Filial?</label>
+                        <div class="radio-group">
+                            <input type="radio" id="filial_sim" name="possui_filial" value="sim" required> <label for="filial_sim">Sim</label>
+                            <input type="radio" id="filial_nao" name="possui_filial" value="nao"> <label for="filial_nao">Não</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Enquadrada no Simples?</label>
+                        <div class="radio-group">
+                            <input type="radio" id="simples_sim" name="simples_nacional" value="sim" required> <label for="simples_sim">Sim</label>
+                            <input type="radio" id="simples_nao" name="simples_nacional" value="nao"> <label for="simples_nao">Não</label>
+                        </div>
+                    </div>
+                </div>
+                <h3>Endereço Empresarial</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="cep">CEP</label>
+                        <input type="text" id="cep" name="endereco.cep" placeholder="00000-000" required>
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label for="rua">Rua</label>
+                        <input type="text" id="rua" name="endereco.rua" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="numero">Número</label>
+                        <input type="text" id="numero" name="endereco.numero" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="complemento">Complemento (Opcional)</label>
+                        <input type="text" id="complemento" name="endereco.complemento">
+                    </div>
+                    <div class="form-group">
+                        <label for="bairro">Bairro</label>
+                        <input type="text" id="bairro" name="endereco.bairro" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cidade">Cidade</label>
+                        <input type="text" id="cidade" name="endereco.cidade" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="estado">Estado</label>
+                        <input type="text" id="estado" name="endereco.estado" required>
+                    </div>
+                </div>
+                 <h3>Contato</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="telefone">Telefone</label>
+                        <input type="text" id="telefone" name="telefone" placeholder="(00) 00000-0000" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ETAPA 2: SÓCIOS -->
+            <div id="step-2" class="step">
+                <h2><span style="font-size: 1.5rem;">2.</span> Sócios</h2>
+                <div id="socios-container">
+                    <!-- Cards de sócios serão inseridos aqui -->
+                </div>
+                <button type="button" class="btn-add" onclick="adicionarSocio()">+ Adicionar Sócio</button>
+            </div>
+
+            <!-- ETAPA 3: DOCUMENTOS -->
+            <div id="step-3" class="step">
+                <h2><span style="font-size: 1.5rem;">3.</span> Documentos</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="arquivo_cnpj">Cartão CNPJ</label>
+                        <input type="file" id="arquivo_cnpj" name="arquivo_cnpj" accept=".pdf,.png,.jpg,.jpeg" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="certificado_digital">Certificado Digital</label>
+                        <input type="file" id="certificado_digital" name="certificado_digital" accept=".pfx,.p12">
+                    </div>
+                     <div class="form-group">
+                        <label for="certificado_validade">Validade do Certificado</label>
+                        <input type="date" id="certificado_validade" name="certificado_validade">
+                    </div>
+                </div>
+                <h3>Contrato Social</h3>
+                <div id="contratos-container">
+                     <div class="alteracao-card">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Arquivo do Contrato Original</label>
+                                <input type="file" name="contrato_social[0][arquivo]" accept=".pdf" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Data da Versão</label>
+                                <input type="date" name="contrato_social[0][data]" required>
+                            </div>
+                             <div class="form-group">
+                                <label>Número da Alteração (Opcional)</label>
+                                <input type="text" name="contrato_social[0][numero]">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-add" onclick="adicionarAlteracaoContrato()">+ Adicionar Alteração Contratual</button>
+            </div>
+
+            <!-- NAVEGAÇÃO E SUBMISSÃO -->
+            <div class="navigation-buttons">
+                <button type="button" id="prevBtn" class="btn-secondary" onclick="mudarEtapa(-1)">Anterior</button>
+                <button type="button" id="nextBtn" onclick="mudarEtapa(1)">Próximo</button>
+                <button type="submit" id="submitBtn" style="display:none;">Finalizar Cadastro</button>
+            </div>
+        </form>
+        <div id="mensagem"></div>
     </div>
 
-    <div id="etapa-2" style="display: none;">
-      <label for="nome">Nome:</label>
-      <input type="text" id="nome" name="nome" required><br>
-      <label for="email">Email:</label>
-      <input type="email" id="email" name="email" required><br>
-      <button type="button" onclick="proximaEtapa(3)">Avançar</button>
-    </div>
+    <!-- Template para o card de sócio -->
+    <template id="socio-template">
+        <div class="socio-card">
+            <h3>Dados do Sócio</h3>
+            <div class="form-grid">
+                <div class="form-group form-group-full">
+                    <label>Nome Completo</label>
+                    <input type="text" name="socios[INDEX][nome]" required>
+                </div>
+                <div class="form-group">
+                    <label>CPF</label>
+                    <input type="text" name="socios[INDEX][cpf]" placeholder="000.000.000-00" required>
+                </div>
+                <div class="form-group">
+                    <label>RG</label>
+                    <input type="text" name="socios[INDEX][rg]" required>
+                </div>
+                <div class="form-group">
+                    <label>Data de Nascimento</label>
+                    <input type="date" name="socios[INDEX][data_nascimento]" required>
+                </div>
+                <div class="form-group">
+                    <label>Sócio Administrador?</label>
+                    <select name="socios[INDEX][is_admin]" required>
+                        <option value="nao">Não</option>
+                        <option value="sim">Sim</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Estado Civil</label>
+                    <select name="socios[INDEX][estado_civil]" onchange="toggleRegimeCasamento(this)" required>
+                        <option value="solteiro">Solteiro(a)</option>
+                        <option value="casado">Casado(a)</option>
+                        <option value="divorciado">Divorciado(a)</option>
+                        <option value="viuvo">Viúvo(a)</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: none;">
+                    <label>Regime de Casamento</label>
+                    <select name="socios[INDEX][regime_casamento]">
+                        <option value="comunhao_parcial">Comunhão Parcial de Bens</option>
+                        <option value="comunhao_universal">Comunhão Universal de Bens</option>
+                        <option value="separacao_total">Separação Total de Bens</option>
+                        <option value="participacao_final">Participação Final nos Aquestos</option>
+                    </select>
+                </div>
+            </div>
+            <h4>Endereço do Sócio</h4>
+            <div class="form-grid">
+                 <div class="form-group">
+                    <label>CEP</label>
+                    <input type="text" name="socios[INDEX][endereco][cep]" placeholder="00000-000" onblur="buscarCepSocio(this)" required>
+                </div>
+                <div class="form-group form-group-full">
+                    <label>Rua</label>
+                    <input type="text" name="socios[INDEX][endereco][rua]" required>
+                </div>
+                <div class="form-group">
+                    <label>Número</label>
+                    <input type="text" name="socios[INDEX][endereco][numero]" required>
+                </div>
+                <div class="form-group">
+                    <label>Bairro</label>
+                    <input type="text" name="socios[INDEX][endereco][bairro]" required>
+                </div>
+                <div class="form-group">
+                    <label>Cidade</label>
+                    <input type="text" name="socios[INDEX][endereco][cidade]" required>
+                </div>
+                <div class="form-group">
+                    <label>Estado</label>
+                    <input type="text" name="socios[INDEX][endereco][estado]" required>
+                </div>
+            </div>
+        </div>
+    </template>
 
-    <div id="etapa-3" style="display: none;">
-      <label for="arquivo">Arquivo PDF:</label>
-      <input type="file" id="arquivo" name="arquivo" accept="application/pdf" required><br>
-      <button type="submit">Enviar</button>
-    </div>
-  </form>
+    <!-- Template para alteração de contrato -->
+    <template id="contrato-template">
+        <div class="alteracao-card">
+            <h3>Alteração Contratual</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Arquivo da Alteração</label>
+                    <input type="file" name="contrato_social[INDEX][arquivo]" accept=".pdf" required>
+                </div>
+                <div class="form-group">
+                    <label>Data da Alteração</label>
+                    <input type="date" name="contrato_social[INDEX][data]" required>
+                </div>
+                <div class="form-group">
+                    <label>Número da Alteração</label>
+                    <input type="text" name="contrato_social[INDEX][numero]" required>
+                </div>
+            </div>
+        </div>
+    </template>
 
-  <div id="mensagem"></div>
-
-  <script>
-    console.log("Script cliente-formulario.html iniciado.");
-    async function fetchWithAuth(url, options = {}) {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = 'login.html';
-        return;
-      }
-
-      const headers = {
-        ...options.headers,
-        'x-auth-token': token
-      };
-
-      const response = await fetch(url, { ...options, headers });
-
-      if (response.status === 401 || response.status === 403) {
-        window.location.href = 'login.html';
-        return;
-      }
-
-      return response;
-    }
-  
-    function proximaEtapa(etapa) {
-      document.getElementById('etapa-' + (etapa - 1)).style.display = 'none';
-      document.getElementById('etapa-' + etapa).style.display = 'block';
-    }
-
-    document.getElementById('formulario-empresa').addEventListener('submit', async function(e) {
-      e.preventDefault();
-
-      const formData = new FormData(this);
-
-      try {
-        const response = await fetchWithAuth('/api/empresas', {
-          method: 'POST',
-          body: formData
-        });
-
-        if(response) {
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.message || 'Erro na comunicação com o servidor');
-            }
-    
-            const result = await response.json();
-    
-            document.getElementById('mensagem').innerText = 'Cadastro realizado com sucesso!';
-            setTimeout(() => {
-                window.location.href = 'empresas.html';
-            }, 2000);
+    <script src="shared.js"></script>
+    <script>
+        // Garante que o corpo da página só seja exibido se o usuário estiver logado
+        if (localStorage.getItem('token')) {
+            document.body.style.display = 'block';
+        } else {
+            window.location.replace('login.html');
         }
 
-      } catch (error) {
-        console.error('Erro ao enviar dados:', error);
-        document.getElementById('mensagem').innerText = 'Erro ao enviar os dados: ' + error.message;
-      }
-    });
+        let currentStep = 1;
+        const totalSteps = 3;
+        let socioIndex = 0;
+        let contratoIndex = 1;
 
-  </script>
+        document.addEventListener('DOMContentLoaded', () => {
+            showStep(currentStep);
+            adicionarSocio(); // Adiciona o primeiro sócio por padrão
+
+            // Aplica máscaras aos campos iniciais
+            setupInitialMasks();
+
+            // Listener para busca de CEP da empresa
+            document.getElementById('cep').addEventListener('blur', async (e) => {
+                const cep = e.target.value.replace(/\D/g, '');
+                if (cep.length === 8) {
+                    const data = await fetchCep(cep);
+                    if (data) {
+                        document.getElementById('rua').value = data.logradouro;
+                        document.getElementById('bairro').value = data.bairro;
+                        document.getElementById('cidade').value = data.localidade;
+                        document.getElementById('estado').value = data.uf;
+                    }
+                }
+            });
+        });
+
+        function showStep(step) {
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+
+            document.getElementById('prevBtn').style.display = step === 1 ? 'none' : 'inline-block';
+            document.getElementById('nextBtn').style.display = step === totalSteps ? 'none' : 'inline-block';
+            document.getElementById('submitBtn').style.display = step === totalSteps ? 'inline-block' : 'none';
+        }
+
+        function mudarEtapa(n) {
+            // Validação antes de avançar
+            if (n > 0 && !validateStep(currentStep)) {
+                alert('Por favor, preencha todos os campos obrigatórios antes de avançar.');
+                return;
+            }
+            currentStep += n;
+            showStep(currentStep);
+        }
+
+        function validateStep(step) {
+            const currentStepDiv = document.getElementById(`step-${step}`);
+            const inputs = currentStepDiv.querySelectorAll('input[required], select[required]');
+            for (const input of inputs) {
+                if (!input.value.trim()) {
+                    input.style.borderColor = 'red';
+                    return false;
+                }
+                input.style.borderColor = '#ccc';
+            }
+            return true;
+        }
+
+        function adicionarSocio() {
+            const template = document.getElementById('socio-template').innerHTML;
+            const container = document.getElementById('socios-container');
+            const newSocio = document.createElement('div');
+            newSocio.innerHTML = template.replace(/INDEX/g, socioIndex);
+            container.appendChild(newSocio);
+            applyMasks(newSocio);
+            socioIndex++;
+        }
+
+        function adicionarAlteracaoContrato() {
+            const template = document.getElementById('contrato-template').innerHTML;
+            const container = document.getElementById('contratos-container');
+            const newContrato = document.createElement('div');
+            newContrato.innerHTML = template.replace(/INDEX/g, contratoIndex);
+            container.appendChild(newContrato);
+            contratoIndex++;
+        }
+
+        function toggleRegimeCasamento(select) {
+            const regimeDiv = select.closest('.form-group').nextElementSibling;
+            regimeDiv.style.display = select.value === 'casado' ? 'block' : 'none';
+        }
+
+        async function fetchCep(cep) {
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                if (!response.ok) throw new Error('CEP não encontrado');
+                const data = await response.json();
+                if (data.erro) throw new Error('CEP inválido');
+                return data;
+            } catch (error) {
+                alert(error.message);
+                return null;
+            }
+        }
+
+        async function buscarCepSocio(cepInput) {
+            const cep = cepInput.value.replace(/\D/g, '');
+            if (cep.length === 8) {
+                const data = await fetchCep(cep);
+                if (data) {
+                    const socioCard = cepInput.closest('.socio-card');
+                    socioCard.querySelector('input[name$="[endereco][rua]"]').value = data.logradouro;
+                    socioCard.querySelector('input[name$="[endereco][bairro]"]').value = data.bairro;
+                    socioCard.querySelector('input[name$="[endereco][cidade]"]').value = data.localidade;
+                    socioCard.querySelector('input[name$="[endereco][estado]"]').value = data.uf;
+                }
+            }
+        }
+
+        // --- MÁSCARAS ---
+        function formatInput(input, maskFunction) {
+            input.addEventListener('input', (e) => {
+                e.target.value = maskFunction(e.target.value);
+            });
+        }
+
+        const maskCnpj = (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d)/, '$1-$2').slice(0, 18);
+        const maskCpf = (value) => value.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2').slice(0, 14);
+        const maskCep = (value) => value.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
+        const maskPhone = (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 15);
+        const maskCnae = (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{2})(\d)/, '$1-$2').replace(/(\d{1})(\d)/, '$1/$2').slice(0, 10);
+        const maskCurrency = (value) => {
+            let v = value.replace(/\D/g, '');
+            v = (v / 100).toFixed(2) + '';
+            v = v.replace(".", ",");
+            v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            return 'R$ ' + v;
+        };
+
+        function setupInitialMasks() {
+            formatInput(document.getElementById('cnpj'), maskCnpj);
+            formatInput(document.getElementById('cep'), maskCep);
+            formatInput(document.getElementById('telefone'), maskPhone);
+            formatInput(document.getElementById('atividade_principal'), maskCnae);
+            formatInput(document.getElementById('capital_social'), maskCurrency);
+        }
+
+        function applyMasks(container) {
+            formatInput(container.querySelector('input[name$="[cpf]"]'), maskCpf);
+            formatInput(container.querySelector('input[name$="[endereco][cep]"]'), maskCep);
+        }
+
+        // --- SUBMISSÃO DO FORMULÁRIO ---
+        document.getElementById('formulario-empresa').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!validateStep(currentStep)) {
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+
+            const formData = new FormData(this);
+            const mensagemDiv = document.getElementById('mensagem');
+
+            try {
+                // A função fetchWithAuth já está no shared.js
+                const response = await fetchWithAuth('/api/empresas', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response && response.ok) {
+                    const result = await response.json();
+                    mensagemDiv.textContent = 'Empresa cadastrada com sucesso!';
+                    mensagemDiv.className = 'success';
+                    mensagemDiv.style.display = 'block';
+                    setTimeout(() => window.location.href = 'empresas.html', 2000);
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Erro ao cadastrar empresa.');
+                }
+            } catch (error) {
+                mensagemDiv.textContent = `Erro: ${error.message}`;
+                mensagemDiv.className = 'error';
+                mensagemDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Finalizar Cadastro';
+            }
+        });
+    </script>
 </body>
 </html>

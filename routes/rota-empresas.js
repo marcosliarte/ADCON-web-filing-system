@@ -12,24 +12,34 @@ const Usuario = require('../models/model-usuario'); // Para verificar roles
 // Configuração do Multer para upload de arquivos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../uploads/certidoes');
+    // Salva diferentes tipos de arquivos em pastas diferentes
+    let subfolder = 'documentos_empresa';
+    if (file.fieldname.startsWith('contrato_social')) {
+      subfolder = 'contratos';
+    } else if (file.fieldname === 'certificado_digital') {
+      subfolder = 'certificados';
+    }
+    const uploadPath = path.join(__dirname, `../uploads/${subfolder}`);
     fs.mkdirSync(uploadPath, { recursive: true }); // Garante que o diretório exista
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     // Sanitiza o nome do arquivo para remover caracteres inválidos
     const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '');
-    cb(null, `${Date.now()}-${sanitizedFilename}`);
+    const uniquePrefix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    cb(null, `${uniquePrefix}-${sanitizedFilename}`);
   },
 });
 
 const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
+    // Permite os tipos de arquivo definidos no formulário
+    const allowedTypes = /pdf|jpeg|jpg|png|pfx|p12/;
+    if (allowedTypes.test(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Apenas arquivos PDF são permitidos!'), false);
+      cb(new Error('Tipo de arquivo não permitido!'), false);
     }
   },
 });
@@ -41,10 +51,18 @@ router.post(
   '/',
   [
     auth,
-    upload.single('arquivo'), // 'arquivo' é o nome do campo no formulário
-    check('cnpj', 'CNPJ é obrigatório').not().isEmpty(),
-    check('nome', 'Nome da empresa é obrigatório').not().isEmpty(),
-    check('email', 'Email da empresa é obrigatório').isEmail(),
+    // Espera arquivos de múltiplos campos definidos no formulário
+    upload.fields([
+      { name: 'arquivo_cnpj', maxCount: 1 },
+      { name: 'certificado_digital', maxCount: 1 },
+      // Permite múltiplos arquivos para alterações contratuais
+      { name: 'contrato_social[0][arquivo]', maxCount: 1 },
+      { name: 'contrato_social[1][arquivo]', maxCount: 1 },
+      { name: 'contrato_social[2][arquivo]', maxCount: 1 },
+      { name: 'contrato_social[3][arquivo]', maxCount: 1 },
+      { name: 'contrato_social[4][arquivo]', maxCount: 1 } // Adicione mais se precisar
+    ]),
+    check('nome_empresarial', 'Nome empresarial é obrigatório').not().isEmpty(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -58,39 +76,70 @@ router.post(
       return res.status(403).json({ msg: 'Acesso negado. Você não tem permissão para cadastrar empresas.' });
     }
 
-    const { cnpj, nome, email } = req.body;
+    const { cnpj } = req.body;
 
     try {
       let empresa = await Empresa.findOne({ cnpj });
       if (empresa) {
-        return res.status(400).json({ msg: 'Empresa com este CNPJ já existe' });
+        return res.status(400).json({ msg: 'Empresa com este CNPJ já cadastrado.' });
       }
 
-      const novaEmpresa = new Empresa({
-        // Define o ownerId se o usuário logado for um empresário
-        ownerId: (usuarioLogado.role === 'empresario') ? req.usuario.id : undefined,
-        // Se um admin/funcionario está criando para um empresário específico,
-        // o ownerId pode vir do body (ex: formData.append('ownerId', 'id_do_empresario'))
-        // Por simplicidade, aqui assumimos que o empresário só cria para si mesmo.
-        // Para admins/funcionarios criando para outros, seria necessário um campo extra no formulário.
-        // ownerId: req.body.ownerId || (usuarioLogado.role === 'empresario' ? req.usuario.id : undefined),
-        cnpj,
-        nome,
-        email,
-      });
+      // Mapeia os dados do body para o schema, incluindo objetos aninhados
+      const dadosEmpresa = {
+        ...req.body,
+        nome: req.body.nome_empresarial, // Mapeia o nome_empresarial do form para o campo 'nome' do schema
+        endereco: req.body.endereco || {},
+        socios: [],
+        documentos: {
+          contratos: [],
+        },
+      };
 
-      if (req.file) {
-        novaEmpresa.certidoes.push({
-          nomeArquivo: req.file.originalname,
-          caminhoArquivo: `/uploads/certidoes/${req.file.filename}`, // Caminho relativo para acesso via web
-          // dataValidade: req.body.dataValidade // Se houver um campo para isso no formulário
-        });
+      // Processa os sócios
+      if (req.body.socios) {
+        dadosEmpresa.socios = Object.values(req.body.socios);
       }
+
+      // Processa os arquivos e associa aos dados
+      if (req.files) {
+        if (req.files.arquivo_cnpj) {
+          const file = req.files.arquivo_cnpj[0];
+          dadosEmpresa.documentos.cartaoCnpj = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/documentos_empresa/${file.filename}` };
+        }
+        if (req.files.certificado_digital) {
+          const file = req.files.certificado_digital[0];
+          dadosEmpresa.documentos.certificadoDigital = { 
+            nomeArquivo: file.originalname, 
+            caminhoArquivo: `/uploads/certificados/${file.filename}`,
+            dataValidade: req.body.certificado_validade 
+          };
+        }
+
+        // Processa os contratos
+        if (req.body.contrato_social) {
+          Object.keys(req.body.contrato_social).forEach(key => {
+            const contratoInfo = req.body.contrato_social[key];
+            const fileInfo = req.files[`contrato_social[${key}][arquivo]`];
+            if (fileInfo) {
+              const file = fileInfo[0];
+              dadosEmpresa.documentos.contratos.push({
+                nomeArquivo: file.originalname,
+                caminhoArquivo: `/uploads/contratos/${file.filename}`,
+                dataAlteracao: contratoInfo.data,
+                numeroAlteracao: contratoInfo.numero
+              });
+            }
+          });
+        }
+      }
+
+      const novaEmpresa = new Empresa(dadosEmpresa);
 
       await novaEmpresa.save();
-      res.json(novaEmpresa);
+      res.status(201).json(novaEmpresa);
     } catch (err) {
       console.error(err.message);
+      console.error(err.stack); // Adiciona mais detalhes do erro no log
       res.status(500).send('Erro no servidor');
     }
   }

@@ -323,6 +323,9 @@
             <div class="card">
                 <p><a href="empresas.html">Gerenciar Empresas</a></p>
             </div>
+            <div class="card" id="cadastrar-empresa-link" style="display: none;">
+                <p><a href="cliente-formulario.html">Cadastrar Nova Empresa</a></p>
+            </div>
             <div class="card" id="admin-links" style="display: none;">
                 <p><a href="user-management.html">Gerenciar Usuários</a></p>
             </div>
@@ -429,6 +432,10 @@
                     }
                     if (usuario.role === 'admin') {
                         document.getElementById('admin-links').style.display = 'block';
+                    }
+                    // Mostra o link de cadastro para Admin e Funcionário
+                    if (usuario.role === 'admin' || usuario.role === 'funcionario') {
+                        document.getElementById('cadastrar-empresa-link').style.display = 'block';
                     }
                 }
             } catch (error) {
