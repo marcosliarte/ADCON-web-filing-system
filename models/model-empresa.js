@@ -1,29 +1,46 @@
 const mongoose = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate-v2');
 
-const empresaSchema = new mongoose.Schema({
-  cnpj: { 
-    type: String, 
-    required: true, 
-    unique: true,
-    trim: true,
-    validate: {
-      validator: function(v) {
-        return /^\d{14}$/.test(v);
-      },
-      message: props => `${props.value} não é um CNPJ válido!`
-    }
-  },
-  nome: { 
-    type: String, 
-    required: true,
-    trim: true
-  },
-  arquivo: { 
+const CertidaoSchema = mongoose.Schema({
+  nomeArquivo: {
     type: String,
-    required: false
-  }
+    required: true,
+  },
+  caminhoArquivo: {
+    type: String,
+    required: true,
+  },
+  dataUpload: {
+    type: Date,
+    default: Date.now,
+  },
+  dataValidade: {
+    type: Date,
+  },
 });
 
-const Empresa = mongoose.model('Empresa', empresaSchema);
+const EmpresaSchema = mongoose.Schema({
+  cnpj: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  nome: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+  },
+  ownerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Usuario',
+  },
+  certidoes: [CertidaoSchema],
+  dataCadastro: { type: Date, default: Date.now },
+});
 
-module.exports = Empresa;
+EmpresaSchema.plugin(mongoosePaginate);
+
+module.exports = mongoose.model('Empresa', EmpresaSchema);

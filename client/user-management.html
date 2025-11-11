@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Gerenciar Usuários</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; background-color: #f4f7f6; color: #333; }
+        h1 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; }
+        .container { max-width: 1200px; margin: 0 auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        .form-section, .list-section { margin-bottom: 2rem; padding: 1.5rem; border: 1px solid #dee2e6; border-radius: 5px; background-color: #f8f9fa; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        input[type="text"], input[type="email"], input[type="password"], select {
+            width: calc(100% - 16px);
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+        }
+        button:hover { background-color: #0056b3; }
+        button.delete-btn { background-color: #dc3545; }
+        button.delete-btn:hover { background-color: #c82333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #e9ecef; }
+        .message { margin-top: 1rem; padding: 1rem; border-radius: 5px; }
+        .message.success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .message.error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+    </style>
+</head>
+<body style="display: none;">
+    <!-- Script de bloqueio de acesso e exibição de conteúdo -->
+    <script>
+        if (localStorage.getItem('token')) {
+            document.body.style.display = 'block';
+        } else {
+            window.location.replace('login.html');
+        }
+    </script>
+
+    <div class="container">
+        <h1>Gerenciar Usuários</h1>
+        <button onclick="window.location.href='home.html'">Voltar para Home</button>
+
+        <div class="form-section">
+            <h2>Criar Novo Usuário</h2>
+            <form id="createUserForm">
+                <div class="form-group">
+                    <label for="nome">Nome:</label>
+                    <input type="text" id="nome" name="nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="senha">Senha:</label>
+                    <input type="password" id="senha" name="senha" required>
+                </div>
+                <div class="form-group">
+                    <label for="role">Perfil:</label>
+                    <select id="role" name="role" required>
+                        <option value="funcionario">Funcionário</option>
+                        <option value="empresario">Empresário</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <button type="submit">Criar Usuário</button>
+                <div id="createMessage" class="message"></div>
+            </form>
+        </div>
+
+        <div class="list-section">
+            <h2>Lista de Usuários</h2>
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Perfil</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="4">Carregando usuários...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let currentUser; // Usuário logado (admin)
+
+        async function fetchWithAuth(url, options = {}) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.replace('login.html');
+                return;
+            }
+
+            const headers = {
+                ...options.headers,
+                'x-auth-token': token
+            };
+
+            if (!(options.body instanceof FormData)) {
+                headers['Content-Type'] = 'application/json';
+            }
+
+            const response = await fetch(url, { ...options, headers });
+
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('token');
+                window.location.replace('login.html');
+                return;
+            }
+
+            return response;
+        }
+
+        async function getAdminUser() {
+            const response = await fetchWithAuth('/api/auth');
+            if (response) {
+                currentUser = await response.json();
+                if (currentUser.role !== 'admin') {
+                    alert('Acesso negado. Apenas administradores podem gerenciar usuários.');
+                    window.location.href = 'home.html';
+                }
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetchWithAuth('/api/auth/admin/users');
+                if (response && response.ok) {
+                    const users = await response.json();
+                    const tbody = document.querySelector('#usersTable tbody');
+                    tbody.innerHTML = '';
+                    users.forEach(user => {
+                        const row = tbody.insertRow();
+                        row.insertCell(0).textContent = user.nome;
+                        row.insertCell(1).textContent = user.email;
+                        row.insertCell(2).textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+                        const actionsCell = row.insertCell(3);
+                        if (user._id !== currentUser._id) { // Não permite deletar a si mesmo
+                            actionsCell.innerHTML = `<button class="delete-btn" onclick="deleteUser('${user._id}')">Excluir</button>`;
+                        } else {
+                            actionsCell.textContent = 'Você';
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar usuários:', error);
+                alert('Erro ao carregar usuários.');
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Tem certeza que deseja excluir este usuário?')) {
+                return;
+            }
+            try {
+                const response = await fetchWithAuth(`/api/auth/admin/users/${userId}`, {
+                    method: 'DELETE'
+                });
+                if (response && response.ok) {
+                    alert('Usuário excluído com sucesso!');
+                    loadUsers(); // Recarrega a lista
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Falha ao excluir usuário.');
+                }
+            } catch (error) {
+                console.error('Erro ao excluir usuário:', error);
+                alert(`Erro: ${error.message}`);
+            }
+        }
+
+        document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const nome = document.getElementById('nome').value;
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const role = document.getElementById('role').value;
+            const createMessage = document.getElementById('createMessage');
+
+            try {
+                const response = await fetchWithAuth('/api/auth/admin/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, email, senha, role })
+                });
+
+                if (response && response.ok) {
+                    createMessage.className = 'message success';
+                    createMessage.textContent = 'Usuário criado com sucesso!';
+                    this.reset(); // Limpa o formulário
+                    loadUsers(); // Recarrega a lista
+                } else {
+                    const errorData = await response.json();
+                    createMessage.className = 'message error';
+                    createMessage.textContent = errorData.msg || errorData.errors?.[0]?.msg || 'Erro ao criar usuário.';
+                }
+            } catch (error) {
+                console.error('Erro ao criar usuário:', error);
+                createMessage.className = 'message error';
+                createMessage.textContent = 'Erro de conexão com o servidor.';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await getAdminUser(); // Verifica se é admin
+            loadUsers();
+        });
+    </script>
+</body>
+</html>

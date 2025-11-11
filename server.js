@@ -1,77 +1,58 @@
+require('dotenv').config(); // Carrega as variáveis de ambiente do arquivo .env
 const express = require('express');
-const mongoose = require('mongoose');
-const path = require('path');
-const multer = require('multer'); // Importando multer para lidar com uploads
-const empresaRoute = require('./routes/rota-empresa'); // Importando as rotas
-const fs = require('fs'); // Para manipulação de arquivos e diretórios
-const cors = require('cors'); // Para permitir CORS, se necessário
+const cors = require('cors');
+const mongoose = require('mongoose'); // Importe o Mongoose
+const path = require('path'); // Módulo para lidar com caminhos de arquivos
+const helmet = require('helmet'); // Para segurança dos cabeçalhos HTTP
+const mongoSanitize = require('express-mongo-sanitize'); // Para prevenir NoSQL Injection
+
+// Importar rotas
+const authRoutes = require('./routes/rota-auth');
+const empresaRoutes = require('./routes/rota-empresas');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-// Configuração do Multer para salvar arquivos de forma segura
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads/'; // Diretório de upload
-
-    // Verifica se o diretório existe, caso contrário, cria
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
-    }
-
-    cb(null, uploadDir); // Define o diretório de destino
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Define um nome único para o arquivo
-  }
+// Conectar ao MongoDB
+mongoose.connect(MONGODB_URI)
+.then(() => console.log('Conectado ao MongoDB'))
+.catch(err => {
+    console.error('Erro ao conectar ao MongoDB:', err);
+    process.exit(1); // Encerra a aplicação se não conseguir conectar ao DB
 });
 
-// Adicionando validações de tipo de arquivo e tamanho
-const upload = multer({
-  storage: storage,
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-    if (!allowedTypes.includes(file.mimetype)) {
-      return cb(new Error('Tipo de arquivo não permitido'), false);
-    }
-    cb(null, true);
-  },
-  limits: { fileSize: 10 * 1024 * 1024 } // Limitar o tamanho do arquivo para 10MB
-});
+// --- ORDEM CORRETA DOS MIDDLEWARES ---
 
-// Conexão com o MongoDB
-mongoose.connect('mongodb://localhost:27017/system_adcon', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log('Conectado ao MongoDB'))
-  .catch(err => console.error('Erro de conexão:', err));
+// 1. Middlewares de Segurança primeiro
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "script-src": ["'self'", "'unsafe-inline'"], // Permite <script> tags
+      "script-src-attr": ["'self'", "'unsafe-inline'"], // Permite onclick="", etc.
+    },
+  })
+);
+app.use(mongoSanitize()); // Previne NoSQL Injection
 
-// Middleware para JSON e URL-encoded
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Configuração de CORS (caso o frontend esteja em outro servidor)
+// 2. Middlewares de parsing e CORS
 app.use(cors());
+app.use(express.json());
 
-// Servindo o formulário estático (frontend)
-app.use(express.static(path.join(__dirname, 'client')));
+// 3. Middlewares de Rota
+app.use('/api/auth', authRoutes);
+// Unifica as rotas de empresa sob o mesmo router para evitar conflitos
+app.use('/api/auth/admin', authRoutes); // Rotas de admin para usuários
+app.use('/api/empresas', empresaRoutes);
 
-// Servindo os arquivos enviados (uploads)
+// 4. Middlewares para servir arquivos estáticos (frontend e uploads)
+app.use(express.static('client'));
+app.use('/assets', express.static(path.join(__dirname, 'client/assets')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Rota para as empresas
-app.use('/api', empresaRoute); // Certifique-se de que a rota está correta em rota-empresa.js
-
-// Tratamento de erros do Multer (para uma resposta mais amigável ao frontend)
-app.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    return res.status(400).json({ mensagem: err.message });
-  }
-  if (err) {
-    return res.status(500).json({ mensagem: 'Erro no servidor' });
-  }
-  next();
+app.listen(PORT, () => {
+    console.log(`Servidor rodando em http://localhost:${PORT}`);
+    console.log(`JWT_SECRET carregado: ${process.env.JWT_SECRET ? 'Sim' : 'Não'}`); // Adicionado para debug
+    console.log('Acesse a aplicação em http://localhost:3000/empresas.html');
 });
-
-// Iniciar o servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

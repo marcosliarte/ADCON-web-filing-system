@@ -4,78 +4,39 @@
   <meta charset="UTF-8">
   <title>Empresas Cadastradas</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 20px 0;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 12px;
-      text-align: left;
-    }
-    th {
-      background-color: #f2f2f2;
-      cursor: pointer;
-      position: relative;
-    }
-    th:hover {
-      background-color: #e6e6e6;
-    }
-    th.sorted-asc::after {
-      content: " ↑";
-      font-size: 12px;
-    }
-    th.sorted-desc::after {
-      content: " ↓";
-      font-size: 12px;
-    }
-    .search-container {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    #busca {
-      padding: 8px;
-      width: 300px;
-    }
-    button {
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-    .pagination {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    .pagination button {
-      padding: 6px 12px;
-    }
-    .disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-    .actions button {
-      margin-right: 5px;
-    }
-    .loading {
-      display: inline-block;
-      margin-left: 10px;
-    }
+    body { font-family: sans-serif; margin: 2em; }
+    h1 { color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; cursor: pointer; }
+    th:hover { background-color: #e0e0e0; }
+    .search-container { margin-bottom: 1em; }
+    .search-container input { padding: 8px; }
+    .search-container button { padding: 8px 12px; }
+    .pagination { margin-top: 1em; }
+    .pagination button { margin: 0 5px; }
+    .actions button { margin-right: 5px; }
+    .loading { margin-left: 10px; font-style: italic; color: #555; }
+    .arrow { display: inline-block; margin-left: 5px; }
   </style>
 </head>
-<body>
+<body style="display: none;">
+  <!-- Script de bloqueio de acesso e exibição de conteúdo -->
+  <script>
+    if (localStorage.getItem('token')) {
+      document.body.style.display = 'block';
+    } else {
+      window.location.replace('login.html');
+    }
+  </script>
+
   <h1>Empresas Cadastradas</h1>
 
   <div class="search-container">
     <input type="text" id="busca" placeholder="Buscar por nome ou CNPJ">
     <button id="btn-buscar" onclick="buscarEmpresas()">Buscar</button>
-    <button onclick="window.location.href='cliente-formulario.html'">Cadastrar Nova Empresa</button>
+    <button id="btn-cadastrar" onclick="window.location.href='cliente-formulario.html'" style="display: none;">Cadastrar Nova Empresa</button>
+    <button id="btn-logout" onclick="logout()">Sair</button>
     <span id="loading" class="loading" style="display: none;">Carregando...</span>
   </div>
 
@@ -101,30 +62,74 @@
   </div>
 
   <script>
+    console.log("Script empresas.html iniciado.");
     let pagina = 1;
     let ordenacao = 'nome';
     let direcao = 'asc';
     let termoBusca = '';
     let totalPaginas = 1;
+    let usuario;
+
+    async function fetchWithAuth(url, options = {}) {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const headers = {
+        ...options.headers,
+        'x-auth-token': token
+      };
+
+      const response = await fetch(url, { ...options, headers });
+
+      if (response.status === 401 || response.status === 403) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      return response;
+    }
+
+    async function getUsuario() {
+        const response = await fetchWithAuth('/api/auth');
+        if(response) {
+            usuario = await response.json();
+            if (usuario.role === 'admin' || usuario.role === 'funcionario') {
+                document.getElementById('btn-cadastrar').style.display = 'inline-block';
+            }
+            if (usuario.role === 'empresario') {
+                document.getElementById('btn-cadastrar').style.display = 'none'; // Empresário não cadastra
+            }
+        }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.replace('login.html');
+    }
 
     async function carregarEmpresas() {
       try {
         mostrarLoading(true);
         
-        const response = await fetch(
+        const response = await fetchWithAuth(
           `/api/empresas?pagina=${pagina}&limite=10&busca=${encodeURIComponent(termoBusca)}&ordenacao=${ordenacao}&direcao=${direcao}`
         );
         
-        if (!response.ok) {
-          throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        if(response) {
+            const data = await response.json();
+            if (!data.docs) { // Se não for um objeto com 'docs' (mongoose-paginate-v2), não tem paginação
+                atualizarTabela(data);
+                document.querySelector('.pagination').style.display = 'none';
+            } else {
+                totalPaginas = data.totalPages; // Correção: A propriedade correta é totalPages
+                atualizarTabela(data.docs); // Correção: A lista de empresas está em 'docs'
+                atualizarPaginacao();
+            }
+            atualizarOrdenacaoUI();
         }
-        
-        const { data, meta } = await response.json();
-        totalPaginas = meta.paginacao.totalPaginas;
-
-        atualizarTabela(data);
-        atualizarPaginacao();
-        atualizarOrdenacaoUI();
 
       } catch (error) {
         console.error('Erro ao carregar empresas:', error);
@@ -150,78 +155,30 @@
         return;
       }
 
-      tabela.innerHTML = empresas.map(empresa => `
-        <tr>
-          <td>${formatarCNPJ(empresa.cnpj)}</td>
-          <td>${empresa.nome}</td>
-          <td class="actions">
-            <button onclick="visualizarEmpresa('${empresa.id}')">Visualizar</button>
-            <button onclick="editarEmpresa('${empresa.id}')">Editar</button>
-            <button onclick="confirmarExclusao('${empresa.id}')">Excluir</button>
-          </td>
-        </tr>
-      `).join('');
-    }
+      tabela.innerHTML = ''; // Limpa a tabela
+      empresas.forEach(empresa => {
+        const row = tabela.insertRow();
+        
+        const cellCnpj = row.insertCell(0);
+        cellCnpj.textContent = formatarCNPJ(empresa.cnpj);
 
-    function atualizarPaginacao() {
-      document.getElementById('pagina-atual').innerText = `Página ${pagina} de ${totalPaginas}`;
-      document.getElementById('btn-anterior').className = pagina <= 1 ? 'disabled' : '';
-      document.getElementById('btn-proximo').className = pagina >= totalPaginas ? 'disabled' : '';
-    }
+        const cellNome = row.insertCell(1);
+        cellNome.textContent = empresa.nome;
 
-    function atualizarOrdenacaoUI() {
-      // Remove todas as classes de ordenação
-      document.querySelectorAll('th').forEach(th => {
-        th.classList.remove('sorted-asc', 'sorted-desc');
+        const cellAcoes = row.insertCell(2);
+        cellAcoes.className = 'actions';
+        cellAcoes.style.whiteSpace = 'nowrap';
+        let acoesHtml = `<button onclick="visualizarEmpresa('${empresa._id}')">Visualizar</button>`; // Botão de visualizar para todos
+        if (usuario.role === 'admin' || usuario.role === 'funcionario') {
+          acoesHtml += `<button onclick="editarEmpresa('${empresa._id}')">Editar</button>`; // Botão de editar para admin e funcionário
+        }
+        if (usuario.role === 'admin') {
+          acoesHtml += `<button class="delete-btn" onclick="confirmarExclusao('${empresa._id}')">Excluir</button>`; // Botão de excluir apenas para admin
+        }
+        cellAcoes.innerHTML = acoesHtml;
       });
-      
-      // Adiciona classe ao cabeçalho ordenado
-      const th = document.getElementById(`th-${ordenacao}`);
-      if (th) {
-        th.classList.add(direcao === 'asc' ? 'sorted-asc' : 'sorted-desc');
-      }
     }
-
-    function mostrarLoading(mostrar) {
-      document.getElementById('loading').style.display = mostrar ? 'inline-block' : 'none';
-      document.getElementById('btn-buscar').disabled = mostrar;
-    }
-
-    function formatarCNPJ(cnpj) {
-      return cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
-    }
-
-    function ordenarPor(campo) {
-      if (ordenacao === campo) {
-        direcao = direcao === 'asc' ? 'desc' : 'asc';
-      } else {
-        ordenacao = campo;
-        direcao = 'asc';
-      }
-      pagina = 1;
-      carregarEmpresas();
-    }
-
-    function buscarEmpresas() {
-      termoBusca = document.getElementById('busca').value.trim();
-      pagina = 1;
-      carregarEmpresas();
-    }
-
-    function proximaPagina() {
-      if (pagina < totalPaginas) {
-        pagina++;
-        carregarEmpresas();
-      }
-    }
-
-    function paginaAnterior() {
-      if (pagina > 1) {
-        pagina--;
-        carregarEmpresas();
-      }
-    }
-
+    
     function visualizarEmpresa(id) {
       window.location.href = `detalhes-empresa.html?id=${id}`;
     }
@@ -231,21 +188,26 @@
     }
 
     async function confirmarExclusao(id) {
-      if (confirm('Tem certeza que deseja excluir esta empresa?')) {
+      // Substituindo o confirm() padrão por uma versão mais segura
+      const confirmacao = await showConfirmationDialog('Tem certeza que deseja excluir esta empresa? Esta ação não pode ser desfeita.');
+
+      if (confirmacao) {
         try {
           mostrarLoading(true);
-          const response = await fetch(`/api/empresa/${id}`, {
+          const response = await fetchWithAuth(`/api/empresas/${id}`, {
             method: 'DELETE'
           });
           
-          const result = await response.json();
+          if(response) {
+            const result = await response.json();
           
-          if (!response.ok) {
-            throw new Error(result.message || 'Erro ao excluir empresa');
+            if (!response.ok) {
+              throw new Error(result.message || 'Erro ao excluir empresa');
+            }
+            
+            showFeedback('Empresa excluída com sucesso!', 'success');
+            carregarEmpresas();
           }
-          
-          alert('Empresa excluída com sucesso!');
-          carregarEmpresas();
         } catch (error) {
           console.error('Erro:', error);
           alert(`Erro ao excluir empresa: ${error.message}`);
@@ -255,9 +217,81 @@
       }
     }
 
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', () => {
+    function formatarCNPJ(cnpj) {
+      return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+    }
+
+    function ordenarPor(coluna) {
+      if (ordenacao === coluna) {
+        direcao = direcao === 'asc' ? 'desc' : 'asc';
+      } else {
+        ordenacao = coluna;
+        direcao = 'asc';
+      }
+      pagina = 1;
       carregarEmpresas();
+    }
+
+    function atualizarOrdenacaoUI() {
+      document.querySelectorAll('th').forEach(th => th.innerHTML = th.innerHTML.replace(/ (↑|↓)$/, ''));
+      const th = document.getElementById(`th-${ordenacao}`);
+      if (th) {
+        th.innerHTML += direcao === 'asc' ? ' ↑' : ' ↓';
+      }
+    }
+
+    function buscarEmpresas() {
+      termoBusca = document.getElementById('busca').value;
+      pagina = 1;
+      carregarEmpresas();
+    }
+
+    function paginaAnterior() {
+      if (pagina > 1) {
+        pagina--;
+        carregarEmpresas();
+      }
+    }
+
+    function proximaPagina() {
+      if (pagina < totalPaginas) {
+        pagina++;
+        carregarEmpresas();
+      }
+    }
+
+    function atualizarPaginacao() {
+      document.getElementById('pagina-atual').textContent = `Página ${pagina} de ${totalPaginas || 1}`;
+      document.getElementById('btn-anterior').disabled = pagina === 1;
+      document.getElementById('btn-proximo').disabled = pagina === totalPaginas;
+      document.querySelector('.pagination').style.display = 'block';
+    }
+
+    function mostrarLoading(mostrar) {
+        document.getElementById('loading').style.display = mostrar ? 'inline' : 'none';
+    }
+
+    // Funções de UI melhoradas para substituir alert/confirm
+    function showFeedback(message, type = 'info') {
+        // Em uma aplicação real, você usaria uma biblioteca de "toasts" ou modais.
+        // Por simplicidade, vamos usar um alert estilizado.
+        alert(`[${type.toUpperCase()}] ${message}`);
+    }
+
+    function showConfirmationDialog(message) {
+        // Esta é uma simulação. O ideal é criar um modal de confirmação real.
+        return new Promise(resolve => {
+            const userConfirmed = confirm(message);
+            resolve(userConfirmed);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Esta é a correção crucial.
+      // As funções agora são chamadas APENAS depois que a página está totalmente carregada.
+      await getUsuario();
+      carregarEmpresas();
+      console.log("DOMContentLoaded disparado e funções de inicialização chamadas em empresas.html.");
       
       document.getElementById('busca').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {

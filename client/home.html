@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Página Inicial</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .header .user-actions {
+            display: flex;
+            align-items: center;
+        }
+        .header .user-actions button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-left: 1rem;
+        }
+        .header .user-actions button:hover {
+            background-color: #c82333;
+        }
+        .container {
+            flex-grow: 1;
+            padding: 2rem;
+            display: flex;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 2rem auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+        .sidebar {
+            flex: 1;
+            min-width: 250px;
+            background-color: #e9ecef;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        .sidebar .profile-pic {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #ccc;
+            margin: 0 auto 1rem auto;
+            display: block;
+            object-fit: cover;
+            border: 3px solid #007bff;
+        }
+        .sidebar h2 {
+            text-align: center;
+            margin-top: 0.5rem;
+            color: #007bff;
+            font-size: 1.5rem;
+        }
+        .sidebar p {
+            margin: 0.5rem 0;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+        .sidebar p strong {
+            color: #555;
+        }
+        .main-content {
+            flex: 3;
+            background-color: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        .main-content h2 {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .main-content .card {
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .footer {
+            background-color: #343a40;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            margin-top: auto;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body style="display: none;">
+    <!-- Script de bloqueio de acesso e exibição de conteúdo -->
+    <script>
+        if (localStorage.getItem('token')) {
+            document.body.style.display = 'block';
+        } else {
+            window.location.replace('login.html');
+        }
+    </script>
+
+    <div class="header">
+        <h1>ADCON - Painel de Controle</h1>
+        <div class="user-actions">
+            <span id="header-user-name" style="margin-right: 1rem;"></span>
+            <button onclick="logout()">Sair</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <img src="https://via.placeholder.com/120" alt="Foto de Perfil" class="profile-pic" id="profile-pic">
+            <h2 id="user-name"></h2>
+            <p><strong>Email:</strong> <span id="user-email"></span></p>
+            <p><strong>Perfil:</strong> <span id="user-role"></span></p>
+            <hr style="margin: 1.5rem 0;">
+            <h3>Navegação Rápida</h3>
+            <div class="card">
+                <p><a href="empresas.html">Gerenciar Empresas</a></p>
+            </div>
+            <div class="card" id="admin-links" style="display: none;">
+                <p><a href="user-management.html">Gerenciar Usuários</a></p>
+            </div>
+            <!-- Espaço para mais links de navegação futura -->
+        </div>
+        <div class="main-content">
+            <h2>Editar Perfil</h2>
+            <div class="card">
+                <h3>Foto de Perfil</h3>
+                <p>Para alterar sua foto, clique em "Editar Foto" e escolha um arquivo de imagem (jpg, png) do seu computador, ou selecione um dos ícones abaixo.</p>
+                <input type="file" id="profilePicInput" style="display: none;" accept="image/png, image/jpeg, image/gif">
+                <button onclick="document.getElementById('profilePicInput').click()">Editar Foto</button>
+                <button id="deletePicButton" style="display: none;" onclick="deleteProfilePic()">Remover Foto</button>
+                <button id="savePicButton" style="display: none;" onclick="saveProfilePic()">Salvar Foto</button>
+                <div id="predefined-icons" style="margin-top: 1rem;">
+                    <h4>Ícones Pré-definidos:</h4>
+                    <img src="https://via.placeholder.com/60/FF5733/FFFFFF?text=A" onclick="selectPredefinedIcon(this.src)" style="cursor: pointer; border-radius: 50%; margin: 5px;">
+                    <img src="https://via.placeholder.com/60/33FF57/FFFFFF?text=B" onclick="selectPredefinedIcon(this.src)" style="cursor: pointer; border-radius: 50%; margin: 5px;">
+                    <img src="https://via.placeholder.com/60/3357FF/FFFFFF?text=C" onclick="selectPredefinedIcon(this.src)" style="cursor: pointer; border-radius: 50%; margin: 5px;">
+                </div>
+            </div>
+            <h2>Visão Geral</h2>
+            <div class="card">
+                <h3>Boas-vindas!</h3>
+                <p>Esta é a sua página inicial. Aqui você pode ver um resumo das suas atividades e acessar as principais funcionalidades do sistema.</p>
+            </div>
+            <div class="card">
+                <h3>Próximas Funções</h3>
+                <p>Em breve, você encontrará aqui gráficos, notificações e acesso rápido a outras ferramentas.</p>
+            </div>
+            <!-- Espaço para futuras funcionalidades -->
+        </div>
+    </div>
+
+    <div class="footer">
+        &copy; 2025 ADCON. Todos os direitos reservados.
+    </div>
+
+    <script>
+        let usuario;
+
+        async function fetchWithAuth(url, options = {}) {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.replace('login.html');
+                return; // Importante para parar a execução
+            }
+
+            const headers = {
+                ...options.headers,
+                'x-auth-token': token
+            };
+
+            const response = await fetch(url, { ...options, headers });
+
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem('token'); // Token inválido, remove e redireciona
+                window.location.replace('login.html');
+                return; // Importante para parar a execução
+            }
+
+            return response;
+        }
+
+        async function getUsuario() {
+            try {
+                const response = await fetchWithAuth('/api/auth');
+                if (response) {
+                    usuario = await response.json();
+                    document.getElementById('header-user-name').textContent = `Olá, ${usuario.nome.split(' ')[0]}!`;
+                    document.getElementById('user-name').textContent = usuario.nome;
+                    document.getElementById('user-email').textContent = usuario.email;
+                    document.getElementById('user-role').textContent = usuario.role.charAt(0).toUpperCase() + usuario.role.slice(1); // Capitaliza a primeira letra
+                    // Carrega a foto de perfil do usuário ou o ícone padrão
+                    const profilePicElement = document.getElementById('profile-pic');
+                    profilePicElement.src = usuario.fotoPerfilUrl || 'assets/profile-icon.svg';
+                    if (usuario.fotoPerfilUrl) {
+                        document.getElementById('deletePicButton').style.display = 'inline-block';
+                    }
+                    if (usuario.role === 'admin') {
+                        document.getElementById('admin-links').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados do usuário:', error);
+                // Em caso de erro, redireciona para login
+                localStorage.removeItem('token');
+                window.location.replace('login.html');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.replace('login.html');
+        }
+
+        // Lógica para upload de foto
+        document.getElementById('profilePicInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('profile-pic').src = e.target.result;
+                    document.getElementById('savePicButton').style.display = 'inline-block';
+                    document.getElementById('deletePicButton').style.display = 'none'; // Esconde o botão de remover ao pré-visualizar novo upload
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function saveProfilePic() {
+            const input = document.getElementById('profilePicInput');
+            const file = input.files[0];
+            if (!file) {
+                alert('Por favor, selecione um arquivo primeiro.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('profilePic', file);
+
+            try {
+                const response = await fetchWithAuth('/api/auth/profile-pic', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response && response.ok) {
+                    const data = await response.json();
+                    document.getElementById('profile-pic').src = data.fotoPerfilUrl;
+                    alert('Foto de perfil atualizada com sucesso!');
+                    document.getElementById('savePicButton').style.display = 'none';
+                    document.getElementById('deletePicButton').style.display = 'inline-block';
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Falha ao salvar a foto.');
+                }
+            } catch (error) {
+                console.error('Erro ao salvar foto:', error);
+                alert(`Erro: ${error.message}`);
+            }
+        }
+
+        async function selectPredefinedIcon(iconUrl) {
+            const response = await fetchWithAuth('/api/auth/profile-icon', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ iconUrl })
+            });
+            const data = await response.json();
+            document.getElementById('profile-pic').src = data.fotoPerfilUrl;
+            document.getElementById('deletePicButton').style.display = 'inline-block';
+            document.getElementById('savePicButton').style.display = 'none';
+        }
+
+        async function deleteProfilePic() {
+            if (!confirm('Tem certeza que deseja remover sua foto de perfil?')) {
+                return;
+            }
+            try {
+                const response = await fetchWithAuth('/api/auth/profile-pic', {
+                    method: 'DELETE'
+                });
+                if (response && response.ok) {
+                    alert('Foto de perfil removida com sucesso!');
+                    document.getElementById('profile-pic').src = 'assets/profile-icon.svg';
+                    document.getElementById('deletePicButton').style.display = 'none';
+                } else {
+                    throw new Error('Falha ao remover a foto.');
+                }
+            } catch (error) {
+                console.error('Erro ao remover foto:', error);
+                alert(`Erro: ${error.message}`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await getUsuario();
+        });
+    </script>
+</body>
+</html>
