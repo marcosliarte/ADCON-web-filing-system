@@ -59,15 +59,28 @@
     </div>
 
     <table>
-      <!-- ... (o restante da tabela) ... -->
+      <thead>
+        <tr>
+          <th id="th-cnpj" onclick="ordenarPor('cnpj')">CNPJ</th>
+          <th id="th-nome" onclick="ordenarPor('nome')">Nome Empresarial</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="lista-empresas">
+        <tr>
+          <td colspan="3">Carregando empresas...</td>
+        </tr>
+      </tbody>
     </table>
 
     <div class="pagination">
-      <!-- ... (os botões de paginação) ... -->
+      <button id="btn-anterior" onclick="paginaAnterior()" disabled>&lt; Anterior</button>
+      <span id="pagina-atual"></span>
+      <button id="btn-proximo" onclick="proximaPagina()" disabled>&gt; Próximo</button>
     </div>
   </div>
 
-  <script src="/js/shared.js"></script>
+  <script src="shared.js"></script>
   <script>
     console.log("Script empresas.html iniciado.");
     let pagina = 1;
