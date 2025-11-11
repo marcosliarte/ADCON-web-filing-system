@@ -220,5 +220,174 @@ router.put('/profile-icon', auth, async (req, res) => {
     res.json({ fotoPerfilUrl: usuario.fotoPerfilUrl });
 });
 
+// @route   DELETE api/auth/profile-pic
+// @desc    Remover a foto de perfil do usuário
+// @access  Private
+router.delete('/profile-pic', auth, async (req, res) => {
+  try {
+    const usuario = await Usuario.findById(req.usuario.id);
+    if (!usuario) {
+      return res.status(404).json({ msg: 'Usuário não encontrado.' });
+    }
+
+    // Remove o arquivo físico se for um upload
+    if (usuario.fotoPerfilUrl && usuario.fotoPerfilUrl.startsWith('/uploads/')) {
+      const oldPath = path.join(__dirname, '..', usuario.fotoPerfilUrl);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    // Define a foto para o padrão
+    usuario.fotoPerfilUrl = 'assets/profile-icon.svg';
+    await usuario.save();
+
+    res.json({ msg: 'Foto de perfil removida com sucesso.', fotoPerfilUrl: usuario.fotoPerfilUrl });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erro no servidor');
+  }
+});
+
+// @route   PUT api/auth/change-password
+// @desc    Alterar a senha do usuário logado
+// @access  Private
+router.put(
+  '/change-password',
+  [
+    auth,
+    check('senhaAtual', 'A senha atual é obrigatória').not().isEmpty(),
+    check('novaSenha', 'A nova senha deve ter 6 ou mais caracteres').isLength({ min: 6 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { senhaAtual, novaSenha } = req.body;
+
+    try {
+      const usuario = await Usuario.findById(req.usuario.id);
+      const isMatch = await usuario.comparePassword(senhaAtual);
+
+      if (!isMatch) {
+        return res.status(400).json({ msg: 'A senha atual está incorreta.' });
+      }
+
+      usuario.senha = novaSenha; // O hook 'pre-save' no modelo irá hashear a nova senha
+      await usuario.save();
+
+      res.json({ msg: 'Senha alterada com sucesso!' });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Erro no servidor');
+    }
+  }
+);
+
+// @route   PUT api/auth/change-email
+// @desc    Alterar o email do usuário logado
+// @access  Private
+router.put(
+  '/change-email',
+  [auth, check('novoEmail', 'Por favor, inclua um email válido').isEmail()],
+  async (req, res) => {
+    // Lógica para alterar email (simplificada)
+    // Em um sistema de produção, você enviaria um email de confirmação para o novo endereço.
+    const { novoEmail } = req.body;
+    try {
+      const usuario = await Usuario.findByIdAndUpdate(req.usuario.id, { email: novoEmail }, { new: true }).select('-senha');
+      res.json({ msg: 'Email alterado com sucesso!', usuario });
+    } catch (err) {
+      res.status(500).send('Erro no servidor');
+    }
+  }
+);
+
+// --- ROTAS DE ADMINISTRAÇÃO DE USUÁRIOS ---
+// Acessíveis apenas para usuários com role 'admin'
+
+// @route   POST api/auth/admin/users
+// @desc    Criar um novo usuário (por um admin)
+// @access  Private (Admin)
+router.post(
+  '/admin/users',
+  [
+    auth,
+    adminAuth,
+    check('nome', 'O nome é obrigatório').not().isEmpty(),
+    check('email', 'Por favor, inclua um email válido').isEmail(),
+    check('senha', 'Por favor, insira uma senha com 6 ou mais caracteres').isLength({ min: 6 }),
+    check('role', 'O tipo de usuário é obrigatório').isIn(['admin', 'funcionario', 'empresario']),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { nome, email, senha, role } = req.body;
+
+    try {
+      let usuario = await Usuario.findOne({ email });
+      if (usuario) {
+        return res.status(400).json({ msg: 'Usuário com este email já existe' });
+      }
+
+      usuario = new Usuario({ nome, email, senha, role });
+      await usuario.save();
+
+      // Retorna o usuário criado (sem a senha) para confirmação
+      const usuarioCriado = usuario.toObject();
+      delete usuarioCriado.senha;
+
+      res.status(201).json(usuarioCriado);
+
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Erro no servidor');
+    }
+  }
+);
+
+// @route   GET api/auth/admin/users
+// @desc    Listar todos os usuários (por um admin)
+// @access  Private (Admin)
+router.get('/admin/users', [auth, adminAuth], async (req, res) => {
+  try {
+    // Retorna todos os usuários, exceto a senha, ordenados por nome
+    const usuarios = await Usuario.find().select('-senha').sort({ nome: 1 });
+    res.json(usuarios);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erro no servidor');
+  }
+});
+
+// @route   DELETE api/auth/admin/users/:id
+// @desc    Deletar um usuário (por um admin)
+// @access  Private (Admin)
+router.delete('/admin/users/:id', [auth, adminAuth], async (req, res) => {
+  try {
+    const usuario = await Usuario.findById(req.params.id);
+
+    if (!usuario) {
+      return res.status(404).json({ msg: 'Usuário não encontrado' });
+    }
+
+    // Impede que um admin se auto-delete através da API
+    if (req.usuario.id === req.params.id) {
+      return res.status(400).json({ msg: 'Você não pode excluir sua própria conta de administrador.' });
+    }
+
+    await Usuario.findByIdAndDelete(req.params.id);
+
+    res.json({ msg: 'Usuário removido com sucesso' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erro no servidor');
+  }
+});
 
 module.exports = router;

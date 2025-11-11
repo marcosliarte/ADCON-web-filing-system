@@ -42,8 +42,7 @@ app.use(express.json());
 
 // 3. Middlewares de Rota
 app.use('/api/auth', authRoutes);
-// Unifica as rotas de empresa sob o mesmo router para evitar conflitos
-app.use('/api/auth/admin', authRoutes); // Rotas de admin para usuários
+// A linha acima já lida com todas as rotas de autenticação, incluindo /api/auth/admin/users
 app.use('/api/empresas', empresaRoutes);
 
 // 4. Middlewares para servir arquivos estáticos (frontend e uploads)
