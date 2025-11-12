@@ -97,21 +97,15 @@ function renderizarTabela(dados, mesFiltro, anoFiltro) {
 
         const statusCell = row.insertCell(2);
         const valorCell = row.insertCell(3);
-        const vencimentoCell = row.insertCell(4);
+        const pagamentoCell = row.insertCell(4);
         const acoesCell = row.insertCell(5);
 
         if (mensalidade && mensalidade._id) { // Mensalidade real, gerada no banco
-            const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0);
-            const vencimento = new Date(mensalidade.dataVencimento);
-            let status = mensalidade.status;
-            if (status === 'Pendente' && vencimento < hoje) {
-                status = 'Atrasado';
-            }
+            const status = mensalidade.status;
 
             statusCell.innerHTML = `<span class="status-${status.toLowerCase().replace(' ', '-')}">${status}</span>`;
             valorCell.textContent = `R$ ${mensalidade.valor.toFixed(2)}`;
-            vencimentoCell.textContent = formatarData(mensalidade.dataVencimento);
+            pagamentoCell.textContent = status === 'Pago' ? formatarData(mensalidade.dataPagamento) : 'N/A';
             acoesCell.innerHTML = `
                 ${status !== 'Pago' ? `<button class="btn-acao btn-pagar" onclick="abrirModalPagar('${mensalidade._id}', '${mensalidade.valor}')">Pagar</button>` : ''}
                 <button class="btn-acao btn-excluir" onclick="excluirMensalidade('${mensalidade._id}')">Excluir</button>
@@ -119,7 +113,7 @@ function renderizarTabela(dados, mesFiltro, anoFiltro) {
         } else { // Mensalidade "virtual", não gerada
             statusCell.innerHTML = `<span class="status-não-gerada">Não Gerada</span>`;
             valorCell.textContent = mensalidade.valor ? `R$ ${mensalidade.valor.toFixed(2)}` : 'N/A';
-            vencimentoCell.textContent = 'N/A';
+            pagamentoCell.textContent = 'N/A';
             acoesCell.innerHTML = `
                 <button class="btn-acao btn-gerar" onclick="abrirModalGerar('${item._id}', '${item.nome}', ${mensalidade.valor || 0})">Gerar</button>
             `;
@@ -135,8 +129,6 @@ function abrirModalGerar(empresaId, empresaNome, valorSugerido) {
     document.getElementById('modal-empresa-id').value = empresaId;
     document.getElementById('modal-valor').value = valorSugerido > 0 ? valorSugerido.toFixed(2) : '';
     document.getElementById('modal-valor').readOnly = false;
-    document.getElementById('modal-vencimento').value = '';
-    document.getElementById('modal-vencimento-group').style.display = 'block';
     document.getElementById('modal-submit-btn').textContent = 'Gerar Mensalidade';
     document.getElementById('acao-modal').style.display = 'block';
 }
@@ -180,7 +172,6 @@ async function handleFormSubmit(e) {
     e.preventDefault();
     const empresaId = document.getElementById('modal-empresa-id').value;
     const valor = document.getElementById('modal-valor').value;
-    const dataVencimento = document.getElementById('modal-vencimento').value;
 
     const mesFiltro = document.getElementById('filtro-mes').value;
     const anoFiltro = document.getElementById('filtro-ano').value;
@@ -195,8 +186,7 @@ async function handleFormSubmit(e) {
                 empresaId,
                 valor,
                 mes: mesFiltro,
-                ano: anoFiltro,
-                dataVencimento
+                ano: anoFiltro
             })
         });
 

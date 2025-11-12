@@ -92,7 +92,6 @@ router.post(
     check('valor', 'O valor é obrigatório e deve ser numérico').isNumeric(),
     check('mes', 'O mês é obrigatório').isInt({ min: 1, max: 12 }),
     check('ano', 'O ano é obrigatório').isInt(),
-    check('dataVencimento', 'A data de vencimento é obrigatória').isISO8601().toDate(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -103,14 +102,14 @@ router.post(
       return res.status(403).json({ msg: 'Acesso negado.' });
     }
 
-    const { empresaId, mes, ano, valor, dataVencimento } = req.body;
+    const { empresaId, mes, ano, valor } = req.body;
 
     try {
       if (await Mensalidade.findOne({ empresaId, mes, ano })) {
         return res.status(400).json({ msg: `Já existe uma mensalidade para esta empresa em ${mes}/${ano}.` });
       }
 
-      const novaMensalidade = new Mensalidade({ empresaId, valor, mes, ano, dataVencimento });
+      const novaMensalidade = new Mensalidade({ empresaId, valor, mes, ano });
       await novaMensalidade.save();
       
       // Atualiza o valor padrão na empresa para facilitar futuras gerações

@@ -27,7 +27,6 @@ const MensalidadeSchema = new mongoose.Schema({
   },
   dataVencimento: {
     type: Date,
-    required: true,
   },
   dataPagamento: {
     type: Date,
