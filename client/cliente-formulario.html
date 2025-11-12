@@ -417,8 +417,9 @@
 
         async function fetchCep(cep) {
             try {
-                const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-                if (!response.ok) throw new Error('CEP não encontrado');
+                // Alterado para usar a rota de proxy segura no nosso backend
+                const response = await fetchWithAuth(`/api/empresas/cep/${cep}`);
+                if (!response || !response.ok) throw new Error('CEP não encontrado ou falha na consulta.');
                 const data = await response.json();
                 if (data.erro) throw new Error('CEP inválido');
                 return data;
@@ -441,6 +442,21 @@
                 }
             }
         }
+
+        // --- LÓGICA DA API VIACEP ---
+        document.getElementById('cep').addEventListener('blur', async (e) => {
+            const cep = e.target.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+            if (cep.length === 8) {
+                const data = await fetchCep(cep);
+                if (data) {
+                    document.getElementById('rua').value = data.logradouro;
+                    document.getElementById('bairro').value = data.bairro;
+                    document.getElementById('cidade').value = data.localidade;
+                    document.getElementById('estado').value = data.uf;
+                    document.getElementById('numero').focus(); // Move o foco para o campo de número
+                }
+            }
+        });
 
         // --- MÁSCARAS ---
         function formatInput(input, maskFunction) {

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Cadastrar Empresa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/forms.css">
+</head>
+<body style="display: none;">
+
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <div class="form-container">
+            <h1>Cadastrar Nova Empresa</h1>
+            <form id="form-empresa" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="cnpj">CNPJ:</label>
+                    <input type="text" id="cnpj" name="cnpj" required>
+                </div>
+                <div class="form-group">
+                    <label for="nome">Nome da Empresa:</label>
+                    <input type="text" id="nome" name="nome" required>
+                </div>
+                
+                <hr>
+
+                <div class="form-group">
+                    <label for="arquivo">Certificado (.pfx) ou Documento (.pdf):</label>
+                    <input type="file" id="arquivo" name="arquivo" accept=".pdf,.pfx,.p12,.cer">
+                </div>
+
+                <div class="buttons">
+                    <button type="submit">Cadastrar Empresa</button>
+                </div>
+                
+                <div id="message" class="message" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/cadastrar-empresa.js"></script>
+</body>
+</html>

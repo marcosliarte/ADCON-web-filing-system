@@ -298,4 +298,28 @@ router.put(
   }
 );
 
+// @route   GET api/empresas/cep/:cep
+// @desc    Consultar um CEP usando a API ViaCEP (servindo como proxy)
+// @access  Private
+router.get('/cep/:cep', auth, async (req, res) => {
+  const { cep } = req.params;
+  const cepFormatado = cep.replace(/\D/g, ''); // Garante que só tenha números
+
+  if (cepFormatado.length !== 8) {
+    return res.status(400).json({ msg: 'Formato de CEP inválido.' });
+  }
+
+  try {
+    // Usaremos o fetch do lado do servidor.
+    // É necessário ter o 'node-fetch' instalado: npm install node-fetch@2
+    const fetch = require('node-fetch');
+    const response = await fetch(`https://viacep.com.br/ws/${cepFormatado}/json/`);
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Erro no proxy do ViaCEP:', error.message);
+    res.status(500).json({ msg: 'Erro interno ao consultar o CEP.' });
+  }
+});
+
 module.exports = router;

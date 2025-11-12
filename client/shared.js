@@ -14,7 +14,9 @@ async function fetchWithAuth(url, options = {}) {
         'x-auth-token': token
     };
 
-    if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+    // Adiciona o 'Content-Type' apenas se houver um corpo e ele não for FormData
+    // Isso corrige o erro em requisições GET, que não têm corpo.
+    if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
         headers['Content-Type'] = 'application/json';
     }
 

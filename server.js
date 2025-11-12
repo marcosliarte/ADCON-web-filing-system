@@ -30,6 +30,7 @@ app.use(
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
       "script-src": ["'self'", "'unsafe-inline'"], // Permite <script> tags
+      "connect-src": ["'self'", "https://viacep.com.br"], // Permite que o backend se conecte ao ViaCEP
       "script-src-attr": ["'self'", "'unsafe-inline'"], // Permite onclick="", etc.
     },
   })
