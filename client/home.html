@@ -382,6 +382,11 @@
                 <h3>Próximas Funções</h3>
                 <p>Em breve, você encontrará aqui gráficos, notificações e acesso rápido a outras ferramentas.</p>
             </div>
+            <!-- Card de Mensalidades Adicionado -->
+            <div class="card" id="mensalidades-link" style="display: none;">
+                <h3 style="margin-top: 0; color: #007bff;">💰 Gerenciar Mensalidades</h3>
+                <p>Controle pagamentos, gere novas mensalidades e visualize o status financeiro das empresas. <a href="mensalidades.html">Acessar</a></p>
+            </div>
         </div>
     </div>
 
@@ -431,6 +436,7 @@
                         document.getElementById('deletePicIcon').style.display = 'inline-block';
                     }
                     if (usuario.role === 'admin' || usuario.role === 'gerente') {
+                        document.getElementById('mensalidades-link').style.display = 'block';
                         document.getElementById('admin-links').style.display = 'block';
                     }
                     // Mostra o link de cadastro para Admin e Funcionário

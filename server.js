@@ -10,6 +10,7 @@ const mongoSanitize = require('express-mongo-sanitize'); // Para prevenir NoSQL 
 // Importar rotas
 const authRoutes = require('./routes/rota-auth');
 const empresaRoutes = require('./routes/rota-empresas');
+const mensalidadeRoutes = require('./routes/rota-mensalidades'); // ROTA ADICIONADA
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,6 +47,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 // A linha acima já lida com todas as rotas de autenticação, incluindo /api/auth/admin/users
 app.use('/api/empresas', empresaRoutes);
+app.use('/api/mensalidades', mensalidadeRoutes); // ROTA REGISTRADA
 
 // 4. Middlewares para servir arquivos estáticos (frontend e uploads)
 app.use(express.static('client'));

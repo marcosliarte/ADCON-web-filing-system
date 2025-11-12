@@ -16,8 +16,9 @@ async function fetchWithAuth(url, options = {}) {
 
     // Adiciona o 'Content-Type' apenas se houver um corpo e ele não for FormData
     // Isso corrige o erro em requisições GET, que não têm corpo.
-    if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
-        headers['Content-Type'] = 'application/json';
+    // CORREÇÃO: A verificação `options.body` já é segura contra `undefined`.
+    if (options && options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json'; // Garante que o cabeçalho seja adicionado apenas quando necessário.
     }
 
     try {
