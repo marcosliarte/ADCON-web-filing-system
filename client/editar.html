@@ -1,214 +1,382 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Editar Empresa</title>
-  <style>
-    /* ... (estilos permanecem os mesmos) ... */
-  </style>
+    <meta charset="UTF-8">
+    <title>ADCON - Editar Empresa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 900px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group-full { grid-column: 1 / -1; }
+        label { margin-bottom: 0.5rem; font-weight: bold; font-size: 0.9rem; }
+        input, select { width: 100%; padding: 0.7rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        input:focus, select:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,.25); }
+        .radio-group { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .radio-group label { font-weight: normal; margin-right: 0.5rem; }
+        button { background-color: #007bff; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-add { background-color: #28a745; font-size: 0.9rem; padding: 0.5rem 1rem; }
+        .btn-add:hover { background-color: #218838; }
+        .socio-card, .alteracao-card { border: 1px solid #ddd; border-radius: 5px; padding: 1rem; margin-top: 1rem; background-color: #f8f9fa; }
+        .socio-card h3, .alteracao-card h3 { margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; }
+        #message { margin-top: 1.5rem; padding: 1rem; border-radius: 5px; text-align: center; display: none; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .file-info { font-size: 0.9rem; color: #555; margin-top: 0.5rem; }
+    </style>
 </head>
 <body style="display: none;">
-  <!-- Script de bloqueio de acesso e exibição de conteúdo -->
-  <script>
-    if (localStorage.getItem('token')) {
-      document.body.style.display = 'block';
-    } else {
-      window.location.replace('login.html');
-    }
-  </script>
+    <div id="header-placeholder"></div>
 
-  <div class="form-container">
-    <h1>Editar Empresa</h1>
-    
-    <form id="editForm">
-      <input type="hidden" id="empresaId">
-      
-      <div class="form-group">
-        <label for="cnpj">CNPJ:</label>
-        <input type="text" id="cnpj" required>
-      </div>
-      
-      <div class="form-group">
-        <label for="nome">Nome:</label>
-        <input type="text" id="nome" required>
-      </div>
+    <div class="container">
+        <h1>Editar Empresa</h1>
+        <form id="formulario-empresa">
+            <!-- DADOS DA EMPRESA -->
+            <h2><span style="font-size: 1.5rem;">1.</span> Dados da Empresa</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="cnpj">CNPJ</label>
+                    <input type="text" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required>
+                </div>
+                <div class="form-group">
+                    <label for="data_abertura">Data de Abertura</label>
+                    <input type="date" id="data_abertura" name="data_abertura" required>
+                </div>
+                <div class="form-group form-group-full">
+                    <label for="nome_empresarial">Nome Empresarial</label>
+                    <input type="text" id="nome_empresarial" name="nome_empresarial" required>
+                </div>
+                <div class="form-group form-group-full">
+                    <label for="nome_fantasia">Nome Fantasia (Opcional)</label>
+                    <input type="text" id="nome_fantasia" name="nome_fantasia">
+                </div>
+                <div class="form-group">
+                    <label for="capital_social">Capital Social</label>
+                    <input type="text" id="capital_social" name="capital_social" placeholder="R$ 0,00" required>
+                </div>
+                <div class="form-group">
+                    <label for="atividade_principal">Atividade Principal (CNAE)</label>
+                    <input type="text" id="atividade_principal" name="atividade_principal" placeholder="00.00-0-00" required>
+                </div>
+                <div class="form-group">
+                    <label>Porte</label>
+                    <div class="radio-group" id="porte-group">
+                        <input type="radio" id="porte_mei" name="porte" value="MEI" required> <label for="porte_mei">MEI</label>
+                        <input type="radio" id="porte_me" name="porte" value="ME"> <label for="porte_me">ME</label>
+                        <input type="radio" id="porte_epp" name="porte" value="EPP"> <label for="porte_epp">EPP</label>
+                        <input type="radio" id="porte_outros" name="porte" value="Outros"> <label for="porte_outros">Outros</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Natureza Jurídica</label>
+                    <div class="radio-group" id="natureza-group">
+                        <input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required> <label for="natureza_individual">Individual</label>
+                        <input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada"> <label for="natureza_limitada">Limitada</label>
+                        <input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros"> <label for="natureza_outros">Outros</label>
+                    </div>
+                </div>
+            </div>
+            <h3>Endereço Empresarial</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="cep">CEP</label>
+                    <input type="text" id="cep" name="endereco.cep" placeholder="00000-000" required>
+                </div>
+                <div class="form-group form-group-full">
+                    <label for="rua">Rua</label>
+                    <input type="text" id="rua" name="endereco.rua" required>
+                </div>
+                <div class="form-group">
+                    <label for="numero">Número</label>
+                    <input type="text" id="numero" name="endereco.numero" required>
+                </div>
+                <div class="form-group">
+                    <label for="bairro">Bairro</label>
+                    <input type="text" id="bairro" name="endereco.bairro" required>
+                </div>
+                <div class="form-group">
+                    <label for="cidade">Cidade</label>
+                    <input type="text" id="cidade" name="endereco.cidade" required>
+                </div>
+                <div class="form-group">
+                    <label for="estado">Estado</label>
+                    <input type="text" id="estado" name="endereco.estado" required>
+                </div>
+            </div>
+             <h3>Contato</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="telefone">Telefone</label>
+                    <input type="text" id="telefone" name="telefone" placeholder="(00) 00000-0000" required>
+                </div>
+            </div>
 
-      <div class="form-group">
-        <label for="email">Email:</label>
-        <input type="email" id="email" required>
-      </div>
-      
-      <div class="file-section">
-        <label>Arquivo Atual:</label>
-        <div id="currentFile" class="loading">Carregando...</div>
-        
-        <div class="file-actions">
-          <label for="newFile">Substituir por novo arquivo:</label>
-          <input type="file" id="newFile" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
-          
-          <div class="checkbox-container">
-            <input type="checkbox" id="removeFile">
-            <label for="removeFile">Remover arquivo atual</label>
-          </div>
+            <!-- SÓCIOS -->
+            <h2><span style="font-size: 1.5rem;">2.</span> Sócios</h2>
+            <div id="socios-container">
+                <!-- Cards de sócios serão inseridos aqui -->
+            </div>
+            <button type="button" class="btn-add" onclick="adicionarSocio()">+ Adicionar Sócio</button>
+
+            <!-- DOCUMENTOS -->
+            <h2><span style="font-size: 1.5rem;">3.</span> Documentos</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="arquivo_cnpj">Cartão CNPJ</label>
+                    <div id="info_arquivo_cnpj" class="file-info"></div>
+                    <input type="file" id="arquivo_cnpj" name="arquivo_cnpj" accept=".pdf,.png,.jpg,.jpeg">
+                </div>
+                <div class="form-group">
+                    <label for="certificado_digital">Certificado Digital</label>
+                    <div id="info_certificado_digital" class="file-info"></div>
+                    <input type="file" id="certificado_digital" name="certificado_digital" accept=".pfx,.p12">
+                </div>
+                 <div class="form-group">
+                    <label for="certificado_validade">Validade do Certificado</label>
+                    <input type="date" id="certificado_validade" name="certificado_validade">
+                </div>
+            </div>
+            <h3>Contrato Social</h3>
+            <div id="contratos-container">
+                 <!-- Contratos existentes e novos serão inseridos aqui -->
+            </div>
+            <button type="button" class="btn-add" onclick="adicionarAlteracaoContrato()">+ Adicionar Alteração Contratual</button>
+
+            <!-- NAVEGAÇÃO E SUBMISSÃO -->
+            <div class="navigation-buttons" style="margin-top: 2rem;">
+                <button type="button" class="btn-secondary" onclick="window.location.href='empresas.html'">Cancelar</button>
+                <button type="submit" id="submitBtn">Salvar Alterações</button>
+            </div>
+        </form>
+        <div id="message" style="display: none;"></div>
+    </div>
+
+    <!-- Template para o card de sócio -->
+    <template id="socio-template">
+        <div class="socio-card">
+            <h3>Dados do Sócio</h3>
+            <div class="form-grid">
+                <div class="form-group form-group-full">
+                    <label>Nome Completo</label>
+                    <input type="text" name="socios[INDEX][nome]" required>
+                </div>
+                <div class="form-group">
+                    <label>CPF</label>
+                    <input type="text" name="socios[INDEX][cpf]" placeholder="000.000.000-00" required>
+                </div>
+                <div class="form-group">
+                    <label>RG</label>
+                    <input type="text" name="socios[INDEX][rg]" required>
+                </div>
+                <div class="form-group">
+                    <label>Data de Nascimento</label>
+                    <input type="date" name="socios[INDEX][data_nascimento]" required>
+                </div>
+                <div class="form-group">
+                    <label>Sócio Administrador?</label>
+                    <select name="socios[INDEX][is_admin]" required>
+                        <option value="nao">Não</option>
+                        <option value="sim">Sim</option>
+                    </select>
+                </div>
+            </div>
         </div>
-      </div>
-      
-      <div class="buttons">
-        <button type="submit">Salvar Alterações</button>
-        <button type="button" id="cancelBtn">Cancelar</button>
-      </div>
-      
-      <div id="message"></div>
-    </form>
-  </div>
+    </template>
 
-  <script>
-    let usuario;
+    <!-- Template para alteração de contrato -->
+    <template id="contrato-template">
+        <div class="alteracao-card">
+            <h3>Alteração Contratual</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Arquivo da Alteração</label>
+                    <div class="file-info"></div>
+                    <input type="file" name="contrato_social[INDEX][arquivo]" accept=".pdf">
+                </div>
+                <div class="form-group">
+                    <label>Data da Alteração</label>
+                    <input type="date" name="contrato_social[INDEX][data]" required>
+                </div>
+                <div class="form-group">
+                    <label>Número da Alteração</label>
+                    <input type="text" name="contrato_social[INDEX][numero]" required>
+                </div>
+            </div>
+        </div>
+    </template>
 
-    async function fetchWithAuth(url, options = {}) {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = 'login.html';
-            return;
+    <script src="shared.js"></script>
+    <script>
+        // Garante que o corpo da página só seja exibido se o usuário estiver logado
+        if (localStorage.getItem('token')) {
+            document.body.style.display = 'block';
+        } else {
+            window.location.replace('login.html');
         }
 
-        const headers = {
-            ...options.headers,
-        };
+        let socioIndex = 0;
+        let contratoIndex = 0;
+        const urlParams = new URLSearchParams(window.location.search);
+        const empresaId = urlParams.get('id');
 
-        if (!(options.body instanceof FormData)) {
-            headers['Content-Type'] = 'application/json';
-        }
-        headers['x-auth-token'] = token;
+        // --- CARREGAMENTO DOS DADOS ---
+        async function loadEmpresa() {
+            if (!empresaId) {
+                showMessage('ID da empresa não fornecido.', 'error');
+                return;
+            }
 
+            try {
+                const response = await fetchWithAuth(`/api/empresas/${empresaId}`);
+                if (!response || !response.ok) throw new Error('Falha ao carregar dados da empresa.');
+                
+                const data = await response.json();
 
-        const response = await fetch(url, { ...options, headers });
+                // Preenche dados da empresa
+                document.getElementById('cnpj').value = data.cnpj || '';
+                document.getElementById('data_abertura').value = data.data_abertura ? data.data_abertura.split('T')[0] : '';
+                document.getElementById('nome_empresarial').value = data.nome || '';
+                document.getElementById('nome_fantasia').value = data.nome_fantasia || '';
+                document.getElementById('capital_social').value = data.capital_social || '';
+                document.getElementById('atividade_principal').value = data.atividade_principal || '';
+                document.getElementById('email').value = data.email || '';
+                document.getElementById('telefone').value = data.telefone || '';
 
-        if (response.status === 401 || response.status === 403) {
-            window.location.href = 'login.html';
-            return;
-        }
+                // Preenche radio buttons
+                if (data.porte) document.querySelector(`input[name="porte"][value="${data.porte}"]`).checked = true;
+                if (data.natureza_juridica) document.querySelector(`input[name="natureza_juridica"][value="${data.natureza_juridica}"]`).checked = true;
 
-        return response;
-    }
-
-    async function getUsuario() {
-        const response = await fetchWithAuth('/api/auth');
-        if(response) {
-            usuario = await response.json();
-            if (usuario.role !== 'admin' && usuario.role !== 'funcionario') {
-                document.getElementById('editForm').style.display = 'none';
-                // Se for empresário, pode ver os detalhes, mas não editar
-                if (usuario.role === 'empresario') {
-                    window.location.href = `detalhes-empresa.html?id=${empresaId}`; // Redireciona para detalhes
+                // Preenche endereço
+                if (data.endereco) {
+                    document.getElementById('cep').value = data.endereco.cep || '';
+                    document.getElementById('rua').value = data.endereco.rua || '';
+                    document.getElementById('numero').value = data.endereco.numero || '';
+                    document.getElementById('bairro').value = data.endereco.bairro || '';
+                    document.getElementById('cidade').value = data.endereco.cidade || '';
+                    document.getElementById('estado').value = data.endereco.estado || '';
                 }
-                showMessage('Você não tem permissão para editar empresas.', 'error');
+
+                // Preenche sócios
+                if (data.socios && data.socios.length > 0) {
+                    data.socios.forEach(socio => adicionarSocio(socio));
+                }
+
+                // Preenche documentos
+                if (data.documentos) {
+                    if (data.documentos.cartaoCnpj) {
+                        document.getElementById('info_arquivo_cnpj').innerHTML = `Arquivo atual: <a href="${data.documentos.cartaoCnpj.caminhoArquivo}" target="_blank">${data.documentos.cartaoCnpj.nomeArquivo}</a>`;
+                    }
+                    if (data.documentos.certificadoDigital) {
+                        document.getElementById('info_certificado_digital').innerHTML = `Arquivo atual: <a href="${data.documentos.certificadoDigital.caminhoArquivo}" target="_blank">${data.documentos.certificadoDigital.nomeArquivo}</a>`;
+                        document.getElementById('certificado_validade').value = data.documentos.certificadoDigital.dataValidade ? data.documentos.certificadoDigital.dataValidade.split('T')[0] : '';
+                    }
+                    if (data.documentos.contratos && data.documentos.contratos.length > 0) {
+                        data.documentos.contratos.forEach(contrato => adicionarAlteracaoContrato(contrato));
+                    }
+                }
+
+            } catch (error) {
+                showMessage(error.message, 'error');
             }
         }
-    }
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const empresaId = urlParams.get('id');
-    document.getElementById('empresaId').value = empresaId;
-
-    async function loadEmpresa() {
-      try {
-        showMessage('Carregando dados da empresa...', 'loading');
-        
-        const response = await fetchWithAuth(`/api/empresas/${empresaId}`);
-        
-        if(response) {
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.message || 'Erro ao carregar empresa');
+        // --- MANIPULAÇÃO DINÂMICA DO FORMULÁRIO ---
+        function adicionarSocio(socio = null) {
+            const template = document.getElementById('socio-template').innerHTML;
+            const container = document.getElementById('socios-container');
+            const newSocioDiv = document.createElement('div');
+            newSocioDiv.innerHTML = template.replace(/INDEX/g, socioIndex);
+            
+            if (socio) {
+                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][nome]"]`).value = socio.nome || '';
+                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][cpf]"]`).value = socio.cpf || '';
+                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][rg]"]`).value = socio.rg || '';
+                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][data_nascimento]"]`).value = socio.data_nascimento ? socio.data_nascimento.split('T')[0] : '';
+                newSocioDiv.querySelector(`select[name="socios[${socioIndex}][is_admin]"]`).value = socio.is_admin || 'nao';
             }
-            
-            const data = await response.json();
-            
-            document.getElementById('cnpj').value = data.cnpj;
-            document.getElementById('nome').value = data.nome;
-            document.getElementById('email').value = data.email;
-            
-            const fileInfo = document.getElementById('currentFile');
-            // A informação do arquivo vem do array 'certidoes'
-            if (data.certidoes && data.certidoes.length > 0) {
-              const arquivo = data.certidoes[0];
-              fileInfo.innerHTML = `<p><strong>Arquivo atual:</strong> ${arquivo.nomeArquivo}</p>`;
-            } else {
-              fileInfo.innerHTML = '<p>Nenhum arquivo cadastrado</p>';
+
+            container.appendChild(newSocioDiv);
+            socioIndex++;
+        }
+
+        function adicionarAlteracaoContrato(contrato = null) {
+            const template = document.getElementById('contrato-template').innerHTML;
+            const container = document.getElementById('contratos-container');
+            const newContratoDiv = document.createElement('div');
+            newContratoDiv.innerHTML = template.replace(/INDEX/g, contratoIndex);
+
+            if (contrato) {
+                newContratoDiv.querySelector(`input[name="contrato_social[${contratoIndex}][data]"]`).value = contrato.dataAlteracao ? contrato.dataAlteracao.split('T')[0] : '';
+                newContratoDiv.querySelector(`input[name="contrato_social[${contratoIndex}][numero]"]`).value = contrato.numeroAlteracao || '';
+                const fileInfo = newContratoDiv.querySelector('.file-info');
+                if (contrato.caminhoArquivo) {
+                    fileInfo.innerHTML = `Arquivo atual: <a href="${contrato.caminhoArquivo}" target="_blank">${contrato.nomeArquivo}</a>`;
+                }
             }
-            
-            clearMessage();
-        }
-        
-      } catch (error) {
-        console.error('Erro ao carregar empresa:', error);
-        showMessage(`Erro ao carregar dados: ${error.message}`, 'error');
-      }
-    }
 
-    document.getElementById('editForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      showMessage('Salvando alterações...', 'loading');
-      
-      try {
-        const formData = new FormData();
-        formData.append('nome', document.getElementById('nome').value);
-        formData.append('cnpj', document.getElementById('cnpj').value);
-        formData.append('email', document.getElementById('email').value);
-        
-        if (document.getElementById('removeFile').checked) {
-          formData.append('removerArquivo', 'true');
-        }
-        
-        const newFile = document.getElementById('newFile').files[0];
-        if (newFile) {
-          formData.append('arquivo', newFile);
+            container.appendChild(newContratoDiv);
+            contratoIndex++;
         }
 
-        const response = await fetchWithAuth(`/api/empresas/${empresaId}`, {
-          method: 'PUT',
-          body: formData
+        // --- SUBMISSÃO DO FORMULÁRIO ---
+        document.getElementById('formulario-empresa').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Salvando...';
+
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetchWithAuth(`/api/empresas/${empresaId}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (response && response.ok) {
+                    showMessage('Empresa atualizada com sucesso!', 'success');
+                    setTimeout(() => window.location.href = 'empresas.html', 2000);
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Erro ao atualizar empresa.');
+                }
+            } catch (error) {
+                showMessage(`Erro: ${error.message}`, 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Salvar Alterações';
+            }
         });
 
-        if(response) {
-            const result = await response.json();
-            
-            if (!response.ok) {
-              throw new Error(result.message || 'Erro ao atualizar empresa');
-            }
-    
-            showMessage('Empresa atualizada com sucesso!', 'success');
-            
-            await loadEmpresa();
-            
-            document.getElementById('newFile').value = '';
-            document.getElementById('removeFile').checked = false;
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
         }
-        
-      } catch (error) {
-        console.error('Erro ao atualizar empresa:', error);
-        showMessage(`Erro: ${error.message}`, 'error');
-      }
-    });
 
-    function showMessage(text, type) {
-      const messageEl = document.getElementById('message');
-      messageEl.textContent = text;
-      messageEl.className = `message ${type}`;
-    }
-
-    function clearMessage() {
-      const messageEl = document.getElementById('message');
-      messageEl.textContent = '';
-      messageEl.className = 'message';
-    }
-
-    document.getElementById('cancelBtn').addEventListener('click', function() {
-      window.location.href = 'empresas.html';
-    });
-
-  </script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userResponse = await fetchWithAuth('/api/auth');
+            if (userResponse) {
+                const usuario = await userResponse.json();
+                createHeader('header-placeholder', usuario);
+                if (usuario.role !== 'admin' && usuario.role !== 'funcionario') {
+                    alert('Acesso negado.');
+                    window.location.href = 'home.html';
+                    return;
+                }
+            }
+            loadEmpresa();
+        });
+    </script>
 </body>
 </html>
