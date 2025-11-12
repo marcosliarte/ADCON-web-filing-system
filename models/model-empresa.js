@@ -34,6 +34,20 @@ const ContratoSchema = new mongoose.Schema({
   numeroAlteracao: { type: String },
 }, { _id: false });
 
+// Schema para Certidões com validade
+const CertidaoSchema = new mongoose.Schema({
+  nomeArquivo: String,
+  caminhoArquivo: String,
+  dataValidade: Date,
+}, { _id: false });
+
+// Schema para o Alvará com ano
+const AlvaraSchema = new mongoose.Schema({
+  nomeArquivo: String,
+  caminhoArquivo: String,
+  ano: String,
+}, { _id: false });
+
 // Schema para agrupar todos os documentos da empresa
 const DocumentosEmpresaSchema = new mongoose.Schema({
   cartaoCnpj: {
@@ -44,8 +58,16 @@ const DocumentosEmpresaSchema = new mongoose.Schema({
     nomeArquivo: String,
     caminhoArquivo: String,
     dataValidade: Date,
+    senha: { type: String, select: false } // Senha não é retornada em queries
   },
   contratos: [ContratoSchema],
+  alvara: AlvaraSchema,
+  certidaoPrefeitura: CertidaoSchema,
+  certidaoReceita: CertidaoSchema,
+  certidaoFGTS: CertidaoSchema,
+  certidaoSefaz: CertidaoSchema,
+  certidaoTrabalhista: CertidaoSchema,
+  certidaoFalencia: CertidaoSchema,
 }, { _id: false });
 
 
@@ -55,6 +77,7 @@ const EmpresaSchema = mongoose.Schema({
   nome: { type: String, required: true },
   cnpj: { type: String, required: true, unique: true },
   email: { type: String, required: true },
+  nire: { type: String }, // Novo campo NIRE
   nome_fantasia: { type: String },
   data_abertura: { type: Date },
   capital_social: { type: String },

@@ -18,6 +18,11 @@ const storage = multer.diskStorage({
       subfolder = 'contratos';
     } else if (file.fieldname === 'certificado_digital') {
       subfolder = 'certificados';
+    } else if (file.fieldname === 'alvara_arquivo') {
+      subfolder = 'alvaras';
+    } else if (file.fieldname.startsWith('certidao_')) {
+      // Agrupa todas as outras certidões em uma pasta
+      subfolder = 'certidoes';
     }
     const uploadPath = path.join(__dirname, `../uploads/${subfolder}`);
     fs.mkdirSync(uploadPath, { recursive: true }); // Garante que o diretório exista
@@ -69,7 +74,15 @@ router.post(
       { name: 'contrato_social[1][arquivo]', maxCount: 1 },
       { name: 'contrato_social[2][arquivo]', maxCount: 1 },
       { name: 'contrato_social[3][arquivo]', maxCount: 1 },
-      { name: 'contrato_social[4][arquivo]', maxCount: 1 } // Adicione mais se precisar
+      { name: 'contrato_social[4][arquivo]', maxCount: 1 }, // Adicione mais se precisar
+      // Novos campos de arquivo
+      { name: 'alvara_arquivo', maxCount: 1 },
+      { name: 'certidao_prefeitura_arquivo', maxCount: 1 },
+      { name: 'certidao_receita_arquivo', maxCount: 1 },
+      { name: 'certidao_fgts_arquivo', maxCount: 1 },
+      { name: 'certidao_sefaz_arquivo', maxCount: 1 },
+      { name: 'certidao_trabalhista_arquivo', maxCount: 1 },
+      { name: 'certidao_falencia_arquivo', maxCount: 1 },
     ]),
     check('nome_empresarial', 'Nome empresarial é obrigatório').not().isEmpty(),
   ],
@@ -117,6 +130,34 @@ router.post(
             dataValidade: req.body.certificado_validade,
             senha: req.body.certificado_senha // Salva a senha do certificado
           };
+        }
+        if (req.files.alvara_arquivo) {
+          const file = req.files.alvara_arquivo[0];
+          dadosEmpresa.documentos.alvara = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/alvaras/${file.filename}`, ano: req.body.alvara_ano };
+        }
+        if (req.files.certidao_prefeitura_arquivo) {
+          const file = req.files.certidao_prefeitura_arquivo[0];
+          dadosEmpresa.documentos.certidaoPrefeitura = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_prefeitura_validade };
+        }
+        if (req.files.certidao_receita_arquivo) {
+          const file = req.files.certidao_receita_arquivo[0];
+          dadosEmpresa.documentos.certidaoReceita = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_receita_validade };
+        }
+        if (req.files.certidao_fgts_arquivo) {
+          const file = req.files.certidao_fgts_arquivo[0];
+          dadosEmpresa.documentos.certidaoFGTS = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_fgts_validade };
+        }
+        if (req.files.certidao_sefaz_arquivo) {
+          const file = req.files.certidao_sefaz_arquivo[0];
+          dadosEmpresa.documentos.certidaoSefaz = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_sefaz_validade };
+        }
+        if (req.files.certidao_trabalhista_arquivo) {
+          const file = req.files.certidao_trabalhista_arquivo[0];
+          dadosEmpresa.documentos.certidaoTrabalhista = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_trabalhista_validade };
+        }
+        if (req.files.certidao_falencia_arquivo) {
+          const file = req.files.certidao_falencia_arquivo[0];
+          dadosEmpresa.documentos.certidaoFalencia = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_falencia_validade };
         }
 
         // Processa os contratos
@@ -277,7 +318,15 @@ router.put(
       { name: 'contrato_social[0][arquivo]', maxCount: 1 },
       { name: 'contrato_social[1][arquivo]', maxCount: 1 },
       { name: 'contrato_social[2][arquivo]', maxCount: 1 },
-      // Adicione mais campos de contrato se necessário
+      // Adicione mais campos de contrato se necessário,
+      // e os novos campos de arquivo
+      { name: 'alvara_arquivo', maxCount: 1 },
+      { name: 'certidao_prefeitura_arquivo', maxCount: 1 },
+      { name: 'certidao_receita_arquivo', maxCount: 1 },
+      { name: 'certidao_fgts_arquivo', maxCount: 1 },
+      { name: 'certidao_sefaz_arquivo', maxCount: 1 },
+      { name: 'certidao_trabalhista_arquivo', maxCount: 1 },
+      { name: 'certidao_falencia_arquivo', maxCount: 1 },
     ]),
     check('nome_empresarial', 'Nome empresarial é obrigatório').not().isEmpty(),
   ],
@@ -301,6 +350,7 @@ router.put(
       // Atualiza os campos de texto simples
       empresa.nome = req.body.nome_empresarial;
       empresa.cnpj = req.body.cnpj;
+      empresa.nire = req.body.nire;
       empresa.data_abertura = req.body.data_abertura;
       empresa.nome_fantasia = req.body.nome_fantasia;
       empresa.capital_social = req.body.capital_social;
@@ -341,6 +391,34 @@ router.put(
                 dataValidade: req.body.certificado_validade,
                 senha: req.body.certificado_senha // Salva a nova senha ao atualizar
             };
+        }
+        if (req.files.alvara_arquivo) {
+            const file = req.files.alvara_arquivo[0];
+            empresa.documentos.alvara = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/alvaras/${file.filename}`, ano: req.body.alvara_ano };
+        }
+        if (req.files.certidao_prefeitura_arquivo) {
+            const file = req.files.certidao_prefeitura_arquivo[0];
+            empresa.documentos.certidaoPrefeitura = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_prefeitura_validade };
+        }
+        if (req.files.certidao_receita_arquivo) {
+            const file = req.files.certidao_receita_arquivo[0];
+            empresa.documentos.certidaoReceita = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_receita_validade };
+        }
+        if (req.files.certidao_fgts_arquivo) {
+            const file = req.files.certidao_fgts_arquivo[0];
+            empresa.documentos.certidaoFGTS = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_fgts_validade };
+        }
+        if (req.files.certidao_sefaz_arquivo) {
+            const file = req.files.certidao_sefaz_arquivo[0];
+            empresa.documentos.certidaoSefaz = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_sefaz_validade };
+        }
+        if (req.files.certidao_trabalhista_arquivo) {
+            const file = req.files.certidao_trabalhista_arquivo[0];
+            empresa.documentos.certidaoTrabalhista = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_trabalhista_validade };
+        }
+        if (req.files.certidao_falencia_arquivo) {
+            const file = req.files.certidao_falencia_arquivo[0];
+            empresa.documentos.certidaoFalencia = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_falencia_validade };
         }
         // A lógica para atualizar contratos seria ainda mais complexa e foi omitida para esta correção.
       }

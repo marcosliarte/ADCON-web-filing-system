@@ -39,6 +39,30 @@
         .success { background-color: #d4edda; color: #155724; }
         .error { background-color: #f8d7da; color: #721c24; }
         .file-info { font-size: 0.9rem; color: #555; margin-top: 0.5rem; }
+
+        /* Estilos do Acordeão */
+        .accordion-header {
+            background-color: #e9ecef;
+            color: #495057;
+            cursor: pointer;
+            padding: 1rem;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            border-radius: 5px;
+        }
+        .accordion-header.active::after { content: '\25B2'; } /* Seta para cima */
+        .accordion-header::after { content: '\25BC'; float: right; } /* Seta para baixo */
+        .accordion-content {
+            padding: 0 1rem;
+            background-color: white;
+            display: none;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body style="display: none;">
@@ -48,127 +72,170 @@
         <h1>Editar Empresa</h1>
         <form id="formulario-empresa">
             <!-- DADOS DA EMPRESA -->
-            <h2><span style="font-size: 1.5rem;">1.</span> Dados da Empresa</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="cnpj">CNPJ</label>
-                    <input type="text" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required>
-                </div>
-                <div class="form-group">
-                    <label for="data_abertura">Data de Abertura</label>
-                    <input type="date" id="data_abertura" name="data_abertura" required>
-                </div>
-                <div class="form-group form-group-full">
-                    <label for="nome_empresarial">Nome Empresarial</label>
-                    <input type="text" id="nome_empresarial" name="nome_empresarial" required>
-                </div>
-                <div class="form-group form-group-full">
-                    <label for="nome_fantasia">Nome Fantasia (Opcional)</label>
-                    <input type="text" id="nome_fantasia" name="nome_fantasia">
-                </div>
-                <div class="form-group">
-                    <label for="capital_social">Capital Social</label>
-                    <input type="text" id="capital_social" name="capital_social" placeholder="R$ 0,00" required>
-                </div>
-                <div class="form-group">
-                    <label for="atividade_principal">Atividade Principal (CNAE)</label>
-                    <input type="text" id="atividade_principal" name="atividade_principal" placeholder="00.00-0-00" required>
-                </div>
-                <div class="form-group form-group-full">
-                    <label for="atividade_principal_descricao">Descrição da Atividade</label>
-                    <input type="text" id="atividade_principal_descricao" name="atividade_principal_descricao" readonly style="background-color: #e9ecef;">
-                </div>
-                <div class="form-group">
-                    <label>Porte</label>
-                    <div class="radio-group" id="porte-group">
-                        <input type="radio" id="porte_mei" name="porte" value="MEI" required> <label for="porte_mei">MEI</label>
-                        <input type="radio" id="porte_me" name="porte" value="ME"> <label for="porte_me">ME</label>
-                        <input type="radio" id="porte_epp" name="porte" value="EPP"> <label for="porte_epp">EPP</label>
-                        <input type="radio" id="porte_outros" name="porte" value="Outros"> <label for="porte_outros">Outros</label>
+            <button type="button" class="accordion-header">Dados da Empresa</button>
+            <div class="accordion-content">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="cnpj">CNPJ</label>
+                        <input type="text" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Natureza Jurídica</label>
-                    <div class="radio-group" id="natureza-group">
-                        <input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required> <label for="natureza_individual">Individual</label>
-                        <input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada"> <label for="natureza_limitada">Limitada</label>
-                        <input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros"> <label for="natureza_outros">Outros</label>
+                    <div class="form-group">
+                        <label for="data_abertura">Data de Abertura</label>
+                        <input type="date" id="data_abertura" name="data_abertura" required>
                     </div>
-                </div>
-            </div>
-            <h3>Endereço Empresarial</h3>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="cep">CEP</label>
-                    <input type="text" id="cep" name="endereco.cep" placeholder="00000-000" required>
-                </div>
-                <div class="form-group form-group-full">
-                    <label for="rua">Rua</label>
-                    <input type="text" id="rua" name="endereco.rua" required>
-                </div>
-                <div class="form-group">
-                    <label for="numero">Número</label>
-                    <input type="text" id="numero" name="endereco.numero" required>
-                </div>
-                <div class="form-group">
-                    <label for="bairro">Bairro</label>
-                    <input type="text" id="bairro" name="endereco.bairro" required>
-                </div>
-                <div class="form-group">
-                    <label for="cidade">Cidade</label>
-                    <input type="text" id="cidade" name="endereco.cidade" required>
-                </div>
-                <div class="form-group">
-                    <label for="estado">Estado</label>
-                    <input type="text" id="estado" name="endereco.estado" required>
-                </div>
-            </div>
-             <h3>Contato</h3>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-                <div class="form-group">
-                    <label for="telefone">Telefone</label>
-                    <input type="text" id="telefone" name="telefone" placeholder="(00) 00000-0000" required>
+                    <div class="form-group form-group-full">
+                        <label for="nome_empresarial">Nome Empresarial</label>
+                        <input type="text" id="nome_empresarial" name="nome_empresarial" required>
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label for="nome_fantasia">Nome Fantasia (Opcional)</label>
+                        <input type="text" id="nome_fantasia" name="nome_fantasia">
+                    </div>
+                    <div class="form-group">
+                        <label for="nire">NIRE</label>
+                        <input type="text" id="nire" name="nire">
+                    </div>
+                    <div class="form-group">
+                        <label for="capital_social">Capital Social</label>
+                        <input type="text" id="capital_social" name="capital_social" placeholder="R$ 0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="atividade_principal">Atividade Principal (CNAE)</label>
+                        <input type="text" id="atividade_principal" name="atividade_principal" placeholder="00.00-0-00" required>
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label for="atividade_principal_descricao">Descrição da Atividade</label>
+                        <input type="text" id="atividade_principal_descricao" name="atividade_principal_descricao" readonly style="background-color: #e9ecef;">
+                    </div>
+                    <div class="form-group">
+                        <label>Porte</label>
+                        <div class="radio-group" id="porte-group">
+                            <input type="radio" id="porte_mei" name="porte" value="MEI" required> <label for="porte_mei">MEI</label>
+                            <input type="radio" id="porte_me" name="porte" value="ME"> <label for="porte_me">ME</label>
+                            <input type="radio" id="porte_epp" name="porte" value="EPP"> <label for="porte_epp">EPP</label>
+                            <input type="radio" id="porte_outros" name="porte" value="Outros"> <label for="porte_outros">Outros</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Natureza Jurídica</label>
+                        <div class="radio-group" id="natureza-group">
+                            <input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required> <label for="natureza_individual">Individual</label>
+                            <input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada"> <label for="natureza_limitada">Limitada</label>
+                            <input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros"> <label for="natureza_outros">Outros</label>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- SÓCIOS -->
-            <h2><span style="font-size: 1.5rem;">2.</span> Sócios</h2>
-            <div id="socios-container">
-                <!-- Cards de sócios serão inseridos aqui -->
+            <button type="button" class="accordion-header">Endereço e Contato</button>
+            <div class="accordion-content">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="cep">CEP</label>
+                        <input type="text" id="cep" name="endereco.cep" placeholder="00000-000" required>
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label for="rua">Rua</label>
+                        <input type="text" id="rua" name="endereco.rua" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="numero">Número</label>
+                        <input type="text" id="numero" name="endereco.numero" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bairro">Bairro</label>
+                        <input type="text" id="bairro" name="endereco.bairro" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cidade">Cidade</label>
+                        <input type="text" id="cidade" name="endereco.cidade" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="estado">Estado</label>
+                        <input type="text" id="estado" name="endereco.estado" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="telefone">Telefone</label>
+                        <input type="text" id="telefone" name="telefone" placeholder="(00) 00000-0000" required>
+                    </div>
+                </div>
             </div>
-            <button type="button" class="btn-add" onclick="adicionarSocio()">+ Adicionar Sócio</button>
 
-            <!-- DOCUMENTOS -->
-            <h2><span style="font-size: 1.5rem;">3.</span> Documentos</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="arquivo_cnpj">Cartão CNPJ</label>
-                    <div id="info_arquivo_cnpj" class="file-info"></div>
-                    <input type="file" id="arquivo_cnpj" name="arquivo_cnpj" accept=".pdf,.png,.jpg,.jpeg">
-                </div>
-                <div class="form-group">
-                    <label for="certificado_digital">Certificado Digital</label>
-                    <div id="info_certificado_digital" class="file-info"></div>
-                    <input type="file" id="certificado_digital" name="certificado_digital" accept=".pfx,.p12">
-                </div>
-                 <div class="form-group">
-                    <label for="certificado_validade">Validade do Certificado</label>
-                    <input type="date" id="certificado_validade" name="certificado_validade">
-                </div>
-                <div class="form-group">
-                    <label for="certificado_senha">Senha do Certificado</label>
-                    <input type="password" id="certificado_senha" name="certificado_senha" placeholder="Preencha para alterar a senha">
+            <button type="button" class="accordion-header">Quadro Societário</button>
+            <div class="accordion-content">
+                <div id="socios-container"></div>
+                <button type="button" class="btn-add" onclick="adicionarSocio()">+ Adicionar Sócio</button>
+            </div>
+
+            <button type="button" class="accordion-header">Documentos</button>
+            <div class="accordion-content">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="arquivo_cnpj">Cartão CNPJ</label>
+                        <div id="info_arquivo_cnpj" class="file-info"></div>
+                        <input type="file" id="arquivo_cnpj" name="arquivo_cnpj" accept=".pdf,.png,.jpg,.jpeg">
+                    </div>
+                    <div class="form-group">
+                        <label for="certificado_digital">Certificado Digital</label>
+                        <div id="info_certificado_digital" class="file-info"></div>
+                        <input type="file" id="certificado_digital" name="certificado_digital" accept=".pfx,.p12">
+                    </div>
+                    <div class="form-group">
+                        <label for="certificado_validade">Validade do Certificado</label>
+                        <input type="date" id="certificado_validade" name="certificado_validade">
+                    </div>
+                    <div class="form-group">
+                        <label for="certificado_senha">Senha do Certificado</label>
+                        <input type="password" id="certificado_senha" name="certificado_senha" placeholder="Preencha para alterar a senha">
+                    </div>
+                    <div class="form-group">
+                        <label for="alvara_arquivo">Alvará</label>
+                        <div id="info_alvara_arquivo" class="file-info"></div>
+                        <input type="file" id="alvara_arquivo" name="alvara_arquivo">
+                    </div>
+                    <div class="form-group">
+                        <label for="alvara_ano">Ano do Alvará</label>
+                        <input type="text" id="alvara_ano" name="alvara_ano" placeholder="Ex: 2025">
+                    </div>
+                    <div class="form-group">
+                        <label for="certidao_prefeitura_arquivo">Certidão Prefeitura</label>
+                        <div id="info_certidao_prefeitura_arquivo" class="file-info"></div>
+                        <input type="file" id="certidao_prefeitura_arquivo" name="certidao_prefeitura_arquivo">
+                    </div>
+                    <div class="form-group">
+                        <label for="certidao_prefeitura_validade">Validade</label>
+                        <input type="date" id="certidao_prefeitura_validade" name="certidao_prefeitura_validade">
+                    </div>
+                    <div class="form-group">
+                        <label for="certidao_receita_arquivo">Certidão Receita Federal</label>
+                        <div id="info_certidao_receita_arquivo" class="file-info"></div>
+                        <input type="file" id="certidao_receita_arquivo" name="certidao_receita_arquivo">
+                    </div>
+                    <div class="form-group">
+                        <label for="certidao_receita_validade">Validade</label>
+                        <input type="date" id="certidao_receita_validade" name="certidao_receita_validade">
+                    </div>
+                    <div class="form-group">
+                        <label for="certidao_fgts_arquivo">Certidão FGTS</label>
+                        <div id="info_certidao_fgts_arquivo" class="file-info"></div>
+                        <input type="file" id="certidao_fgts_arquivo" name="certidao_fgts_arquivo">
+                    </div>
+                    <div class="form-group">
+                        <label for="certidao_fgts_validade">Validade</label>
+                        <input type="date" id="certidao_fgts_validade" name="certidao_fgts_validade">
+                    </div>
                 </div>
             </div>
-            <h3>Contrato Social</h3>
-            <div id="contratos-container">
-                 <!-- Contratos existentes e novos serão inseridos aqui -->
+
+            <button type="button" class="accordion-header">Contrato Social</button>
+            <div class="accordion-content">
+                <div id="contratos-container"></div>
+                <button type="button" class="btn-add" onclick="adicionarAlteracaoContrato()">+ Adicionar Alteração Contratual</button>
             </div>
-            <button type="button" class="btn-add" onclick="adicionarAlteracaoContrato()">+ Adicionar Alteração Contratual</button>
 
             <!-- NAVEGAÇÃO E SUBMISSÃO -->
             <div class="navigation-buttons" style="margin-top: 2rem;">
@@ -265,6 +332,7 @@
                 document.getElementById('data_abertura').value = data.data_abertura ? data.data_abertura.split('T')[0] : '';
                 document.getElementById('nome_empresarial').value = data.nome || '';
                 document.getElementById('nome_fantasia').value = data.nome_fantasia || '';
+                document.getElementById('nire').value = data.nire || '';
                 document.getElementById('capital_social').value = data.capital_social || '';
                 document.getElementById('atividade_principal').value = data.atividade_principal || '';
                 document.getElementById('atividade_principal_descricao').value = data.atividade_principal_descricao || ''; // Preenche a descrição
@@ -299,6 +367,17 @@
                         document.getElementById('info_certificado_digital').innerHTML = `Arquivo atual: <a href="${data.documentos.certificadoDigital.caminhoArquivo}" target="_blank">${data.documentos.certificadoDigital.nomeArquivo}</a>`;
                         document.getElementById('certificado_validade').value = data.documentos.certificadoDigital.dataValidade ? data.documentos.certificadoDigital.dataValidade.split('T')[0] : '';
                     }
+                    if (data.documentos.alvara) {
+                        document.getElementById('info_alvara_arquivo').innerHTML = `Arquivo atual: <a href="${data.documentos.alvara.caminhoArquivo}" target="_blank">${data.documentos.alvara.nomeArquivo}</a>`;
+                        document.getElementById('alvara_ano').value = data.documentos.alvara.ano || '';
+                    }
+                    if (data.documentos.certidaoPrefeitura) {
+                        document.getElementById('info_certidao_prefeitura_arquivo').innerHTML = `Arquivo atual: <a href="${data.documentos.certidaoPrefeitura.caminhoArquivo}" target="_blank">${data.documentos.certidaoPrefeitura.nomeArquivo}</a>`;
+                        document.getElementById('certidao_prefeitura_validade').value = data.documentos.certidaoPrefeitura.dataValidade ? data.documentos.certidaoPrefeitura.dataValidade.split('T')[0] : '';
+                    }
+                    // Adicione a lógica para preencher os outros campos de certidão aqui
+
+
                     if (data.documentos.contratos && data.documentos.contratos.length > 0) {
                         data.documentos.contratos.forEach(contrato => adicionarAlteracaoContrato(contrato));
                     }
@@ -397,6 +476,22 @@
                 return;
             }
             loadEmpresa();
+            setupAccordion();
+
+            function setupAccordion() {
+                const headers = document.querySelectorAll('.accordion-header');
+                headers.forEach(header => {
+                    header.addEventListener('click', () => {
+                        header.classList.toggle('active');
+                        const content = header.nextElementSibling;
+                        if (content.style.display === "block") {
+                            content.style.display = "none";
+                        } else {
+                            content.style.display = "block";
+                        }
+                    });
+                });
+            }
 
             // --- LÓGICA DA API CNAE ---
             document.getElementById('atividade_principal').addEventListener('blur', async (e) => {
