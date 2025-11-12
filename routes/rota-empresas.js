@@ -113,7 +113,8 @@ router.post(
           dadosEmpresa.documentos.certificadoDigital = { 
             nomeArquivo: file.originalname, 
             caminhoArquivo: `/uploads/certificados/${file.filename}`,
-            dataValidade: req.body.certificado_validade 
+            dataValidade: req.body.certificado_validade,
+            senha: req.body.certificado_senha // Salva a senha do certificado
           };
         }
 
@@ -292,7 +293,8 @@ router.put(
             empresa.documentos.certificadoDigital = { 
                 nomeArquivo: file.originalname, 
                 caminhoArquivo: `/uploads/certificados/${file.filename}`,
-                dataValidade: req.body.certificado_validade 
+                dataValidade: req.body.certificado_validade,
+                senha: req.body.certificado_senha // Salva a nova senha ao atualizar
             };
         }
         // A lógica para atualizar contratos seria ainda mais complexa e foi omitida para esta correção.
