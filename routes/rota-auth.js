@@ -319,7 +319,7 @@ router.post(
     check('nome', 'O nome é obrigatório').not().isEmpty(),
     check('email', 'Por favor, inclua um email válido').isEmail(),
     check('senha', 'Por favor, insira uma senha com 6 ou mais caracteres').isLength({ min: 6 }),
-    check('role', 'O tipo de usuário é obrigatório').isIn(['admin', 'funcionario', 'empresario']),
+    check('role', 'O tipo de usuário é obrigatório').isIn(['admin', 'gerente', 'funcionario', 'empresario']),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -328,6 +328,12 @@ router.post(
     }
 
     const { nome, email, senha, role } = req.body;
+    const criador = await Usuario.findById(req.usuario.id);
+
+    // Regra: Gerente não pode criar Admin
+    if (criador.role === 'gerente' && role === 'admin') {
+      return res.status(403).json({ msg: 'Acesso negado. Gerentes não podem criar administradores.' });
+    }
 
     try {
       let usuario = await Usuario.findOne({ email });
@@ -374,6 +380,12 @@ router.delete('/admin/users/:id', [auth, adminAuth], async (req, res) => {
 
     if (!usuario) {
       return res.status(404).json({ msg: 'Usuário não encontrado' });
+    }
+
+    // Regra: Gerente não pode deletar Admin
+    const criador = await Usuario.findById(req.usuario.id);
+    if (criador.role === 'gerente' && usuario.role === 'admin') {
+      return res.status(403).json({ msg: 'Acesso negado. Gerentes não podem excluir administradores.' });
     }
 
     // Impede que um admin se auto-delete através da API

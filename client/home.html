@@ -430,7 +430,7 @@
                     if (usuario.fotoPerfilUrl && usuario.fotoPerfilUrl !== 'assets/profile-icon.svg') {
                         document.getElementById('deletePicIcon').style.display = 'inline-block';
                     }
-                    if (usuario.role === 'admin') {
+                    if (usuario.role === 'admin' || usuario.role === 'gerente') {
                         document.getElementById('admin-links').style.display = 'block';
                     }
                     // Mostra o link de cadastro para Admin e Funcionário

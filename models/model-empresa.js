@@ -19,7 +19,7 @@ const SocioSchema = new mongoose.Schema({
   nome: { type: String, required: true },
   cpf: { type: String, required: true },
   rg: { type: String },
-  data_nascimento: { type: Date },
+  data_nascimento: { type: Date, required: true },
   is_admin: { type: String, enum: ['sim', 'nao'], default: 'nao' },
   estado_civil: { type: String },
   regime_casamento: { type: String },
@@ -98,7 +98,6 @@ const EmpresaSchema = mongoose.Schema({
   telefone: { type: String },
   endereco: EnderecoSchema,
   socios: [SocioSchema],
-  filiais: [FilialSchema], // Novo campo para armazenar as filiais
   documentos: DocumentosEmpresaSchema,
   // --- NOVOS CAMPOS PARA RELAÇÃO MATRIZ/FILIAL ---
   tipo: { type: String, enum: ['matriz', 'filial'], default: 'matriz', required: true },

@@ -136,7 +136,9 @@
         
         // Dados da Empresa
         const dadosEmpresaContainer = document.getElementById('dados-empresa');
-        const tipoEmpresa = data.tipo.charAt(0).toUpperCase() + data.tipo.slice(1); // Capitaliza: Matriz ou Filial
+        // Garante que empresas antigas sem o campo 'tipo' sejam tratadas como 'matriz'
+        const tipo = data.tipo || 'matriz';
+        const tipoEmpresa = tipo.charAt(0).toUpperCase() + tipo.slice(1); // Capitaliza: Matriz ou Filial
 
         dadosEmpresaContainer.innerHTML = `
             ${createItem('CNPJ', formatarCNPJ(data.cnpj))}

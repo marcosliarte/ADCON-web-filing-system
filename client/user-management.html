@@ -82,6 +82,7 @@
                     <label for="role">Perfil:</label>
                     <select id="role" name="role" required>
                         <option value="funcionario">Funcionário</option>
+                        <option value="gerente">Gerente</option>
                         <option value="empresario">Empresário</option>
                         <option value="admin">Administrador</option>
                     </select>
@@ -118,7 +119,7 @@
             if (response) {
                 currentUser = await response.json();
                 createHeader('header-placeholder', currentUser); // Cria o cabeçalho
-                if (currentUser.role !== 'admin') {
+                if (!['admin', 'gerente'].includes(currentUser.role)) {
                     alert('Acesso negado. Apenas administradores podem gerenciar usuários.');
                     window.location.href = 'home.html';
                 }
@@ -136,6 +137,7 @@
                         const row = tbody.insertRow();
                         row.insertCell(0).textContent = user.nome;
                         row.insertCell(1).textContent = user.email;
+                        // Capitaliza a primeira letra do perfil
                         row.insertCell(2).textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
                         const actionsCell = row.insertCell(3);
                         if (user._id !== currentUser._id) { // Não permite deletar a si mesmo
@@ -144,6 +146,22 @@
                             actionsCell.textContent = 'Você';
                         }
                     });
+
+                    // Ajusta as opções de criação de perfil com base no usuário logado
+                    const roleSelect = document.getElementById('role');
+                    if (currentUser.role === 'gerente') {
+                        // Gerente não pode criar admin, então remove a opção
+                        const adminOption = roleSelect.querySelector('option[value="admin"]');
+                        if (adminOption) {
+                            adminOption.remove();
+                        }
+                    } else if (currentUser.role === 'admin') {
+                        // Admin pode tudo, garante que a ordem esteja correta
+                        const adminOption = roleSelect.querySelector('option[value="admin"]');
+                        // Move a opção de admin para o final para uma melhor UX
+                        roleSelect.appendChild(adminOption);
+                    }
+
                 }
             } catch (error) {
                 console.error('Erro ao carregar usuários:', error);

@@ -94,7 +94,7 @@ router.post(
 
     // Verificar permissão
     const usuarioLogado = await Usuario.findById(req.usuario.id);
-    if (!usuarioLogado || (usuarioLogado.role !== 'admin' && usuarioLogado.role !== 'funcionario')) {
+    if (!usuarioLogado || !['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
       return res.status(403).json({ msg: 'Acesso negado. Você não tem permissão para cadastrar empresas.' });
     }
 
@@ -364,7 +364,7 @@ router.put(
     
     try {
       const usuarioLogado = await Usuario.findById(req.usuario.id);
-      if (usuarioLogado.role !== 'admin' && usuarioLogado.role !== 'funcionario') {
+      if (!['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
         return res.status(403).json({ msg: 'Acesso negado.' });
       }
 
