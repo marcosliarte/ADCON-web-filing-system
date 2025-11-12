@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose'); // Importe o Mongoose
 const path = require('path'); // Módulo para lidar com caminhos de arquivos
+const os = require('os'); // Módulo para obter informações do sistema operacional, como o IP
 const helmet = require('helmet'); // Para segurança dos cabeçalhos HTTP
 const mongoSanitize = require('express-mongo-sanitize'); // Para prevenir NoSQL Injection
 
@@ -30,7 +31,7 @@ app.use(
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
       "script-src": ["'self'", "'unsafe-inline'"], // Permite <script> tags
-      "connect-src": ["'self'", "https://viacep.com.br"], // Permite que o backend se conecte ao ViaCEP
+      "connect-src": ["'self'", "https://viacep.com.br", "https://servicodados.ibge.gov.br"], // Permite conexão com ViaCEP e IBGE
       "script-src-attr": ["'self'", "'unsafe-inline'"], // Permite onclick="", etc.
     },
   })
@@ -51,8 +52,24 @@ app.use(express.static('client'));
 app.use('/assets', express.static(path.join(__dirname, 'client/assets')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.listen(PORT, () => {
-    console.log(`Servidor rodando em http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor rodando!`);
     console.log(`JWT_SECRET carregado: ${process.env.JWT_SECRET ? 'Sim' : 'Não'}`); // Adicionado para debug
-    console.log('Acesse a aplicação em http://localhost:3000/empresas.html');
+    
+    // Função para encontrar o endereço IP local
+    const interfaces = os.networkInterfaces();
+    let ipAddress = 'localhost';
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            // Pula endereços internos (ex: 127.0.0.1) e não-ipv4
+            if ('IPv4' !== iface.family || iface.internal !== false) {
+                continue;
+            }
+            ipAddress = iface.address;
+            break;
+        }
+    }
+
+    console.log(`\nAcesse a aplicação localmente em: http://localhost:${PORT}/login.html`);
+    console.log(`Acesse na sua rede em:          http://${ipAddress}:${PORT}/login.html\n`);
 });

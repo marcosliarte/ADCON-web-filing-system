@@ -97,6 +97,7 @@ router.post(
       const dadosEmpresa = {
         ...req.body,
         nome: req.body.nome_empresarial, // Mapeia o nome_empresarial do form para o campo 'nome' do schema
+        atividade_principal_descricao: req.body.atividade_principal_descricao, // Adiciona a descrição do CNAE
         documentos: {
           contratos: [],
         },
@@ -305,6 +306,7 @@ router.put(
       empresa.capital_social = req.body.capital_social;
       empresa.atividade_principal = req.body.atividade_principal;
       empresa.porte = req.body.porte;
+      empresa.atividade_principal_descricao = req.body.atividade_principal_descricao; // Adiciona a descrição do CNAE
       empresa.natureza_juridica = req.body.natureza_juridica;
       empresa.email = req.body.email;
       empresa.telefone = req.body.telefone;
@@ -373,6 +375,29 @@ router.get('/cep/:cep', auth, async (req, res) => {
   } catch (error) {
     console.error('Erro no proxy do ViaCEP:', error.message);
     res.status(500).json({ msg: 'Erro interno ao consultar o CEP.' }); // Já era JSON, mas mantido
+  }
+});
+
+// @route   GET api/empresas/cnae/:codigo
+// @desc    Consultar um CNAE usando a API do IBGE (servindo como proxy)
+// @access  Private
+router.get('/cnae/:codigo', auth, async (req, res) => {
+  const { codigo } = req.params;
+  const cnaeFormatado = codigo.replace(/\D/g, ''); // Garante que só tenha números
+
+  if (!cnaeFormatado) {
+    return res.status(400).json({ msg: 'Código CNAE inválido.' });
+  }
+
+  try {
+    const fetch = require('node-fetch');
+    // A API do IBGE usa o endpoint de subclasses para os códigos de 7 dígitos
+    const response = await fetch(`https://servicodados.ibge.gov.br/api/v2/cnae/subclasses/${cnaeFormatado}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Erro no proxy do CNAE:', error.message);
+    res.status(500).json({ msg: 'Erro interno ao consultar o CNAE.' });
   }
 });
 

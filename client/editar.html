@@ -74,6 +74,10 @@
                     <label for="atividade_principal">Atividade Principal (CNAE)</label>
                     <input type="text" id="atividade_principal" name="atividade_principal" placeholder="00.00-0-00" required>
                 </div>
+                <div class="form-group form-group-full">
+                    <label for="atividade_principal_descricao">Descrição da Atividade</label>
+                    <input type="text" id="atividade_principal_descricao" name="atividade_principal_descricao" readonly style="background-color: #e9ecef;">
+                </div>
                 <div class="form-group">
                     <label>Porte</label>
                     <div class="radio-group" id="porte-group">
@@ -263,6 +267,7 @@
                 document.getElementById('nome_fantasia').value = data.nome_fantasia || '';
                 document.getElementById('capital_social').value = data.capital_social || '';
                 document.getElementById('atividade_principal').value = data.atividade_principal || '';
+                document.getElementById('atividade_principal_descricao').value = data.atividade_principal_descricao || ''; // Preenche a descrição
                 document.getElementById('email').value = data.email || '';
                 document.getElementById('telefone').value = data.telefone || '';
 
@@ -392,6 +397,29 @@
                 return;
             }
             loadEmpresa();
+
+            // --- LÓGICA DA API CNAE ---
+            document.getElementById('atividade_principal').addEventListener('blur', async (e) => {
+                const cnaeInput = e.target;
+                const cnaeCode = cnaeInput.value.replace(/\D/g, '');
+                const descInput = document.getElementById('atividade_principal_descricao');
+
+                if (cnaeCode.length === 7) {
+                    try {
+                        const response = await fetchWithAuth(`/api/empresas/cnae/${cnaeCode}`);
+                        if (!response.ok) throw new Error('Falha na consulta do CNAE.');
+                        const data = await response.json();
+                        if (data && data.descricao) { // A API retorna um objeto único
+                            descInput.value = data.descricao;
+                        } else {
+                            descInput.value = 'Código CNAE não encontrado.';
+                        }
+                    } catch (error) {
+                        descInput.value = 'Erro ao buscar descrição do CNAE.';
+                    }
+                }
+            });
+
         });
     </script>
 </body>

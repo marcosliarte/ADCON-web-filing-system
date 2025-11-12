@@ -59,6 +59,7 @@ const EmpresaSchema = mongoose.Schema({
   data_abertura: { type: Date },
   capital_social: { type: String },
   atividade_principal: { type: String },
+  atividade_principal_descricao: { type: String }, // Novo campo para a descrição
   porte: { type: String },
   natureza_juridica: { type: String },
   possui_filial: { type: String },

@@ -82,6 +82,10 @@
                         <label for="atividade_principal">Atividade Principal (CNAE)</label>
                         <input type="text" id="atividade_principal" name="atividade_principal" placeholder="00.00-0-00" required>
                     </div>
+                    <div class="form-group form-group-full">
+                        <label for="atividade_principal_descricao">Descrição da Atividade</label>
+                        <input type="text" id="atividade_principal_descricao" name="atividade_principal_descricao" readonly style="background-color: #e9ecef;">
+                    </div>
                     <div class="form-group">
                         <label>Porte</label>
                         <div class="radio-group">
@@ -473,7 +477,7 @@
         const maskCpf = (value) => value.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2').slice(0, 14);
         const maskCep = (value) => value.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
         const maskPhone = (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 15);
-        const maskCnae = (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{2})(\d)/, '$1-$2').replace(/(\d{1})(\d)/, '$1/$2').slice(0, 10);
+        const maskCnae = (value) => value.replace(/\D/g, '').replace(/^(\d{4})(\d)/, '$1-$2').replace(/-(\d{1})(\d)/, '-$1/$2').slice(0, 9); // Formato correto: 4712-1/00
         const maskCurrency = (value) => {
             let v = value.replace(/\D/g, '');
             v = (v / 100).toFixed(2) + '';
@@ -481,6 +485,28 @@
             v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
             return 'R$ ' + v;
         };
+
+        // --- LÓGICA DA API CNAE ---
+        document.getElementById('atividade_principal').addEventListener('blur', async (e) => {
+            const cnaeInput = e.target;
+            const cnaeCode = cnaeInput.value.replace(/\D/g, '');
+            const descInput = document.getElementById('atividade_principal_descricao');
+
+            if (cnaeCode.length === 7) {
+                try {
+                    const response = await fetchWithAuth(`/api/empresas/cnae/${cnaeCode}`);
+                    const data = await response.json();
+                    // A API retorna um objeto único, não um array, para um código único.
+                    if (data && data.descricao) {
+                        descInput.value = data.descricao;
+                    } else {
+                        descInput.value = 'Código CNAE não encontrado.';
+                    }
+                } catch (error) {
+                    descInput.value = 'Erro ao buscar descrição do CNAE.';
+                }
+            }
+        });
 
         function setupInitialMasks() {
             formatInput(document.getElementById('cnpj'), maskCnpj);
