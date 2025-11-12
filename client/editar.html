@@ -23,8 +23,21 @@
         .form-group-full { grid-column: 1 / -1; }
         label { margin-bottom: 0.5rem; font-weight: bold; font-size: 0.9rem; }
         input, select { width: 100%; padding: 0.7rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        /* Correção: Garante que inputs de arquivo tenham a mesma altura dos outros */
+        input[type="file"] { padding: 0.55rem; }
         input:focus, select:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,.25); }
-        .radio-group { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .radio-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem; /* Aumenta o espaçamento entre as opções */
+            flex-wrap: wrap;
+            padding-top: 0.5rem; /* Adiciona um espaço para alinhar com outros inputs */
+        }
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
         .radio-group label { font-weight: normal; margin-right: 0.5rem; }
         button { background-color: #007bff; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
         button:hover { background-color: #0056b3; }
@@ -110,18 +123,26 @@
                     <div class="form-group">
                         <label>Porte</label>
                         <div class="radio-group" id="porte-group">
-                            <input type="radio" id="porte_mei" name="porte" value="MEI" required> <label for="porte_mei">MEI</label>
-                            <input type="radio" id="porte_me" name="porte" value="ME"> <label for="porte_me">ME</label>
-                            <input type="radio" id="porte_epp" name="porte" value="EPP"> <label for="porte_epp">EPP</label>
-                            <input type="radio" id="porte_outros" name="porte" value="Outros"> <label for="porte_outros">Outros</label>
+                            <div class="radio-item">
+                                <input type="radio" id="porte_mei" name="porte" value="MEI" required> <label for="porte_mei">MEI</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="porte_me" name="porte" value="ME"> <label for="porte_me">ME</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="porte_epp" name="porte" value="EPP"> <label for="porte_epp">EPP</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="porte_outros" name="porte" value="Outros"> <label for="porte_outros">Outros</label>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Natureza Jurídica</label>
                         <div class="radio-group" id="natureza-group">
-                            <input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required> <label for="natureza_individual">Individual</label>
-                            <input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada"> <label for="natureza_limitada">Limitada</label>
-                            <input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros"> <label for="natureza_outros">Outros</label>
+                            <div class="radio-item"><input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required> <label for="natureza_individual">Individual</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada"> <label for="natureza_limitada">Limitada</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros"> <label for="natureza_outros">Outros</label></div>
                         </div>
                     </div>
                 </div>
