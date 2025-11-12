@@ -110,6 +110,7 @@ router.post(
       const dadosEmpresa = {
         ...req.body,
         nome: req.body.nome_empresarial, // Mapeia o nome_empresarial do form para o campo 'nome' do schema
+        filiais: req.body.filiais || [], // Adiciona os dados das filiais
         atividade_principal_descricao: req.body.atividade_principal_descricao, // Adiciona a descrição do CNAE
         documentos: {
           contratos: [],
@@ -195,7 +196,7 @@ router.post(
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const { busca, ordenacao = 'nome', direcao = 'asc', pagina = 1, limite = 10, ownerId } = req.query;
+    const { busca, ordenacao = 'nome', direcao = 'asc', pagina = 1, limite = 10, ownerId, tipo } = req.query;
     const query = {};
     const usuarioLogado = await Usuario.findById(req.usuario.id);
 
@@ -207,13 +208,30 @@ router.get('/', auth, async (req, res) => {
       query.ownerId = ownerId;
     }
 
+    // Adicionado filtro por tipo de empresa (matriz ou filial)
+    if (tipo) {
+      if (tipo === 'matriz') {
+        // Para compatibilidade com registros antigos, busca por 'matriz' ou onde o campo 'tipo' não existe/é nulo.
+        query.$or = [
+          { tipo: 'matriz' },
+          { tipo: { $exists: false } }
+        ];
+      } else {
+        query.tipo = tipo; // Para 'filial' ou outros tipos, a busca é exata.
+      }
+    }
+
     if (busca) {
-      query.$or = [
+      const buscaQuery = {
+        $or: [
         { nome: { $regex: busca, $options: 'i' } },
         { cnpj: { $regex: busca, $options: 'i' } },
-      ];
-      if (usuarioLogado.role === 'empresario') {
-        query.$or.forEach(item => item.ownerId = req.usuario.id); // Garante que a busca do empresário seja apenas nas suas empresas
+      ]};
+      // Combina a busca com a query principal
+      if (query.$or) { // Se já existe um $or (do filtro de tipo)
+        query = { $and: [ { $or: query.$or }, buscaQuery ] };
+      } else {
+        Object.assign(query, buscaQuery);
       }
     }
 
@@ -236,15 +254,23 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const empresa = await Empresa.findById(req.params.id);
+    // Usar .lean() para obter um objeto JS puro, o que facilita a manipulação
+    const empresa = await Empresa.findById(req.params.id).populate('matriz_id', 'nome _id cnpj').lean();
+
     if (!empresa) {
       return res.status(404).json({ msg: 'Empresa não encontrada' });
     }
+
     const usuarioLogado = await Usuario.findById(req.usuario.id);
-    // Empresário só pode ver suas próprias empresas
     if (usuarioLogado.role === 'empresario' && empresa.ownerId.toString() !== req.usuario.id) {
       return res.status(403).json({ msg: 'Acesso negado. Você não tem permissão para visualizar esta empresa.' });
     }
+
+    // Renomeia 'matriz_id' para 'matriz' para clareza no frontend
+    empresa.matriz = empresa.matriz_id || null;
+    // Busca as filiais SE a empresa for uma matriz
+    empresa.filiais = (empresa.tipo === 'matriz' || !empresa.tipo) ? await Empresa.find({ matriz_id: req.params.id }).select('nome nome_fantasia cnpj _id').lean() : [];
+
     res.json(empresa);
   } catch (err) {
     console.error(err.message);
@@ -350,6 +376,7 @@ router.put(
       // Atualiza os campos de texto simples
       empresa.nome = req.body.nome_empresarial;
       empresa.cnpj = req.body.cnpj;
+      empresa.filiais = req.body.filiais || []; // Atualiza os dados das filiais
       empresa.nire = req.body.nire;
       empresa.data_abertura = req.body.data_abertura;
       empresa.nome_fantasia = req.body.nome_fantasia;
@@ -476,6 +503,35 @@ router.get('/cnae/:codigo', auth, async (req, res) => {
   } catch (error) {
     console.error('Erro no proxy do CNAE:', error.message);
     res.status(500).json({ msg: 'Erro interno ao consultar o CNAE.' });
+  }
+});
+
+// @route   GET api/empresas/cnpj/:cnpj
+// @desc    Obter detalhes de uma empresa específica pelo CNPJ
+// @access  Private
+router.get('/cnpj/:cnpj', auth, async (req, res) => {
+  try {
+    const { cnpj } = req.params;
+    // Formata o CNPJ com a máscara para comparar com o que pode estar no banco
+    const cnpjFormatado = cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+
+    // Busca a empresa pelo CNPJ, selecionando apenas os campos necessários
+    // Tenta encontrar pelo CNPJ puro (14 dígitos) ou pelo CNPJ formatado
+    const empresa = await Empresa.findOne({
+      $or: [
+        { cnpj: cnpj },
+        { cnpj: cnpjFormatado }
+      ]
+    }).select('_id nome').lean();
+
+    if (!empresa) {
+      return res.status(404).json({ msg: 'Empresa não encontrada com este CNPJ.' });
+    }
+
+    res.json(empresa);
+  } catch (err) {
+    console.error('Erro ao buscar empresa por CNPJ:', err.message);
+    res.status(500).json({ msg: 'Erro no servidor' });
   }
 });
 

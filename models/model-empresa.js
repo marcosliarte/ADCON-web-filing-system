@@ -70,27 +70,40 @@ const DocumentosEmpresaSchema = new mongoose.Schema({
   certidaoFalencia: CertidaoSchema,
 }, { _id: false });
 
+// Schema para cada Filial
+const FilialSchema = new mongoose.Schema({
+  nome: { type: String, required: true },
+  nome_fantasia: { type: String },
+  cnpj: { type: String, required: true },
+  atividade_principal: { type: String }, // CNAE
+}, { _id: false });
+
 
 // --- Schema Principal da Empresa ---
 
 const EmpresaSchema = mongoose.Schema({
   nome: { type: String, required: true },
   cnpj: { type: String, required: true, unique: true },
-  email: { type: String, required: true },
+  email: { type: String },
   nire: { type: String }, // Novo campo NIRE
   nome_fantasia: { type: String },
   data_abertura: { type: Date },
   capital_social: { type: String },
   atividade_principal: { type: String },
   atividade_principal_descricao: { type: String }, // Novo campo para a descrição
-  porte: { type: String },
+  porte: { type: String, required: true },
   natureza_juridica: { type: String },
   possui_filial: { type: String },
   simples_nacional: { type: String },
   telefone: { type: String },
   endereco: EnderecoSchema,
   socios: [SocioSchema],
+  filiais: [FilialSchema], // Novo campo para armazenar as filiais
   documentos: DocumentosEmpresaSchema,
+  // --- NOVOS CAMPOS PARA RELAÇÃO MATRIZ/FILIAL ---
+  tipo: { type: String, enum: ['matriz', 'filial'], default: 'matriz', required: true },
+  matriz_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa', default: null },
+  // ------------------------------------------------
   dataCadastro: { type: Date, default: Date.now },
 });
 

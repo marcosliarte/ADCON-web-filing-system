@@ -26,6 +26,7 @@
         .info-label { display: block; font-weight: bold; font-size: 0.85rem; color: #555; margin-bottom: 0.25rem; }
         .info-value { font-size: 1rem; }
         .socio-card, .document-list li { background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 1.5rem; margin-bottom: 1rem; }
+        .filial-card { background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 1.5rem; margin-bottom: 1rem; }
         .document-list { list-style: none; padding: 0; }
         .document-list li { display: flex; justify-content: space-between; align-items: center; }
         .action-buttons { margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; }
@@ -74,6 +75,12 @@
         <div class="section" id="socios-section" style="display: none;">
             <h2>Quadro Societário</h2>
             <div id="socios-container"></div>
+        </div>
+
+        <!-- Seção de Filiais -->
+        <div class="section" id="filiais-section" style="display: none;">
+            <h2>Filiais</h2>
+            <div id="filiais-container"></div>
         </div>
 
         <!-- Seção de Documentos -->
@@ -129,6 +136,8 @@
         
         // Dados da Empresa
         const dadosEmpresaContainer = document.getElementById('dados-empresa');
+        const tipoEmpresa = data.tipo.charAt(0).toUpperCase() + data.tipo.slice(1); // Capitaliza: Matriz ou Filial
+
         dadosEmpresaContainer.innerHTML = `
             ${createItem('CNPJ', formatarCNPJ(data.cnpj))}
             ${createItem('Nome Empresarial', data.nome)}
@@ -139,10 +148,15 @@
             ${createItem('Descrição CNAE', data.atividade_principal_descricao || 'Não informado')}
             ${createItem('Atividade Principal (CNAE)', data.atividade_principal)}
             ${createItem('Porte', data.porte)}
+            ${createItem('Tipo', tipoEmpresa)}
             ${createItem('Natureza Jurídica', data.natureza_juridica)}
-            ${createItem('Possui Filial?', formatarBooleano(data.possui_filial))}
             ${createItem('Enquadrada no Simples?', formatarBooleano(data.simples_nacional))}
         `;
+
+        // Se for filial, adiciona link para a matriz
+        if (data.tipo === 'filial' && data.matriz) {
+            dadosEmpresaContainer.innerHTML += createItem('Empresa Matriz', `<a href="detalhes-empresa.html?id=${data.matriz._id}">${data.matriz.nome}</a>`);
+        }
 
         // Endereço e Contato
         const enderecoContatoContainer = document.getElementById('endereco-contato');
@@ -172,6 +186,21 @@
                 </div>
             `).join('');
             document.getElementById('socios-section').style.display = 'block';
+        }
+
+        // Filiais
+        if (data.tipo === 'matriz' && data.filiais && data.filiais.length > 0) {
+            const filiaisContainer = document.getElementById('filiais-container');
+            filiaisContainer.innerHTML = data.filiais.map(filial => `
+                <div class="filial-card">
+                    <h3><a href="detalhes-empresa.html?id=${filial._id}">${filial.nome}</a></h3>
+                    <div class="info-grid">
+                        ${createItem('CNPJ', formatarCNPJ(filial.cnpj))}
+                        ${createItem('Nome Fantasia', filial.nome_fantasia || 'Não informado')}
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('filiais-section').style.display = 'block';
         }
 
         // Documentos
