@@ -1,14 +1,32 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Detalhes da Empresa</title>
-  <style>
-    /* ... (estilos permanecem os mesmos) ... */
-  </style>
+    <meta charset="UTF-8">
+    <title>Relatório da Empresa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 900px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #007bff; }
+        h1 { border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        h2 { border-bottom: 1px solid #e0e0e0; padding-bottom: 0.5rem; margin-top: 2rem; margin-bottom: 1rem; }
+        .section { margin-bottom: 1.5rem; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .info-item { background-color: #f8f9fa; padding: 0.8rem; border-radius: 4px; border-left: 4px solid #007bff; }
+        .info-label { display: block; font-weight: bold; font-size: 0.85rem; color: #555; margin-bottom: 0.25rem; }
+        .info-value { font-size: 1rem; }
+        .socio-card, .document-list li { background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 5px; padding: 1.5rem; margin-bottom: 1rem; }
+        .document-list { list-style: none; padding: 0; }
+        .document-list li { display: flex; justify-content: space-between; align-items: center; }
+        .action-buttons { margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; }
+        button { background-color: #007bff; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .btn-back { background-color: #6c757d; }
+        .btn-edit { background-color: #ffc107; color: #212529; }
+        .btn-download { background-color: #28a745; }
+    </style>
 </head>
 <body style="display: none;">
-  <!-- Script de bloqueio de acesso e exibição de conteúdo -->
   <script>
     if (localStorage.getItem('token')) {
       document.body.style.display = 'block';
@@ -18,96 +36,57 @@
   </script>
 
   <div class="container">
-    <h1>Detalhes da Empresa</h1>
+    <h1 id="relatorio-titulo">Relatório da Empresa</h1>
     
     <div id="loading" class="loading">Carregando dados da empresa...</div>
     
     <div id="error-container" style="display: none;">
-      <div class="error-message" id="error-message"></div>
-      <button class="btn btn-back" onclick="window.history.back()">Voltar</button>
+        <p id="error-message" style="color: red;"></p>
+        <button class="btn-back" onclick="window.history.back()">Voltar</button>
     </div>
     
     <div id="content" style="display: none;">
-      <div class="section">
-        <h2>Informações Básicas</h2>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="info-label">ID:</span>
-            <span class="info-value" id="empresa-id"></span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Nome:</span>
-            <span class="info-value" id="nome-empresa"></span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">CNPJ:</span>
-            <span class="info-value" id="cnpj-empresa"></span>
-          </div>
+        <!-- Seção de Dados da Empresa -->
+        <div class="section">
+            <h2>Dados Empresariais</h2>
+            <div class="info-grid" id="dados-empresa"></div>
         </div>
-      </div>
-      
-      <div class="section" id="arquivo-section" style="display: none;">
-        <h2>Documento Anexado</h2>
-        <div class="document-container">
-          <div class="document-info">
-            <span id="nome-arquivo"></span>
-            <span id="tipo-arquivo" style="display: none;"></span>
-          </div>
-          <div class="document-actions">
-            <button class="btn btn-download" id="btn-download">Download</button>
-            <button class="btn btn-view" id="btn-visualizar">Visualizar</button>
-          </div>
+
+        <!-- Seção de Endereço e Contato -->
+        <div class="section">
+            <h2>Endereço e Contato</h2>
+            <div class="info-grid" id="endereco-contato"></div>
         </div>
-        <div id="visualizador-container">
-          <iframe id="visualizador-arquivo"></iframe>
+
+        <!-- Seção de Sócios -->
+        <div class="section" id="socios-section" style="display: none;">
+            <h2>Quadro Societário</h2>
+            <div id="socios-container"></div>
         </div>
-      </div>
-      
-      <div class="action-buttons">
-        <button class="btn btn-back" onclick="window.history.back()">Voltar</button>
-        <button class="btn btn-edit" id="btn-editar" style="display: none;">Editar</button>
-        <button class="btn btn-share" id="btn-compartilhar">Compartilhar</button>
-        <button class="btn btn-print" onclick="window.print()">Imprimir</button>
-      </div>
+
+        <!-- Seção de Documentos -->
+        <div class="section" id="documentos-section" style="display: none;">
+            <h2>Documentos Digitais</h2>
+            <ul class="document-list" id="documentos-container"></ul>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn-back" onclick="window.history.back()">Voltar</button>
+            <button class="btn-edit" id="btn-editar" style="display: none;">Editar</button>
+            <button class="btn-print" onclick="window.print()">Imprimir Relatório</button>
+        </div>
     </div>
   </div>
 
+  <script src="shared.js"></script>
   <script>
-    const BASE_UPLOADS_URL = '/uploads/';
     let usuario;
-
-    async function fetchWithAuth(url, options = {}) {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = 'login.html';
-            return;
-        }
-
-        const headers = {
-            ...options.headers,
-            'x-auth-token': token
-        };
-
-        const response = await fetch(url, { ...options, headers });
-
-        if (response.status === 401 || response.status === 403) {
-            window.location.href = 'login.html';
-            return;
-        }
-
-        return response;
-    }
 
     async function getUsuario() {
         const response = await fetchWithAuth('/api/auth');
         if(response) {
             usuario = await response.json();
-            if (usuario.role === 'admin' || usuario.role === 'funcionario') {
-                document.getElementById('btn-editar').style.display = 'inline-block';
-            } else {
-                // Empresário não pode editar
-                document.getElementById('btn-editar').style.display = 'none';
-            }
+            // A visibilidade do botão de editar será definida após carregar os dados da empresa
         }
     }
 
@@ -125,49 +104,93 @@
         }
         
         const response = await fetchWithAuth(`/api/empresas/${empresaId}`);
-        
-        if(response) {
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.message || 'Erro ao carregar dados da empresa');
-            }
-            
-            const data = await response.json();
-            
-            document.getElementById('empresa-id').textContent = data._id;
-            document.getElementById('nome-empresa').textContent = data.nome;
-            document.getElementById('cnpj-empresa').textContent = formatarCNPJ(data.cnpj);
-            
-            document.getElementById('btn-editar').onclick = () => {
-                window.location.href = `editar.html?id=${data._id}`;
-            };
-            
-            document.getElementById('btn-compartilhar').onclick = () => {
-              compartilharEmpresa(data);
-            };
-            
-            // A informação do arquivo vem do array 'certidoes'
-            if (data.certidoes && data.certidoes.length > 0) {
-              const arquivo = data.certidoes[0];
-              const extensao = arquivo.nomeArquivo.split('.').pop().toLowerCase();
-              const urlArquivo = arquivo.caminhoArquivo; // O caminho já é o correto
-              
-              document.getElementById('nome-arquivo').textContent = arquivo.nomeArquivo;
-              document.getElementById('tipo-arquivo').textContent = extensao;
-              
-              document.getElementById('btn-download').onclick = () => {
-                window.open(urlArquivo, '_blank'); // Abre o arquivo para download/visualização
-              };
-              
-              document.getElementById('btn-visualizar').onclick = () => {
-                visualizarDocumento(urlArquivo, extensao);
-              };
-              
-              document.getElementById('arquivo-section').style.display = 'block';
-            }
-            
-            mostrarConteudo();
+        if (!response || !response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.msg || 'Erro ao carregar dados da empresa');
         }
+        
+        const data = await response.json();
+        
+        // Popula o relatório com os dados
+        document.getElementById('relatorio-titulo').textContent = `Relatório da Empresa: ${data.nome}`;
+        
+        // Dados da Empresa
+        const dadosEmpresaContainer = document.getElementById('dados-empresa');
+        dadosEmpresaContainer.innerHTML = `
+            ${createItem('CNPJ', formatarCNPJ(data.cnpj))}
+            ${createItem('Nome Empresarial', data.nome)}
+            ${createItem('Nome Fantasia', data.nome_fantasia || 'Não informado')}
+            ${createItem('Data de Abertura', formatarData(data.data_abertura))}
+            ${createItem('Capital Social', data.capital_social)}
+            ${createItem('Atividade Principal (CNAE)', data.atividade_principal)}
+            ${createItem('Porte', data.porte)}
+            ${createItem('Natureza Jurídica', data.natureza_juridica)}
+            ${createItem('Possui Filial?', formatarBooleano(data.possui_filial))}
+            ${createItem('Enquadrada no Simples?', formatarBooleano(data.simples_nacional))}
+        `;
+
+        // Endereço e Contato
+        const enderecoContatoContainer = document.getElementById('endereco-contato');
+        enderecoContatoContainer.innerHTML = `
+            ${createItem('Email', data.email ? `<a href="mailto:${data.email}">${data.email}</a>` : 'Não informado')}
+            ${createItem('Telefone', data.telefone || 'Não informado')}
+            ${createItem('CEP', data.endereco?.cep || 'Não informado')}
+            ${createItem('Endereço', data.endereco ? `${data.endereco.rua}, ${data.endereco.numero}` : 'Não informado')}
+            ${createItem('Complemento', data.endereco?.complemento || 'N/A')}
+            ${createItem('Bairro', data.endereco?.bairro || 'Não informado')}
+            ${createItem('Cidade / Estado', data.endereco ? `${data.endereco.cidade} / ${data.endereco.estado}` : 'Não informado')}
+        `;
+
+        // Sócios
+        if (data.socios && data.socios.length > 0) {
+            const sociosContainer = document.getElementById('socios-container');
+            sociosContainer.innerHTML = data.socios.map(socio => `
+                <div class="socio-card">
+                    <h3>${socio.nome} ${socio.is_admin === 'sim' ? '<span style="font-size: 0.8rem; color: #28a745;">(Sócio Admin)</span>' : ''}</h3>
+                    <div class="info-grid">
+                        ${createItem('CPF', formatarCPF(socio.cpf))}
+                        ${createItem('RG', socio.rg)}
+                        ${createItem('Data de Nascimento', formatarData(socio.data_nascimento))}
+                        ${createItem('Estado Civil', `${socio.estado_civil}${socio.estado_civil === 'casado' ? ` (${socio.regime_casamento.replace(/_/g, ' ')})` : ''}`)}
+                        ${createItem('Endereço', `${socio.endereco.rua}, ${socio.endereco.numero} - ${socio.endereco.bairro}, ${socio.endereco.cidade}/${socio.endereco.estado}`)}
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('socios-section').style.display = 'block';
+        }
+
+        // Documentos
+        if (data.documentos) {
+            const documentosContainer = document.getElementById('documentos-container');
+            let documentosHtml = '';
+            if (data.documentos.cartaoCnpj) {
+                documentosHtml += createDocumentoItem('Cartão CNPJ', data.documentos.cartaoCnpj);
+            }
+            if (data.documentos.certificadoDigital) {
+                const validade = data.documentos.certificadoDigital.dataValidade ? ` (Validade: ${formatarData(data.documentos.certificadoDigital.dataValidade)})` : '';
+                documentosHtml += createDocumentoItem(`Certificado Digital${validade}`, data.documentos.certificadoDigital);
+            }
+            if (data.documentos.contratos && data.documentos.contratos.length > 0) {
+                data.documentos.contratos.forEach((contrato, index) => {
+                    const nome = index === 0 ? 'Contrato Social Original' : `Alteração Contratual #${contrato.numeroAlteracao || index}`;
+                    const info = `${nome} - ${formatarData(contrato.dataAlteracao)}`;
+                    documentosHtml += createDocumentoItem(info, contrato);
+                });
+            }
+            if (documentosHtml) {
+                documentosContainer.innerHTML = documentosHtml;
+                document.getElementById('documentos-section').style.display = 'block';
+            }
+        }
+
+        // Botão de Editar
+        if (usuario && (usuario.role === 'admin' || usuario.role === 'funcionario')) {
+            const btnEditar = document.getElementById('btn-editar');
+            btnEditar.style.display = 'inline-block';
+            btnEditar.onclick = () => window.location.href = `editar.html?id=${data._id}`;
+        }
+        
+        mostrarConteudo();
         
       } catch (error) {
         console.error('Erro ao carregar dados da empresa:', error);
@@ -176,8 +199,43 @@
         mostrarLoading(false);
       }
     }
-    
-    // ... (outras funções como visualizarDocumento, formatarCNPJ, etc. permanecem as mesmas)
+
+    // --- Funções Auxiliares de UI ---
+    function createItem(label, value) {
+        return `
+            <div class="info-item">
+                <span class="info-label">${label}</span>
+                <span class="info-value">${value || 'Não informado'}</span>
+            </div>
+        `;
+    }
+
+    function createDocumentoItem(label, doc) {
+        return `
+            <li>
+                <span>${label}</span>
+                <a href="${doc.caminhoArquivo}" target="_blank" rel="noopener noreferrer">
+                    <button class="btn-download">Visualizar / Baixar</button>
+                </a>
+            </li>
+        `;
+    }
+
+    function mostrarLoading(mostrar) { document.getElementById('loading').style.display = mostrar ? 'block' : 'none'; }
+    function mostrarConteudo() { document.getElementById('content').style.display = 'block'; }
+    function esconderConteudo() { document.getElementById('content').style.display = 'none'; }
+    function mostrarErro(msg) {
+        const errorContainer = document.getElementById('error-container');
+        document.getElementById('error-message').textContent = msg;
+        errorContainer.style.display = 'block';
+    }
+    function esconderErro() { document.getElementById('error-container').style.display = 'none'; }
+
+    // --- Funções de Formatação ---
+    function formatarCNPJ(cnpj) { return cnpj ? cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : ''; }
+    function formatarCPF(cpf) { return cpf ? cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : ''; }
+    function formatarData(data) { return data ? new Date(data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : ''; }
+    function formatarBooleano(valor) { return valor === 'sim' ? 'Sim' : 'Não'; }
 
     document.addEventListener('DOMContentLoaded', async () => {
         await getUsuario();

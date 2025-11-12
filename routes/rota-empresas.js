@@ -88,17 +88,10 @@ router.post(
       const dadosEmpresa = {
         ...req.body,
         nome: req.body.nome_empresarial, // Mapeia o nome_empresarial do form para o campo 'nome' do schema
-        endereco: req.body.endereco || {},
-        socios: [],
         documentos: {
           contratos: [],
         },
       };
-
-      // Processa os sócios
-      if (req.body.socios) {
-        dadosEmpresa.socios = Object.values(req.body.socios);
-      }
 
       // Processa os arquivos e associa aos dados
       if (req.files) {
@@ -117,17 +110,17 @@ router.post(
 
         // Processa os contratos
         if (req.body.contrato_social) {
-          Object.keys(req.body.contrato_social).forEach(key => {
-            const contratoInfo = req.body.contrato_social[key];
-            const fileInfo = req.files[`contrato_social[${key}][arquivo]`];
-            if (fileInfo) {
-              const file = fileInfo[0];
-              dadosEmpresa.documentos.contratos.push({
-                nomeArquivo: file.originalname,
-                caminhoArquivo: `/uploads/contratos/${file.filename}`,
-                dataAlteracao: contratoInfo.data,
-                numeroAlteracao: contratoInfo.numero
-              });
+          // O multer-parser já nos dá um array de arquivos para campos com o mesmo nome
+          const contratosInfo = req.body.contrato_social; // Array de {data, numero}
+          const contratoFiles = req.files['contrato_social[0][arquivo]'] || []; // O nome pode variar, pegamos o primeiro
+
+          contratosInfo.forEach((info, index) => {
+            const file = req.files[`contrato_social[${index}][arquivo]`]?.[0];
+            if (file) {
+              info.nomeArquivo = file.originalname;
+              info.caminhoArquivo = `/uploads/contratos/${file.filename}`;
+              info.dataAlteracao = info.data; // Renomeando para corresponder ao schema
+              dadosEmpresa.documentos.contratos.push(info);
             }
           });
         }
