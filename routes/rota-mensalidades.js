@@ -109,7 +109,13 @@ router.post(
         return res.status(400).json({ msg: `Já existe uma mensalidade para esta empresa em ${mes}/${ano}.` });
       }
 
-      const novaMensalidade = new Mensalidade({ empresaId, valor, mes, ano });
+      // MELHORIA: Define uma data de vencimento padrão (dia 10 do mês)
+      const dataVencimento = new Date(ano, mes - 1, 10);
+
+      const novaMensalidade = new Mensalidade({ 
+        empresaId, valor, mes, ano, dataVencimento 
+      });
+
       await novaMensalidade.save();
       
       // Atualiza o valor padrão na empresa para facilitar futuras gerações

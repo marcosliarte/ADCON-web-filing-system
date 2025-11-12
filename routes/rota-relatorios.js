@@ -40,20 +40,36 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
     }
 
     try {
-        const primeiroDia = new Date(ano, mes - 1, 1);
-        const ultimoDia = new Date(ano, mes, 0, 23, 59, 59);
-
-        // Busca mensalidades com vencimento no período
+        // CORREÇÃO: Buscar pelo mês e ano da mensalidade, não pela data de vencimento.
         const mensalidades = await Mensalidade.find({
-            dataVencimento: { $gte: primeiroDia, $lte: ultimoDia }
-        }).populate('empresa', 'nome cnpj');
+            ano: parseInt(ano),
+            mes: parseInt(mes)
+        }).populate('empresaId', 'nome cnpj');
 
         const totalMensalidades = mensalidades.length;
-        const pagas = mensalidades.filter(m => m.status === 'paga');
-        const pendentes = mensalidades.filter(m => m.status === 'pendente' && new Date() < m.dataVencimento);
-        const atrasadas = mensalidades.filter(m => m.status !== 'paga' && new Date() >= m.dataVencimento);
+        const pagas = mensalidades.filter(m => m.status === 'Pago');
+        
+        // CORREÇÃO: Verifica se dataVencimento existe antes de comparar.
+        // Se não existir, considera como pendente para não quebrar a aplicação.
+        const hoje = new Date();
+        const pendentes = mensalidades.filter(m => m.status === 'Pendente' && (!m.dataVencimento || hoje < m.dataVencimento));
+        const atrasadas = mensalidades.filter(m => m.status !== 'Pago' && m.dataVencimento && hoje >= m.dataVencimento);
 
-        const receita = pagas.reduce((acc, m) => acc + m.valor, 0);
+        // CORREÇÃO 2: Renomear 'empresaId' para 'empresa' para o frontend funcionar
+        const formatarLista = (lista) => {
+            return lista.map(item => {
+                const itemObj = item.toObject(); // Converte para um objeto simples
+                itemObj.empresa = itemObj.empresaId;
+                delete itemObj.empresaId;
+                return itemObj;
+            });
+        };
+
+        const listaPagas = formatarLista(pagas);
+        const listaPendentes = formatarLista(pendentes);
+        const listaAtrasadas = formatarLista(atrasadas);
+
+        const receita = listaPagas.reduce((acc, m) => acc + m.valor, 0);
 
         res.json({
             periodo: { ano, mes },
@@ -61,15 +77,15 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
             receita,
             pagas: {
                 quantidade: pagas.length,
-                lista: pagas
+                lista: listaPagas
             },
             pendentes: {
                 quantidade: pendentes.length,
-                lista: pendentes
+                lista: listaPendentes
             },
             atrasadas: {
                 quantidade: atrasadas.length,
-                lista: atrasadas
+                lista: listaAtrasadas
             }
         });
 
