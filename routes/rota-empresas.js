@@ -34,12 +34,21 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   fileFilter: (req, file, cb) => {
-    // Permite os tipos de arquivo definidos no formulário
-    const allowedTypes = /pdf|jpeg|jpg|png|pfx|p12/;
-    if (allowedTypes.test(file.mimetype)) {
+    const fileExtension = path.extname(file.originalname).toLowerCase();
+    const mimeType = file.mimetype;
+
+    // Lista de extensões permitidas
+    const allowedExtensions = ['.pdf', '.jpeg', '.jpg', '.png', '.pfx', '.p12'];
+    // Lista de mimetypes permitidos para arquivos comuns (PDF, imagens)
+    const commonAllowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    // Mimetypes comuns para certificados PFX/P12 (inclui octet-stream para flexibilidade)
+    const certMimeTypes = ['application/x-pkcs12', 'application/pkcs12', 'application/octet-stream'];
+
+    if (allowedExtensions.includes(fileExtension) && 
+        (commonAllowedMimeTypes.includes(mimeType) || certMimeTypes.includes(mimeType))) {
       cb(null, true);
     } else {
-      cb(new Error('Tipo de arquivo não permitido!'), false);
+      cb(new Error(`Tipo de arquivo não permitido! Apenas ${allowedExtensions.join(', ')} são aceitos.`), false);
     }
   },
 });
@@ -133,7 +142,7 @@ router.post(
     } catch (err) {
       console.error(err.message);
       console.error(err.stack); // Adiciona mais detalhes do erro no log
-      res.status(500).send('Erro no servidor');
+      res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
     }
   }
 );
@@ -175,7 +184,7 @@ router.get('/', auth, async (req, res) => {
     res.json(empresas);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Erro no servidor');
+    res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
   }
 });
 
@@ -196,7 +205,7 @@ router.get('/:id', auth, async (req, res) => {
     res.json(empresa);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Erro no servidor');
+    res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
   }
 });
 
@@ -225,7 +234,7 @@ router.delete('/:id', auth, async (req, res) => {
     res.json({ msg: 'Empresa removida' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Erro no servidor');
+    res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
   }
 });
 
@@ -293,7 +302,7 @@ router.put(
       res.json(empresaAtualizada);
     } catch (err) {
       console.error(err.message);
-      res.status(500).send('Erro no servidor');
+      res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
     }
   }
 );
@@ -318,7 +327,7 @@ router.get('/cep/:cep', auth, async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('Erro no proxy do ViaCEP:', error.message);
-    res.status(500).json({ msg: 'Erro interno ao consultar o CEP.' });
+    res.status(500).json({ msg: 'Erro interno ao consultar o CEP.' }); // Já era JSON, mas mantido
   }
 });
 

@@ -102,7 +102,7 @@ router.post(
       );
     } catch (err) {
       console.error(err.message);
-      res.status(500).send('Erro no servidor');
+      res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
     }
   }
 );
@@ -156,7 +156,7 @@ router.post(
       );
     } catch (err) {
       console.error(err.message);
-      res.status(500).send('Erro no servidor');
+      res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
     }
   }
 );
@@ -170,7 +170,7 @@ router.get('/', auth, async (req, res) => {
     res.json(usuario);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Erro no servidor');
+    res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
   }
 });
 
@@ -205,8 +205,8 @@ router.post(
 
       res.json({ fotoPerfilUrl: newFotoUrl });
     } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Erro no servidor');
+      console.error(err.message); // Loga o erro
+      res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
     }
   }
 );
@@ -244,8 +244,8 @@ router.delete('/profile-pic', auth, async (req, res) => {
 
     res.json({ msg: 'Foto de perfil removida com sucesso.', fotoPerfilUrl: usuario.fotoPerfilUrl });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Erro no servidor');
+    console.error(err.message); // Loga o erro
+    res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
   }
 });
 
@@ -280,8 +280,8 @@ router.put(
 
       res.json({ msg: 'Senha alterada com sucesso!' });
     } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Erro no servidor');
+      console.error(err.message); // Loga o erro
+      res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
     }
   }
 );
@@ -299,8 +299,8 @@ router.put(
     try {
       const usuario = await Usuario.findByIdAndUpdate(req.usuario.id, { email: novoEmail }, { new: true }).select('-senha');
       res.json({ msg: 'Email alterado com sucesso!', usuario });
-    } catch (err) {
-      res.status(500).send('Erro no servidor');
+    } catch (err) { // Loga o erro
+      res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
     }
   }
 );
@@ -345,8 +345,8 @@ router.post(
       res.status(201).json(usuarioCriado);
 
     } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Erro no servidor');
+      console.error(err.message); // Loga o erro
+      res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
     }
   }
 );
@@ -360,8 +360,8 @@ router.get('/admin/users', [auth, adminAuth], async (req, res) => {
     const usuarios = await Usuario.find().select('-senha').sort({ nome: 1 });
     res.json(usuarios);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Erro no servidor');
+    console.error(err.message); // Loga o erro
+    res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
   }
 });
 
@@ -385,8 +385,8 @@ router.delete('/admin/users/:id', [auth, adminAuth], async (req, res) => {
 
     res.json({ msg: 'Usuário removido com sucesso' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Erro no servidor');
+    console.error(err.message); // Loga o erro
+    res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
   }
 });
 
