@@ -1,8 +1,12 @@
 const Usuario = require('../models/model-usuario');
 
+/**
+ * Middleware para verificar se o usuário logado tem permissão de Admin ou Gerente.
+ */
 module.exports = async function (req, res, next) {
   try {
     const usuario = await Usuario.findById(req.usuario.id);
+
     // CORREÇÃO: Permite acesso para 'admin' E 'gerente'
     if (!['admin', 'gerente'].includes(usuario.role)) {
       return res.status(403).json({ msg: 'Acesso negado. Permissão de administrador ou gerente necessária.' });

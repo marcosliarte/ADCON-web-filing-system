@@ -31,10 +31,18 @@ async function loadUsers() {
                 row.insertCell(1).textContent = user.email;
                 row.insertCell(2).textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
                 const actionsCell = row.insertCell(3);
-                if (user._id !== currentUser._id) {
+
+                // CORREÇÃO: Define a condição para mostrar o botão de exclusão.
+                const podeExcluir = 
+                    // 1. Não pode excluir a si mesmo.
+                    user._id !== currentUser._id && 
+                    // 2. Um gerente não pode excluir um administrador.
+                    !(currentUser.role === 'gerente' && user.role === 'admin');
+
+                if (podeExcluir) {
                     actionsCell.innerHTML = `<button class="delete-btn">Excluir</button>`;
                 } else {
-                    actionsCell.textContent = 'Você';
+                    actionsCell.textContent = (user._id === currentUser._id) ? 'Você' : 'Ação não permitida';
                 }
             });
         }

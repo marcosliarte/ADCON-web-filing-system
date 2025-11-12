@@ -17,7 +17,8 @@ const UsuarioSchema = mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'funcionario', 'empresario'],
+    // CORREÇÃO: Adicionado 'gerente' à lista de perfis permitidos
+    enum: ['admin', 'gerente', 'funcionario', 'empresario'],
     default: 'funcionario',
   },
   fotoPerfilUrl: {

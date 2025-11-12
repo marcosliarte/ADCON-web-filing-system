@@ -16,7 +16,7 @@ router.get('/geral', [auth, adminAuth], async (req, res) => {
 
         // Para as próximas métricas, precisaremos de um campo que indique se a empresa é um cliente ativo/pagante.
         // Esta é uma lógica simplificada. O ideal seria ter um status na própria empresa.
-        const clientesComMensalidade = await Mensalidade.distinct('empresa');
+        const clientesComMensalidade = await Mensalidade.distinct('empresaId');
 
         res.json({
             totalClientes,
@@ -50,10 +50,16 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
         const pagas = mensalidades.filter(m => m.status === 'Pago');
         
         // CORREÇÃO: Verifica se dataVencimento existe antes de comparar.
-        // Se não existir, considera como pendente para não quebrar a aplicação.
+        // E considera atrasada se o mês de referência já passou.
         const hoje = new Date();
-        const pendentes = mensalidades.filter(m => m.status === 'Pendente' && (!m.dataVencimento || hoje < m.dataVencimento));
-        const atrasadas = mensalidades.filter(m => m.status !== 'Pago' && m.dataVencimento && hoje >= m.dataVencimento);
+        const dataReferenciaFinal = new Date(ano, mes, 0); // Último dia do mês de referência
+
+        const pendentes = mensalidades.filter(m => 
+            m.status === 'Pendente' && hoje <= dataReferenciaFinal
+        );
+        const atrasadas = mensalidades.filter(m => 
+            m.status !== 'Pago' && hoje > dataReferenciaFinal
+        );
 
         // CORREÇÃO 2: Renomear 'empresaId' para 'empresa' para o frontend funcionar
         const formatarLista = (lista) => {

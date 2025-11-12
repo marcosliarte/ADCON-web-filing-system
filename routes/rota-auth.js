@@ -382,8 +382,9 @@ router.delete('/admin/users/:id', [auth, adminAuth], async (req, res) => {
       return res.status(404).json({ msg: 'Usuário não encontrado' });
     }
 
-    // Regra: Gerente não pode deletar Admin
+    // CORREÇÃO: Adiciona regra de negócio para impedir que gerentes excluam administradores.
     const criador = await Usuario.findById(req.usuario.id);
+
     if (criador.role === 'gerente' && usuario.role === 'admin') {
       return res.status(403).json({ msg: 'Acesso negado. Gerentes não podem excluir administradores.' });
     }
