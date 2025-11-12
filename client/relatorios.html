@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Relatórios</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
+        .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-toggle { background-color: transparent; border: none; color: white; padding: 0.5rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; }
+        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; border-radius: 5px; overflow: hidden; }
+        .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .dropdown-content a:hover { background-color: #f1f1f1; }
+        .show { display: block; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        .card { background-color: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1.5rem; }
+        .filter-card { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+        .filter-card select, .filter-card button { padding: 0.7rem; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
+        .metric-card { text-align: center; padding: 1.5rem; border-radius: 8px; background-color: #f8f9fa; border-left: 5px solid; }
+        .metric-card.receita { border-color: #28a745; }
+        .metric-card.pagas { border-color: #17a2b8; }
+        .metric-card.pendentes { border-color: #ffc107; }
+        .metric-card.atrasadas { border-color: #dc3545; }
+        .metric-card .value { font-size: 2.5rem; font-weight: bold; display: block; margin-bottom: 0.5rem; }
+        .metric-card .label { font-size: 1rem; color: #555; }
+        .details-section h3 { color: #495057; border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; margin-top: 2rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 0.8rem; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        #loading { text-align: center; font-size: 1.2rem; padding: 2rem; display: none; }
+    </style>
+</head>
+<body style="display: none;">
+
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1>Relatórios</h1>
+
+        <!-- Relatório Geral de Clientes -->
+        <div class="card">
+            <h2>Visão Geral dos Clientes</h2>
+            <div class="report-grid" id="geral-metrics">
+                <p>Carregando...</p>
+            </div>
+        </div>
+
+        <!-- Relatório Mensal -->
+        <div class="card">
+            <h2>Relatório Mensal de Mensalidades</h2>
+            <div class="filter-card">
+                <select id="select-ano"></select>
+                <select id="select-mes"></select>
+                <button onclick="gerarRelatorioMensal()">Gerar Relatório</button>
+            </div>
+
+            <div id="loading">Carregando...</div>
+
+            <div id="relatorio-mensal-content" style="display: none;">
+                <div class="report-grid" id="mensal-metrics" style="margin-top: 2rem;"></div>
+                <div class="details-section" id="mensal-details"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userResponse = await fetchWithAuth('/api/auth');
+            if (!userResponse) return;
+
+            const usuario = await userResponse.json();
+            createHeader('header-placeholder', usuario);
+
+            if (!['admin', 'gerente'].includes(usuario.role)) {
+                alert('Acesso negado. Apenas administradores e gerentes podem ver os relatórios.');
+                window.location.href = 'home.html';
+                return;
+            }
+
+            document.body.style.display = 'block';
+            popularFiltros();
+            gerarRelatorioGeral();
+        });
+
+        function popularFiltros() {
+            const anoSelect = document.getElementById('select-ano');
+            const mesSelect = document.getElementById('select-mes');
+            const anoAtual = new Date().getFullYear();
+
+            for (let i = anoAtual; i >= anoAtual - 5; i--) {
+                anoSelect.innerHTML += `<option value="${i}">${i}</option>`;
+            }
+
+            const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            meses.forEach((mes, index) => {
+                mesSelect.innerHTML += `<option value="${index + 1}">${mes}</option>`;
+            });
+
+            mesSelect.value = new Date().getMonth() + 1;
+        }
+
+        async function gerarRelatorioGeral() {
+            const container = document.getElementById('geral-metrics');
+            try {
+                const response = await fetchWithAuth('/api/relatorios/geral');
+                const data = await response.json();
+
+                container.innerHTML = `
+                    <div class="metric-card pagas"><span class="value">${data.totalClientes}</span><span class="label">Total de Clientes Cadastrados</span></div>
+                    <div class="metric-card receita"><span class="value">${data.clientesAtivos}</span><span class="label">Clientes Ativos (com mensalidade)</span></div>
+                `;
+            } catch (error) {
+                container.innerHTML = `<p style="color: red;">Erro ao carregar relatório geral.</p>`;
+            }
+        }
+
+        async function gerarRelatorioMensal() {
+            const ano = document.getElementById('select-ano').value;
+            const mes = document.getElementById('select-mes').value;
+            const loading = document.getElementById('loading');
+            const content = document.getElementById('relatorio-mensal-content');
+
+            loading.style.display = 'block';
+            content.style.display = 'none';
+
+            try {
+                const response = await fetchWithAuth(`/api/relatorios/mensal?ano=${ano}&mes=${mes}`);
+                const data = await response.json();
+
+                // Métricas principais
+                document.getElementById('mensal-metrics').innerHTML = `
+                    <div class="metric-card receita"><span class="value">${formatarMoeda(data.receita)}</span><span class="label">Receita do Mês</span></div>
+                    <div class="metric-card pagas"><span class="value">${data.pagas.quantidade} / ${data.totalMensalidades}</span><span class="label">Pagas</span></div>
+                    <div class="metric-card pendentes"><span class="value">${data.pendentes.quantidade}</span><span class="label">Pendentes</span></div>
+                    <div class="metric-card atrasadas"><span class="value">${data.atrasadas.quantidade}</span><span class="label">Atrasadas</span></div>
+                `;
+
+                // Detalhes em tabelas
+                let detailsHtml = '';
+                if (data.atrasadas.quantidade > 0) {
+                    detailsHtml += criarTabela('Clientes com Pagamento Atrasado', data.atrasadas.lista);
+                }
+                if (data.pendentes.quantidade > 0) {
+                    detailsHtml += criarTabela('Clientes com Pagamento Pendente', data.pendentes.lista);
+                }
+                document.getElementById('mensal-details').innerHTML = detailsHtml;
+
+                content.style.display = 'block';
+            } catch (error) {
+                console.error(error);
+                document.getElementById('mensal-metrics').innerHTML = `<p style="color: red;">Erro ao gerar relatório.</p>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function criarTabela(titulo, itens) {
+            if (!itens || itens.length === 0) return '';
+
+            let rows = '';
+            itens.forEach(item => {
+                rows += `
+                    <tr>
+                        <td>${item.empresa.nome}</td>
+                        <td>${formatarCNPJ(item.empresa.cnpj)}</td>
+                        <td>${formatarMoeda(item.valor)}</td>
+                        <td>${formatarData(item.dataVencimento)}</td>
+                    </tr>
+                `;
+            });
+
+            return `
+                <h3>${titulo}</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Empresa</th>
+                            <th>CNPJ</th>
+                            <th>Valor</th>
+                            <th>Vencimento</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        // Funções de formatação (adicione ao seu shared.js se preferir)
+        function formatarMoeda(valor) {
+            return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function formatarCNPJ(cnpj) {
+            if (!cnpj) return '';
+            return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+        }
+
+        function formatarData(dataISO) {
+            if (!dataISO) return '';
+            return new Date(dataISO).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+        }
+    </script>
+</body>
+</html>

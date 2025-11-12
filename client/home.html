@@ -329,6 +329,9 @@
             <div class="card" id="admin-links" style="display: none;">
                 <p><a href="user-management.html">Gerenciar Usuários</a></p>
             </div>
+            <div class="card" id="relatorios-link" style="display: none;">
+                <p><a href="relatorios.html">Ver Relatórios</a></p>
+            </div>
             <hr style="margin: 1.5rem 0;">
             <h3>Configurações</h3>
             <ul class="settings-list">
@@ -438,6 +441,7 @@
                     if (usuario.role === 'admin' || usuario.role === 'gerente') {
                         document.getElementById('mensalidades-link').style.display = 'block';
                         document.getElementById('admin-links').style.display = 'block';
+                        document.getElementById('relatorios-link').style.display = 'block';
                     }
                     // Mostra o link de cadastro para Admin e Funcionário
                     if (usuario.role === 'admin' || usuario.role === 'funcionario') {
