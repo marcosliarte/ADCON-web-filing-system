@@ -228,11 +228,34 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ msg: 'Acesso negado. Apenas administradores podem excluir empresas.' });
     }
 
-    const empresa = await Empresa.findByIdAndDelete(req.params.id);
+    const empresa = await Empresa.findById(req.params.id);
     if (!empresa) {
       return res.status(404).json({ msg: 'Empresa não encontrada' });
     }
-    res.json({ msg: 'Empresa removida' });
+
+    // Função auxiliar para deletar um arquivo de forma segura
+    const deletarArquivo = (caminhoRelativo) => {
+      if (!caminhoRelativo) return;
+      const caminhoCompleto = path.join(__dirname, '..', caminhoRelativo);
+      if (fs.existsSync(caminhoCompleto)) {
+        fs.unlinkSync(caminhoCompleto);
+        console.log(`Arquivo deletado: ${caminhoCompleto}`);
+      }
+    };
+
+    // Coleta e deleta todos os arquivos associados
+    if (empresa.documentos) {
+      deletarArquivo(empresa.documentos.cartaoCnpj?.caminhoArquivo);
+      deletarArquivo(empresa.documentos.certificadoDigital?.caminhoArquivo);
+      if (empresa.documentos.contratos && empresa.documentos.contratos.length > 0) {
+        empresa.documentos.contratos.forEach(contrato => deletarArquivo(contrato.caminhoArquivo));
+      }
+    }
+
+    // Após deletar os arquivos, remove o registro do banco de dados
+    await Empresa.findByIdAndDelete(req.params.id);
+
+    res.json({ msg: 'Empresa e todos os seus arquivos foram removidos com sucesso' });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
@@ -246,7 +269,15 @@ router.put(
   '/:id',
   [
     auth,
-    upload.single('arquivo'),
+    // **CORREÇÃO:** Usar upload.fields para corresponder aos campos do formulário de edição
+    upload.fields([
+      { name: 'arquivo_cnpj', maxCount: 1 },
+      { name: 'certificado_digital', maxCount: 1 },
+      { name: 'contrato_social[0][arquivo]', maxCount: 1 },
+      { name: 'contrato_social[1][arquivo]', maxCount: 1 },
+      { name: 'contrato_social[2][arquivo]', maxCount: 1 },
+      // Adicione mais campos de contrato se necessário
+    ]),
     check('nome_empresarial', 'Nome empresarial é obrigatório').not().isEmpty(),
   ],
   async (req, res) => {
@@ -266,19 +297,31 @@ router.put(
         return res.status(404).json({ msg: 'Empresa não encontrada' });
       }
 
-      // Mapeia os dados do body para o schema, incluindo objetos aninhados
-      const dadosAtualizados = {
-        ...req.body,
-        nome: req.body.nome_empresarial,
+      // Atualiza os campos de texto simples
+      empresa.nome = req.body.nome_empresarial;
+      empresa.cnpj = req.body.cnpj;
+      empresa.data_abertura = req.body.data_abertura;
+      empresa.nome_fantasia = req.body.nome_fantasia;
+      empresa.capital_social = req.body.capital_social;
+      empresa.atividade_principal = req.body.atividade_principal;
+      empresa.porte = req.body.porte;
+      empresa.natureza_juridica = req.body.natureza_juridica;
+      empresa.email = req.body.email;
+      empresa.telefone = req.body.telefone;
+
+      // **CORREÇÃO DEFINITIVA:** Recria o objeto de endereço para garantir que ele exista
+      // antes de atribuir os novos valores.
+      empresa.endereco = {
+        cep: req.body['endereco.cep'],
+        rua: req.body['endereco.rua'],
+        numero: req.body['endereco.numero'],
+        bairro: req.body['endereco.bairro'],
+        cidade: req.body['endereco.cidade'],
+        estado: req.body['endereco.estado']
       };
 
-      // Lógica para atualizar arquivos (simplificada, pode ser melhorada)
-      // Esta parte é complexa. Por enquanto, vamos focar em atualizar os dados de texto.
       // A lógica de upload de novos arquivos e remoção de antigos na edição
       // exigiria um tratamento mais detalhado dos `req.files`.
-
-      // Atualiza os campos no documento do Mongoose
-      empresa.set(dadosAtualizados);
 
       // A lógica de arquivos na edição é complexa. Vamos simplificar por agora:
       // Se um novo arquivo é enviado, ele substitui o antigo.
