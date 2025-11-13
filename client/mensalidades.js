@@ -84,7 +84,7 @@ function renderizarTabela(dados, mesFiltro, anoFiltro) {
     tbody.innerHTML = '';
 
     if (dados.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6">Nenhuma empresa encontrada.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7">Nenhuma empresa encontrada.</td></tr>';
         return;
     }
 
@@ -97,22 +97,26 @@ function renderizarTabela(dados, mesFiltro, anoFiltro) {
 
         const statusCell = row.insertCell(2);
         const valorCell = row.insertCell(3);
-        const pagamentoCell = row.insertCell(4);
-        const acoesCell = row.insertCell(5);
+        const vencimentoCell = row.insertCell(4); // Nova célula para o vencimento
+        const pagamentoCell = row.insertCell(5);
+        const acoesCell = row.insertCell(6);
 
         if (mensalidade && mensalidade._id) { // Mensalidade real, gerada no banco
             const status = mensalidade.status;
 
             statusCell.innerHTML = `<span class="status-${status.toLowerCase().replace(' ', '-')}">${status}</span>`;
             valorCell.textContent = `R$ ${mensalidade.valor.toFixed(2)}`;
+            vencimentoCell.textContent = formatarData(mensalidade.dataVencimento);
             pagamentoCell.textContent = status === 'Pago' ? formatarData(mensalidade.dataPagamento) : 'N/A';
             acoesCell.innerHTML = `
                 ${status !== 'Pago' ? `<button class="btn-acao btn-pagar" onclick="abrirModalPagar('${mensalidade._id}', '${mensalidade.valor}')">Pagar</button>` : ''}
+                <button class="btn-acao btn-editar" onclick="abrirModalEditar('${mensalidade._id}', '${mensalidade.valor}', '${mensalidade.dataVencimento}')">Editar</button>
                 <button class="btn-acao btn-excluir" onclick="excluirMensalidade('${mensalidade._id}')">Excluir</button>
             `;
         } else { // Mensalidade "virtual", não gerada
             statusCell.innerHTML = `<span class="status-não-gerada">Não Gerada</span>`;
             valorCell.textContent = mensalidade.valor ? `R$ ${mensalidade.valor.toFixed(2)}` : 'N/A';
+            vencimentoCell.textContent = 'N/A';
             pagamentoCell.textContent = 'N/A';
             acoesCell.innerHTML = `
                 <button class="btn-acao btn-gerar" onclick="abrirModalGerar('${item._id}', '${item.nome}', ${mensalidade.valor || 0})">Gerar</button>
@@ -130,6 +134,20 @@ function abrirModalGerar(empresaId, empresaNome, valorSugerido) {
     document.getElementById('modal-valor').value = valorSugerido > 0 ? valorSugerido.toFixed(2) : '';
     document.getElementById('modal-valor').readOnly = false;
     document.getElementById('modal-submit-btn').textContent = 'Gerar Mensalidade';
+    // Limpa e esconde o campo de data de vencimento, pois ele é definido no backend ao gerar
+    document.getElementById('modal-data-vencimento').value = '';
+    document.getElementById('modal-data-vencimento').closest('.form-group').style.display = 'none';
+    document.getElementById('acao-modal').style.display = 'block';
+}
+
+function abrirModalEditar(mensalidadeId, valor, dataVencimento) {
+    document.getElementById('modal-titulo').textContent = `Editar Mensalidade`;
+    document.getElementById('modal-mensalidade-id').value = mensalidadeId;
+    document.getElementById('modal-empresa-id').value = ''; // Limpa o ID da empresa, pois não estamos gerando
+    document.getElementById('modal-valor').value = parseFloat(valor).toFixed(2);
+    document.getElementById('modal-data-vencimento').value = dataVencimento ? new Date(dataVencimento).toISOString().split('T')[0] : ''; // Garante formato YYYY-MM-DD
+    document.getElementById('modal-data-vencimento').closest('.form-group').style.display = 'block';
+    document.getElementById('modal-submit-btn').textContent = 'Salvar Alterações';
     document.getElementById('acao-modal').style.display = 'block';
 }
 
@@ -170,32 +188,36 @@ function fecharModal() {
 
 async function handleFormSubmit(e) {
     e.preventDefault();
+    const mensalidadeId = document.getElementById('modal-mensalidade-id').value;
     const empresaId = document.getElementById('modal-empresa-id').value;
     const valor = document.getElementById('modal-valor').value;
+    const dataVencimento = document.getElementById('modal-data-vencimento').value;
 
-    const mesFiltro = document.getElementById('filtro-mes').value;
-    const anoFiltro = document.getElementById('filtro-ano').value;
+    const isEditing = !!mensalidadeId;
+    const url = isEditing ? `/api/mensalidades/${mensalidadeId}` : '/api/mensalidades';
+    const method = isEditing ? 'PUT' : 'POST';
 
-    // Apenas a ação de "Gerar" usa este formulário agora
-    if (!empresaId) return;
+    let body = {};
+    if (isEditing) {
+        body = { valor, dataVencimento };
+    } else {
+        const mesFiltro = document.getElementById('filtro-mes').value;
+        const anoFiltro = document.getElementById('filtro-ano').value;
+        body = { empresaId, valor, mes: mesFiltro, ano: anoFiltro };
+    }
 
     try {
-        const response = await fetchWithAuth('/api/mensalidades', {
-            method: 'POST',
-            body: JSON.stringify({
-                empresaId,
-                valor,
-                mes: mesFiltro,
-                ano: anoFiltro
-            })
+        const response = await fetchWithAuth(url, {
+            method: method,
+            body: JSON.stringify(body)
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.msg || 'Ocorreu um erro ao gerar a mensalidade.');
+            throw new Error(errorData.msg || `Ocorreu um erro ao ${isEditing ? 'salvar as alterações' : 'gerar a mensalidade'}.`);
         }
 
-        alert('Mensalidade gerada com sucesso!');
+        alert(`Operação realizada com sucesso!`);
         fecharModal();
         await carregarStatusMensalidades();
 

@@ -3,7 +3,7 @@ const router = express.Router();
 const { check, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 
-const Mensalidade = require('../model-mensalidade'); // CORREÇÃO: Aponta para o arquivo na raiz do projeto
+const Mensalidade = require('../models/model-mensalidade'); // CORREÇÃO: Aponta para o arquivo na pasta models
 const Empresa = require('../models/model-empresa');
 const Usuario = require('../models/model-usuario');
 

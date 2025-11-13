@@ -72,12 +72,13 @@
                     <th>CNPJ</th>
                     <th>Status</th>
                     <th>Valor</th>
+                    <th>Data de Vencimento</th>
                     <th>Data de Pagamento</th>
                     <th>Ações</th>
                 </tr>
             </thead>
             <tbody>
-                <tr><td colspan="6">Carregando...</td></tr>
+                <tr><td colspan="7">Carregando...</td></tr>
             </tbody>
         </table>
     </div>
@@ -93,6 +94,10 @@
                 <div class="form-group">
                     <label for="modal-valor">Valor (R$)</label>
                     <input type="number" id="modal-valor" step="0.01" required>
+                </div>
+                <div class="form-group" style="display: none;">
+                    <label for="modal-data-vencimento">Data de Vencimento</label>
+                    <input type="date" id="modal-data-vencimento">
                 </div>
                 <button type="submit" id="modal-submit-btn">Salvar</button>
             </form>

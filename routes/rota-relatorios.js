@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
 
 const Empresa = require('../models/model-empresa');
-const Mensalidade = require('../model-mensalidade'); // CORREÇÃO: Aponta para o arquivo na raiz do projeto
+const Mensalidade = require('../models/model-mensalidade'); // CORREÇÃO: Aponta para o arquivo correto na pasta models
 
 // @route   GET api/relatorios/geral
 // @desc    Obter um relatório geral (total de clientes, etc.)
