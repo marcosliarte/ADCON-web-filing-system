@@ -12,6 +12,14 @@ const Empresa = require('../models/model-empresa');
 // Middleware para garantir que apenas admins acessem estas rotas
 router.use(auth, adminAuth);
 
+// --- CONFIGURAÇÃO DE BACKUP ---
+const backupDir = path.join(__dirname, '../../_backups'); // Pasta na raiz do projeto
+
+// Garante que a pasta de backups exista
+if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+}
+
 // @route   GET api/admin/dashboard/status
 // @desc    Obter o status de componentes vitais do sistema
 router.get('/dashboard/status', async (req, res) => {
@@ -107,6 +115,95 @@ router.get('/dashboard/expiring-docs', async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Erro no servidor ao buscar documentos a vencer.' });
+    }
+});
+
+// @route   POST api/admin/backup/create
+// @desc    Criar um novo backup do banco de dados
+router.post('/backup/create', (req, res) => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `backup-${timestamp}.gz`;
+    const backupFilePath = path.join(backupDir, filename);
+    const command = `mongodump --uri="${process.env.MONGODB_URI}" --archive="${backupFilePath}" --gzip`;
+
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Erro ao criar backup: ${stderr}`);
+            return res.status(500).json({ msg: 'Falha ao criar o backup.', error: stderr });
+        }
+        res.json({ msg: 'Backup criado com sucesso!', file: filename });
+    });
+});
+
+// @route   GET api/admin/backup/list
+// @desc    Listar os backups existentes
+router.get('/backup/list', (req, res) => {
+    fs.readdir(backupDir, (err, files) => {
+        if (err) {
+            return res.status(500).json({ msg: 'Não foi possível ler a pasta de backups.' });
+        }
+        const backups = files
+            .filter(file => file.endsWith('.gz'))
+            .map(file => {
+                const stats = fs.statSync(path.join(backupDir, file));
+                return {
+                    filename: file,
+                    size: (stats.size / (1024 * 1024)).toFixed(2), // em MB
+                    createdAt: stats.birthtime,
+                };
+            })
+            .sort((a, b) => b.createdAt - a.createdAt); // Mais recentes primeiro
+        res.json(backups);
+    });
+});
+
+// @route   POST api/admin/backup/restore
+// @desc    Restaurar o banco de dados a partir de um backup
+router.post('/backup/restore', (req, res) => {
+    const { filename } = req.body;
+    if (!filename) {
+        return res.status(400).json({ msg: 'Nome do arquivo de backup é obrigatório.' });
+    }
+
+    const backupFilePath = path.join(backupDir, filename);
+    if (!fs.existsSync(backupFilePath)) {
+        return res.status(404).json({ msg: 'Arquivo de backup não encontrado.' });
+    }
+
+    // O --drop apaga as coleções existentes antes de restaurar
+    const command = `mongorestore --uri="${process.env.MONGODB_URI}" --archive="${backupFilePath}" --gzip --drop`;
+
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Erro ao restaurar backup: ${stderr}`);
+            return res.status(500).json({ msg: 'Falha ao restaurar o backup.', error: stderr });
+        }
+        res.json({ msg: 'Banco de dados restaurado com sucesso!' });
+    });
+});
+
+// @route   GET api/admin/backup/download/:filename
+// @desc    Baixar um arquivo de backup
+router.get('/backup/download/:filename', (req, res) => {
+    const { filename } = req.params;
+    const filePath = path.join(backupDir, filename);
+    if (fs.existsSync(filePath)) {
+        res.download(filePath);
+    } else {
+        res.status(404).send('Arquivo não encontrado.');
+    }
+});
+
+// @route   DELETE api/admin/backup/delete/:filename
+// @desc    Excluir um arquivo de backup
+router.delete('/backup/delete/:filename', (req, res) => {
+    const { filename } = req.params;
+    const filePath = path.join(backupDir, filename);
+    if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        res.json({ msg: 'Backup excluído com sucesso.' });
+    } else {
+        res.status(404).json({ msg: 'Arquivo não encontrado.' });
     }
 });
 
