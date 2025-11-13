@@ -28,13 +28,6 @@
         .quick-links { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
         .quick-links a { background-color: #6c757d; color: white; text-decoration: none; padding: 0.6rem 1rem; border-radius: 5px; transition: background-color 0.2s; }
         .quick-links a:hover { background-color: #5a6268; }
-        .backup-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; }
-        .backup-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid #eee; }
-        .backup-item:last-child { border-bottom: none; }
-        .backup-actions button, .backup-actions a button { font-size: 0.8rem; padding: 0.3rem 0.6rem; margin-left: 5px; border: none; border-radius: 4px; cursor: pointer; }
-        .backup-actions .btn-download { background-color: #17a2b8; color: white; }
-        .backup-actions .btn-restore { background-color: #ffc107; color: #212529; }
-        .backup-actions .btn-delete { background-color: #dc3545; color: white; }
     </style>
 </head>
 <body style="display: none;">
@@ -72,16 +65,6 @@
                     <a href="configuracao-empresa.html">Configurações Gerais</a>
                 </div>
             </div>
-
-            <!-- Widget de Backup -->
-            <div class="widget">
-                <h3>Backup e Restauração</h3>
-                <button onclick="criarBackup()">Criar Backup Agora</button>
-                <div id="backup-status" style="margin-top: 1rem;"></div>
-                <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Backups Disponíveis:</h4>
-                <ul id="backup-list" class="backup-list">
-                </ul>
-            </div>
         </div>
     </div>
 
@@ -103,7 +86,6 @@
             document.body.style.display = 'block';
             loadSystemStatus();
             loadAlerts();
-            loadBackups();
         });
 
         async function loadSystemStatus() {
@@ -128,6 +110,9 @@
             } catch (error) {
                 widget.innerHTML = `<p style="color: red;">${error.message}</p>`;
             }
+        }
+
+        async function loadAlerts() {
         }
 
         async function loadAlerts() {
