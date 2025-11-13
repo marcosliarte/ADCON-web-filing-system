@@ -7,7 +7,7 @@ module.exports = async function (req, res, next) {
   try {
     const usuario = await Usuario.findById(req.usuario.id);
 
-    // CORREÇÃO: Permite acesso para 'admin' E 'gerente'
+    // Garante que apenas 'admin' e 'gerente' tenham acesso.
     if (!['admin', 'gerente'].includes(usuario.role)) {
       return res.status(403).json({ msg: 'Acesso negado. Permissão de administrador ou gerente necessária.' });
     }

@@ -477,14 +477,20 @@
                     if (usuario.fotoPerfilUrl && usuario.fotoPerfilUrl !== 'assets/profile-icon.svg') {
                         document.getElementById('deletePicIcon').style.display = 'inline-block';
                     }
-                    // CORREÇÃO: Funcionários agora também podem gerenciar mensalidades.
-                    if (['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
-                        document.getElementById('card-gerenciar-mensalidades').style.display = 'flex';
+
+                    // Funcionalidades para Admin e Gerente
+                    if (['admin', 'gerente'].includes(usuario.role)) {
                         document.getElementById('admin-links').style.display = 'block';
                         document.getElementById('card-ver-relatorios').style.display = 'flex';
                         document.getElementById('card-config-empresa').style.display = 'flex'; // Mostra o novo cartão
+                        // O card 'card-gerenciar-funcionarios' não existe, então foi removido para evitar o crash.
+                        // A funcionalidade de funcionários está dentro de "Configurar Empresa"
                     }
-                    // CORREÇÃO DEFINITIVA: Remove a restrição. O card de cadastro agora aparece para TODOS os perfis.
+                    // Funcionalidades para Admin, Gerente e Funcionário
+                    if (['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
+                        document.getElementById('card-gerenciar-mensalidades').style.display = 'flex';
+                    }
+                    // O card de cadastro agora aparece para TODOS os perfis.
                     document.getElementById('card-cadastrar-empresa').style.display = 'flex';
                 }
             } catch (error) {
