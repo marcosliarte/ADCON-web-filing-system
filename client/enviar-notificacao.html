@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Enviar Notificação</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="notifications.css">
+    <style>
+        /* Estilos consistentes com o restante do sistema */
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
+        .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-toggle { background-color: transparent; border: none; color: white; padding: 0.5rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; }
+        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; border-radius: 5px; overflow: hidden; }
+        .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .dropdown-content a:hover { background-color: #f1f1f1; }
+        .show { display: block; }
+        .container { max-width: 800px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; font-size: 0.9rem; }
+        input, select, textarea { width: 100%; padding: 0.7rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        textarea { min-height: 120px; resize: vertical; }
+        button { background-color: #007bff; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
+        #message { margin-top: 1.5rem; padding: 1rem; border-radius: 5px; text-align: center; display: none; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body style="display: none;">
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1>Enviar Notificação Manual</h1>
+        <form id="form-enviar-notificacao">
+            <div class="form-group">
+                <label for="destinatario-tipo">Enviar para:</label>
+                <select id="destinatario-tipo" name="destinatarioTipo" required>
+                    <option value="todos">Todos os Usuários</option>
+                    <option value="perfil">Um Perfil de Usuário</option>
+                    <option value="especifico">Um Usuário Específico</option>
+                </select>
+            </div>
+
+            <div id="campo-perfil" class="form-group" style="display: none;">
+                <label for="destinatario-perfil">Selecione o Perfil:</label>
+                <select id="destinatario-perfil" name="destinatarioPerfil">
+                    <option value="funcionario">Funcionário</option>
+                    <option value="gerente">Gerente</option>
+                    <option value="empresario">Empresário</option>
+                    <option value="admin">Administrador</option>
+                </select>
+            </div>
+
+            <div id="campo-usuario" class="form-group" style="display: none;">
+                <label for="destinatario-usuario-id">Selecione o Usuário:</label>
+                <select id="destinatario-usuario-id" name="destinatarioUsuarioId">
+                    <option value="">Carregando usuários...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="mensagem">Mensagem da Notificação</label>
+                <textarea id="mensagem" name="mensagem" required maxlength="255" placeholder="Digite a mensagem que será exibida para o usuário..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="link">Link (Opcional)</label>
+                <input type="text" id="link" name="link" placeholder="Ex: /relatorios.html ou https://site.com/aviso">
+                <small>Link para onde o usuário será redirecionado ao clicar na notificação.</small>
+            </div>
+
+            <button type="submit" id="submitBtn">Enviar Notificação</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userResponse = await fetchWithAuth('/api/auth');
+            if (!userResponse) return;
+
+            const usuario = await userResponse.json();
+            createHeader('header-placeholder', usuario);
+
+            if (usuario.role !== 'admin') {
+                document.querySelector('.container').innerHTML = '<h1>Acesso Negado</h1><p>Apenas administradores podem enviar notificações.</p>';
+                document.body.style.display = 'block';
+                return;
+            }
+
+            document.body.style.display = 'block';
+            setupFormListeners();
+        });
+
+        function setupFormListeners() {
+            const tipoSelect = document.getElementById('destinatario-tipo');
+            const campoPerfil = document.getElementById('campo-perfil');
+            const campoUsuario = document.getElementById('campo-usuario');
+
+            tipoSelect.addEventListener('change', () => {
+                const tipo = tipoSelect.value;
+                campoPerfil.style.display = tipo === 'perfil' ? 'block' : 'none';
+                campoUsuario.style.display = tipo === 'especifico' ? 'block' : 'none';
+
+                if (tipo === 'especifico' && document.getElementById('destinatario-usuario-id').options.length <= 1) {
+                    loadUsers();
+                }
+            });
+
+            document.getElementById('form-enviar-notificacao').addEventListener('submit', enviarNotificacao);
+        }
+
+        async function loadUsers() {
+            const userSelect = document.getElementById('destinatario-usuario-id');
+            try {
+                const response = await fetchWithAuth('/api/auth/admin/users');
+                if (!response.ok) throw new Error('Falha ao carregar usuários.');
+                const users = await response.json();
+
+                userSelect.innerHTML = '<option value="">Selecione um usuário</option>';
+                users.forEach(user => {
+                    const option = new Option(`${user.nome} (${user.email})`, user._id);
+                    userSelect.add(option);
+                });
+            } catch (error) {
+                userSelect.innerHTML = `<option value="">${error.message}</option>`;
+            }
+        }
+
+        async function enviarNotificacao(event) {
+            event.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+
+            const payload = {
+                destinatarioTipo: document.getElementById('destinatario-tipo').value,
+                mensagem: document.getElementById('mensagem').value,
+                link: document.getElementById('link').value
+            };
+
+            if (payload.destinatarioTipo === 'perfil') {
+                payload.destinatarioValor = document.getElementById('destinatario-perfil').value;
+            } else if (payload.destinatarioTipo === 'especifico') {
+                payload.destinatarioValor = document.getElementById('destinatario-usuario-id').value;
+            }
+
+            try {
+                const response = await fetchWithAuth('/api/admin/notificacoes/enviar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.msg || 'Erro desconhecido.');
+
+                showMessage(result.msg, 'success');
+                document.getElementById('form-enviar-notificacao').reset();
+                document.getElementById('campo-perfil').style.display = 'none';
+                document.getElementById('campo-usuario').style.display = 'none';
+
+            } catch (error) {
+                showMessage(`Erro: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Enviar Notificação';
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = type;
+            messageEl.style.display = 'block';
+            setTimeout(() => { messageEl.style.display = 'none'; }, 5000);
+        }
+    </script>
+</body>
+</html>

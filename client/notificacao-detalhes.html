@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Detalhes da Notificação</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="notifications.css">
+    <style>
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
+        .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+        /* --- CORREÇÃO: Estilos do cabeçalho que estavam faltando --- */
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-toggle { background-color: transparent; border: none; color: white; padding: 0.5rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; }
+        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; border-radius: 5px; overflow: hidden; }
+        .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .dropdown-content a:hover { background-color: #f1f1f1; }
+        .show { display: block; }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        .container { max-width: 800px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1.page-title { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        .notification-content { font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem; }
+        .notification-meta { font-size: 0.9rem; color: #6c757d; border-top: 1px solid #eee; padding-top: 1rem; }
+        .action-buttons { margin-top: 2rem; }
+        button { background-color: #007bff; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body style="display: none;">
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1 class="page-title">Detalhes da Notificação</h1>
+
+        <div id="notification-container">
+            <p>Carregando...</p>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn-secondary" onclick="window.history.back()">Voltar</button>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userResponse = await fetchWithAuth('/api/auth');
+            if (!userResponse) return;
+
+            const usuario = await userResponse.json();
+            createHeader('header-placeholder', usuario);
+            document.body.style.display = 'block';
+
+            loadNotificationDetails();
+        });
+
+        async function loadNotificationDetails() {
+            const container = document.getElementById('notification-container');
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const notificationId = urlParams.get('id');
+
+                if (!notificationId) {
+                    throw new Error('ID da notificação não fornecido.');
+                }
+
+                const response = await fetchWithAuth(`/api/notificacoes/${notificationId}`);
+                if (!response.ok) {
+                    throw new Error('Notificação não encontrada ou você não tem permissão para visualizá-la.');
+                }
+
+                const notificacao = await response.json();
+
+                let actionButton = '';
+                if (notificacao.link) {
+                    actionButton = `<div class="action-buttons"><a href="${notificacao.link}"><button>Ir para o Link</button></a></div>`;
+                }
+
+                container.innerHTML = `
+                    <div class="notification-content">
+                        <p>${notificacao.mensagem}</p>
+                    </div>
+                    <div class="notification-meta">
+                        Recebida em: ${new Date(notificacao.criado_em).toLocaleString('pt-BR')}
+                    </div>
+                    ${actionButton}
+                `;
+
+            } catch (error) {
+                container.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

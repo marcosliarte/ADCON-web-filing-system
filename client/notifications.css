@@ -1,0 +1,122 @@
+/* =================================
+   Estilos do Sistema de Notificações
+   ================================= */
+
+/* Container para as ações do cabeçalho (sino e menu de usuário) */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem; /* Espaçamento entre o sino e o menu de usuário */
+}
+
+/* Ícone de sino */
+.notification-bell {
+    position: relative;
+    cursor: pointer;
+    color: white;
+}
+
+/* Badge (contador) de notificações não lidas */
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    background-color: #dc3545; /* Vermelho para destaque */
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    border: 1px solid white;
+    display: none; /* Começa escondido */
+}
+
+/* Dropdown de notificações */
+.notification-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 10px); /* Posição abaixo do cabeçalho */
+    background-color: white;
+    min-width: 320px;
+    max-width: 350px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 10;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #eee;
+}
+
+.notification-dropdown.show {
+    display: block;
+}
+
+/* Cabeçalho e rodapé do dropdown */
+.notification-header, .notification-footer {
+    padding: 12px 16px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #333;
+}
+
+.notification-footer {
+    border-top: 1px solid #e9ecef;
+    justify-content: center;
+}
+
+.notification-footer a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* Lista de notificações */
+.notification-list {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+/* Estilo para cada item 'a' dentro da lista */
+.notification-list a.notification-item {
+    display: flex; /* Alterado para flex para alinhar o conteúdo e o botão */
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    text-decoration: none;
+    color: #333;
+    transition: background-color 0.2s;
+    gap: 1rem;
+}
+
+.notification-item-content {
+    flex-grow: 1;
+}
+
+.notification-delete-btn {
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.notification-list a.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-list a.notification-item:hover {
+    background-color: #f8f9fa;
+}
+
+.notification-delete-btn:hover {
+    background-color: #e9ecef;
+}
+
+/* Item individual da notificação */
+.notification-item.unread {
+    background-color: #eaf2ff; /* Fundo azul claro para não lidas */
+}
