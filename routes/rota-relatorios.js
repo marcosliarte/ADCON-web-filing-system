@@ -153,18 +153,24 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
         // --- CÁLCULO DE DESPESAS (FOLHA DE PAGAMENTO) ---
         const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' }).lean();
         let despesasFolha = 0;
+        let detalheDespesasFolha = []; // Array para guardar a descrição das despesas
+
+        // Lógica simplificada para somar o salário bruto de todos os funcionários cadastrados.
         if (config && config.funcionarios) {
-            config.funcionarios.forEach(func => {
-                const pagamentoDoMes = (func.historicoPagamentos || []).find(p => p.ano == ano && p.mes == mes);
-                if (pagamentoDoMes) {
-                    despesasFolha += pagamentoDoMes.salarioLiquido;
-                }
-            });
+            despesasFolha = config.funcionarios.reduce((total, func) => total + (func.salarioBruto || 0), 0);
+            // Cria a lista detalhada para o frontend
+            detalheDespesasFolha = config.funcionarios.map(func => ({
+                descricao: `Salário: ${func.nome}`,
+                valor: func.salarioBruto || 0
+            }));
         }
 
         const receitaTotal = receitaMensalidades + totalOutrasReceitas;
         const totalDespesas = despesasFolha + totalDespesasManuais;
         const lucroLiquido = receitaTotal - totalDespesas;
+        
+        // Adiciona os detalhes da folha de pagamento à lista de despesas manuais
+        const despesasUnificadas = [...despesasManuais, ...detalheDespesasFolha];
 
         res.json({
             periodo: { ano, mes },
@@ -175,8 +181,8 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
             pagas: { quantidade: pagas.length, lista: listaPagas },
             pendentes: { quantidade: pendentes.length, lista: listaPendentes },
             atrasadas: { quantidade: atrasadas.length, lista: listaAtrasadas },
-            outrasReceitas: outrasReceitas, // Envia para o frontend
-            despesasManuais: despesasManuais // Envia para o frontend
+            outrasReceitas: outrasReceitas,
+            despesasManuais: despesasUnificadas // Mantém o nome original do campo esperado pelo frontend
         });
 
     } catch (err) {
