@@ -4,10 +4,20 @@ const { check, validationResult } = require('express-validator');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose'); // Adicionado para usar o Schema
 
 const auth = require('../middleware/auth');
 const Empresa = require('../models/model-empresa');
-const Usuario = require('../models/model-usuario'); // Para verificar roles
+const Usuario = require('../models/model-usuario');
+
+// --- NOVA: Função Auxiliar para Registrar Log ---
+async function registrarLog(usuarioId, acao, entidade) {
+  const usuario = await Usuario.findById(usuarioId).select('nome');
+  // Busca o modelo de Log que agora está compilado globalmente
+  const LogAcao = mongoose.model('LogAcao');
+  const log = new LogAcao({ usuarioId, usuarioNome: usuario.nome, acao, entidadeId: entidade._id, entidadeNome: entidade.nome });
+  await log.save();
+}
 
 // Configuração do Multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -176,6 +186,9 @@ router.post(
       const novaEmpresa = new Empresa(dadosEmpresa);
 
       await novaEmpresa.save();
+      // REGISTRA O LOG
+      await registrarLog(req.usuario.id, 'Criação de Empresa', novaEmpresa);
+
       res.status(201).json(novaEmpresa);
     } catch (err) {
       console.error(err.message);
@@ -308,6 +321,9 @@ router.delete('/:id', auth, async (req, res) => {
 
     // Após deletar os arquivos, remove o registro do banco de dados
     await Empresa.findByIdAndDelete(req.params.id);
+
+    // REGISTRA O LOG
+    await registrarLog(req.usuario.id, 'Exclusão de Empresa', empresa);
 
     res.json({ msg: 'Empresa e todos os seus arquivos foram removidos com sucesso' });
   } catch (err) {
@@ -477,6 +493,9 @@ router.put(
       }
 
       const empresaAtualizada = await empresa.save();
+      // REGISTRA O LOG
+      await registrarLog(req.usuario.id, 'Edição de Empresa', empresaAtualizada);
+
       res.json(empresaAtualizada);
     } catch (err) {
       console.error(err.message);

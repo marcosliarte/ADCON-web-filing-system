@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Logs de Atividade</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Estilos consistentes com o restante do sistema */
+        .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-toggle { background-color: transparent; border: none; color: white; padding: 0.5rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; }
+        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; border-radius: 5px; overflow: hidden; }
+        .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .dropdown-content a:hover { background-color: #f1f1f1; }
+        .show { display: block; }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; }
+        .container { max-width: 1200px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        h1.page-title { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+        .filtros { display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap; }
+        .filtros input, .filtros select, .filtros button { padding: 0.6rem; border-radius: 5px; border: 1px solid #ccc; font-size: 0.9rem; }
+        th, td { border: 1px solid #ddd; padding: 0.75rem; text-align: left; vertical-align: middle; }
+        th { background-color: #e9ecef; }
+    </style>
+</head>
+<body style="display: none;">
+    <script>
+        if (!localStorage.getItem('token')) {
+            window.location.replace('login.html');
+        }
+    </script>
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1 class="page-title">Logs de Atividade do Sistema</h1>
+        <p>Exibindo os últimos 500 registros de atividades.</p>
+
+        <div class="filtros">
+            <input type="text" id="filtro-usuario" placeholder="Filtrar por usuário...">
+            <input type="text" id="filtro-entidade" placeholder="Filtrar por empresa/usuário afetado...">
+            <select id="filtro-acao">
+                <option value="">Todas as Ações</option>
+                <option value="Criação de Empresa">Criação de Empresa</option>
+                <option value="Edição de Empresa">Edição de Empresa</option>
+                <option value="Exclusão de Empresa">Exclusão de Empresa</option>
+                <option value="Criação de Usuário">Criação de Usuário</option>
+                <option value="Exclusão de Usuário">Exclusão de Usuário</option>
+                <option value="Alteração de Perfil">Alteração de Perfil</option>
+            </select>
+            <input type="date" id="filtro-data-inicio" title="Data de Início">
+            <input type="date" id="filtro-data-fim" title="Data de Fim">
+            <button onclick="carregarLogs()">Filtrar</button>
+        </div>
+
+        <table id="tabela-logs">
+            <thead>
+                <tr>
+                    <th>Data e Hora</th>
+                    <th>Usuário</th>
+                    <th>Ação</th>
+                    <th>Entidade Afetada</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="4">Carregando logs...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userResponse = await fetchWithAuth('/api/auth');
+            if (!userResponse) return;
+
+            const usuario = await userResponse.json();
+            createHeader('header-placeholder', usuario);
+
+            if (usuario.role !== 'admin') {
+                document.querySelector('.container').innerHTML = '<h1>Acesso Negado</h1><p>Apenas administradores podem visualizar os logs do sistema.</p>';
+                document.body.style.display = 'block';
+                return;
+            }
+
+            document.body.style.display = 'block';
+            carregarLogs();
+        });
+
+        async function carregarLogs() {
+            const tbody = document.querySelector('#tabela-logs tbody');
+            tbody.innerHTML = '<tr><td colspan="4">Carregando logs...</td></tr>';
+
+            const params = new URLSearchParams();
+            const usuario = document.getElementById('filtro-usuario').value;
+            const entidade = document.getElementById('filtro-entidade').value;
+            const acao = document.getElementById('filtro-acao').value;
+            const dataInicio = document.getElementById('filtro-data-inicio').value;
+            const dataFim = document.getElementById('filtro-data-fim').value;
+
+            if (usuario) params.append('usuario', usuario);
+            if (entidade) params.append('entidadeNome', entidade);
+            if (acao) params.append('acao', acao.startsWith('Alteração') ? new RegExp('^Alteração de Perfil') : acao);
+            if (dataInicio) params.append('dataInicio', dataInicio);
+            if (dataFim) params.append('dataFim', dataFim);
+
+            try {
+                const response = await fetchWithAuth(`/api/auth/admin/logs?${params.toString()}`);
+                if (!response.ok) throw new Error('Falha ao carregar logs.');
+
+                const logs = await response.json();
+
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">Nenhum registro de log encontrado.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = ''; // Limpa a tabela
+                logs.forEach(log => {
+                    const row = tbody.insertRow();
+                    row.insertCell(0).textContent = new Date(log.createdAt).toLocaleString('pt-BR');
+                    row.insertCell(1).textContent = log.usuarioNome;
+                    row.insertCell(2).textContent = log.acao;
+                    row.insertCell(3).textContent = `${log.entidadeNome || 'N/A'} (${log.entidade})`;
+                });
+
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color: red;">${error.message}</td></tr>`;
+            }
+        }
+    </script>
+</body>
+</html>

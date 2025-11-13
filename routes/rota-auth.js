@@ -10,7 +10,28 @@ const rateLimit = require('express-rate-limit');
 const adminAuth = require('../middleware/adminAuth'); // Novo middleware
 const multer = require('multer');
 const path = require('path');
+const mongoose = require('mongoose'); // Adicionado para definir o Schema
 const fs = require('fs');
+
+// --- CENTRALIZANDO O MODELO DE LOG ---
+const LogAcaoSchema = new mongoose.Schema({
+  usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
+  usuarioNome: { type: String, required: true },
+  acao: { type: String, required: true },
+  entidade: { type: String, default: 'Empresa' },
+  entidadeId: { type: mongoose.Schema.Types.ObjectId },
+  entidadeNome: { type: String },
+}, { timestamps: true });
+mongoose.model('LogAcao', LogAcaoSchema); // Compila o modelo para uso global
+
+// --- NOVA: Função Auxiliar para Registrar Log de Ações de Usuário ---
+async function registrarLogUsuario(usuarioExecutorId, acao, usuarioAlvo) {
+  const LogAcao = mongoose.model('LogAcao');
+  const usuarioExecutor = await Usuario.findById(usuarioExecutorId).select('nome');
+  // Cria o log com a entidade 'Usuário'
+  const log = new LogAcao({ usuarioId: usuarioExecutorId, usuarioNome: usuarioExecutor.nome, acao, entidade: 'Usuário', entidadeId: usuarioAlvo._id, entidadeNome: usuarioAlvo.nome });
+  await log.save();
+}
 
 // Configuração do Multer para upload de fotos de perfil
 const profilePicStorage = multer.diskStorage({
@@ -348,6 +369,9 @@ router.post(
       const usuarioCriado = usuario.toObject();
       delete usuarioCriado.senha;
 
+      // REGISTRA O LOG
+      await registrarLogUsuario(req.usuario.id, `Criação de Usuário: ${usuario.role}`, usuario);
+
       res.status(201).json(usuarioCriado);
 
     } catch (err) {
@@ -396,6 +420,9 @@ router.delete('/admin/users/:id', [auth, adminAuth], async (req, res) => {
 
     await Usuario.findByIdAndDelete(req.params.id);
 
+    // REGISTRA O LOG
+    await registrarLogUsuario(req.usuario.id, 'Exclusão de Usuário', usuario);
+
     res.json({ msg: 'Usuário removido com sucesso' });
   } catch (err) {
     console.error(err.message); // Loga o erro
@@ -437,11 +464,45 @@ router.put('/admin/users/:id/role', [auth, adminAuth], async (req, res) => {
         targetUser.role = role;
         await targetUser.save();
 
+        // REGISTRA O LOG
+        await registrarLogUsuario(req.usuario.id, `Alteração de Perfil para: ${role}`, targetUser);
+
         res.json({ msg: `Perfil de ${targetUser.nome} atualizado para ${role} com sucesso.` });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Erro no servidor ao atualizar perfil.' });
     }
+});
+
+// @route   GET api/auth/admin/logs
+// @desc    Listar todos os logs de ações (por um admin)
+// @access  Private (Admin)
+router.get('/admin/logs', [auth, adminAuth], async (req, res) => {
+  try {
+    const { usuario, acao, dataInicio, dataFim, entidadeNome } = req.query;
+    const query = {};
+
+    if (usuario) query.usuarioNome = new RegExp(usuario, 'i');
+    if (acao) query.acao = acao;
+    if (entidadeNome) query.entidadeNome = new RegExp(entidadeNome, 'i');
+
+    if (dataInicio && dataFim) {
+      query.createdAt = { $gte: new Date(dataInicio), $lte: new Date(dataFim + 'T23:59:59') };
+    } else if (dataInicio) {
+      query.createdAt = { $gte: new Date(dataInicio) };
+    } else if (dataFim) {
+      query.createdAt = { $lte: new Date(dataFim + 'T23:59:59') };
+    }
+
+    const LogAcao = mongoose.model('LogAcao');
+    const logs = await LogAcao.find(query)
+      .sort({ createdAt: -1 }) // Ordena dos mais recentes para os mais antigos
+      .limit(500); // Aumenta o limite para 500 registros
+
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ msg: 'Erro no servidor ao buscar logs.' });
+  }
 });
 
 module.exports = router;

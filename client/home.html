@@ -434,6 +434,16 @@
                     <h3>Folha de Pagamento</h3>
                     <p>Gerencie funcionários, descontos e realize pagamentos mensais.</p>
                 </a>
+
+                <div class="dashboard-card" id="card-central-admin" style="display: none; flex-direction: column; justify-content: space-between;">
+                    <div class="card-icon">👑</div>
+                    <h3>Central do Admin</h3>
+                    <p>Gerencie usuários e configurações avançadas do sistema.</p>
+                    <div style="margin-top: 1rem;">
+                        <a href="user-management.html" class="btn-secondary" style="text-decoration: none; padding: 8px 12px; border-radius: 5px;">Gerenciar Usuários</a>
+                        <a href="logs.html" class="btn-secondary" style="text-decoration: none; padding: 8px 12px; border-radius: 5px; margin-left: 10px;">Ver Logs</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -490,6 +500,10 @@
                         document.getElementById('card-ver-relatorios').style.display = 'flex';
                         // CORREÇÃO: Agora o card existe e será exibido para admin e gerente.
                         document.getElementById('card-gerenciar-funcionarios').style.display = 'flex';
+                    }
+                    // Funcionalidades exclusivas para Admin
+                    if (usuario.role === 'admin') {
+                        document.getElementById('card-central-admin').style.display = 'flex';
                     }
                     // Funcionalidades para Admin, Gerente e Funcionário
                     if (['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
