@@ -47,6 +47,7 @@ const ConfiguracaoEmpresaSchema = new mongoose.Schema({
     endereco: EnderecoSchema,
     contato: ContatoSchema,
     situacao_cadastral: SituacaoCadastralSchema,
+    logotipoUrl: String, // Novo campo para a URL do logotipo
 });
 
 module.exports = mongoose.model('ConfiguracaoEmpresa', ConfiguracaoEmpresaSchema);

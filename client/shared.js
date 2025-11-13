@@ -50,16 +50,19 @@ async function createHeader(placeholderId, usuario) {
 
     // --- NOVA FUNCIONALIDADE: Busca o nome da empresa para o cabeçalho ---
     let nomeFantasia = 'ADCON - Painel'; // Nome padrão
-    try {
-        const configResponse = await fetchWithAuth('/api/configuracao');
-        if (configResponse && configResponse.ok) {
-            const configData = await configResponse.json();
-            if (configData && configData.nome_fantasia) {
-                nomeFantasia = configData.nome_fantasia;
+    // CORREÇÃO: Apenas admin e gerente podem acessar a rota de configuração.
+    if (usuario && ['admin', 'gerente'].includes(usuario.role)) {
+        try {
+            const configResponse = await fetchWithAuth('/api/configuracao');
+            if (configResponse && configResponse.ok) {
+                const configData = await configResponse.json();
+                if (configData && configData.nome_fantasia) {
+                    nomeFantasia = configData.nome_fantasia;
+                }
             }
+        } catch (e) {
+            console.error("Não foi possível carregar o nome da empresa para o cabeçalho.", e);
         }
-    } catch (e) {
-        console.error("Não foi possível carregar o nome da empresa para o cabeçalho.", e);
     }
 
     // Adiciona o link de Relatórios apenas para admin ou gerente

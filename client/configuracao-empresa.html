@@ -31,6 +31,18 @@
         #message { margin-top: 1.5rem; padding: 1rem; border-radius: 5px; text-align: center; display: none; }
         .success { background-color: #d4edda; color: #155724; }
         .error { background-color: #f8d7da; color: #721c24; }
+
+        /* Estilos para o upload do logotipo */
+        .logo-container { text-align: center; margin-bottom: 2rem; padding: 1rem; border: 2px dashed #ccc; border-radius: 8px; cursor: pointer; }
+        .logo-container:hover { border-color: #007bff; background-color: #f8f9fa; }
+        .logo-preview { max-width: 200px; max-height: 100px; margin-bottom: 1rem; border-radius: 5px; }
+        .logo-placeholder { color: #888; }
+        #logotipoInput { display: none; }
+
+        /* Desabilita o clique no container de logo quando não está em modo de edição */
+        .logo-container.readonly {
+            cursor: default;
+        }
     </style>
 </head>
 <body style="display: none;">
@@ -38,6 +50,14 @@
 
     <div class="container">
         <h1>Gerenciar Dados da Empresa</h1>
+
+        <!-- Seção do Logotipo -->
+        <div id="logoContainer" class="logo-container readonly" onclick="document.getElementById('logotipoInput').click();">
+            <img id="logoPreview" class="logo-preview" style="display: none;">
+            <p id="logoPlaceholder" class="logo-placeholder">Clique aqui para adicionar um logotipo</p>
+            <input type="file" id="logotipoInput" accept="image/png, image/jpeg, image/svg+xml">
+        </div>
+
         <form id="form-configuracao">
             <h2>Dados Gerais</h2>
             <div class="form-grid">
@@ -151,6 +171,7 @@
             document.getElementById('cancelBtn').addEventListener('click', () => {
                 if (confirm('Deseja descartar as alterações?')) {
                     populateForm(originalData); // Restaura os dados originais
+                    document.getElementById('logoPreview').src = originalData.logotipoUrl || ''; // Restaura logo
                     toggleEditMode(false);
                 }
             });
@@ -163,6 +184,15 @@
                 const data = await response.json();
                 originalData = JSON.parse(JSON.stringify(data)); // Clona os dados
                 populateForm(data);
+
+                // Carrega o logotipo
+                const logoPreview = document.getElementById('logoPreview');
+                const logoPlaceholder = document.getElementById('logoPlaceholder');
+                if (data.logotipoUrl) {
+                    logoPreview.src = data.logotipoUrl;
+                    logoPreview.style.display = 'block';
+                    logoPlaceholder.style.display = 'none';
+                }
                 toggleEditMode(false); // Inicia em modo de leitura
             } catch (error) {
                 showMessage(error.message, 'error');
@@ -215,12 +245,48 @@
                 if (!response.ok) throw new Error(result.msg || 'Erro ao salvar.');
 
                 showMessage(result.msg, 'success');
+                originalData = { ...originalData, ...data }; // Atualiza os dados originais
                 toggleEditMode(false); // Volta para o modo de leitura após salvar
             } catch (error) {
                 showMessage(`Erro: ${error.message}`, 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Salvar Alterações';
+            }
+        });
+
+        // Listener para o upload do logotipo
+        document.getElementById('logotipoInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Mostra preview
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                document.getElementById('logoPreview').src = event.target.result;
+                document.getElementById('logoPreview').style.display = 'block';
+                document.getElementById('logoPlaceholder').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+
+            // Envia o arquivo para o servidor
+            const formData = new FormData();
+            formData.append('logotipo', file);
+
+            try {
+                const response = await fetchWithAuth('/api/configuracao/logotipo', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.msg);
+
+                showMessage(result.msg, 'success');
+                // Atualiza a URL no objeto de dados original para consistência
+                originalData.logotipoUrl = result.logotipoUrl;
+
+            } catch (error) {
+                showMessage(`Erro no upload: ${error.message}`, 'error');
             }
         });
 
@@ -235,6 +301,13 @@
         function toggleEditMode(isEditing) {
             const form = document.getElementById('form-configuracao');
             const inputs = form.querySelectorAll('input');
+            const logoContainer = document.getElementById('logoContainer');
+
+            if (isEditing) {
+                logoContainer.classList.remove('readonly');
+            } else {
+                logoContainer.classList.add('readonly');
+            }
 
             inputs.forEach(input => {
                 input.readOnly = !isEditing;

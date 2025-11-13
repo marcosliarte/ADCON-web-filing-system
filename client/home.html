@@ -496,25 +496,132 @@
             }
         }
 
+        document.addEventListener('DOMContentLoaded', async () => {
+            await getUsuario();
+            // A função createHeaderFromHome foi removida pois sua lógica foi integrada aqui.
+            // O cabeçalho agora é criado dentro de getUsuario().
+
+            // Lógica para o menu dropdown do usuário
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            const userMenu = document.getElementById('userMenu');
+
+            if (userMenuBtn) {
+                userMenuBtn.addEventListener('click', () => userMenu.classList.toggle('show'));
+            }
+
+            // Lógica para mostrar/esconder os formulários de configuração
+            document.getElementById('togglePasswordBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                const container = document.getElementById('changePasswordContainer');
+                container.style.display = container.style.display === 'none' ? 'block' : 'none';
+            });
+
+            document.getElementById('toggleEmailBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                const container = document.getElementById('changeEmailContainer');
+                container.style.display = container.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // --- LÓGICA DOS FORMULÁRIOS MOVIDA PARA CÁ ---
+
+            // Lógica para alterar senha
+            document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const senhaAtual = document.getElementById('senhaAtual').value;
+                const novaSenha = document.getElementById('novaSenha').value;
+                const confirmarNovaSenha = document.getElementById('confirmarNovaSenha').value;
+                const passwordMessage = document.getElementById('passwordMessage');
+
+                if (novaSenha !== confirmarNovaSenha) {
+                    passwordMessage.textContent = 'As novas senhas não coincidem.';
+                    passwordMessage.style.color = 'red';
+                    return;
+                }
+
+                try {
+                    const response = await fetchWithAuth('/api/auth/change-password', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ senhaAtual, novaSenha })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        passwordMessage.textContent = data.msg;
+                        passwordMessage.style.color = 'green';
+                        this.reset();
+                        setTimeout(() => {
+                            document.getElementById('changePasswordContainer').style.display = 'none';
+                        }, 2000);
+                    } else {
+                        throw new Error(data.msg || 'Erro ao alterar a senha.');
+                    }
+                } catch (error) {
+                    passwordMessage.textContent = error.message;
+                    passwordMessage.style.color = 'red';
+                }
+            });
+
+            // Lógica para alterar email
+            document.getElementById('changeEmailForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const novoEmail = document.getElementById('novoEmail').value;
+                const confirmarNovoEmail = document.getElementById('confirmarNovoEmail').value;
+                const emailMessage = document.getElementById('emailMessage');
+
+                if (novoEmail !== confirmarNovoEmail) {
+                    emailMessage.textContent = 'Os emails não coincidem.';
+                    emailMessage.style.color = 'red';
+                    return;
+                }
+
+                try {
+                    const response = await fetchWithAuth('/api/auth/change-email', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ novoEmail })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        emailMessage.textContent = data.msg;
+                        emailMessage.style.color = 'green';
+                        document.getElementById('user-email').textContent = data.usuario.email;
+                        this.reset();
+                        setTimeout(() => {
+                            document.getElementById('changeEmailContainer').style.display = 'none';
+                        }, 2000);
+                    } else {
+                        throw new Error(data.msg || 'Erro ao alterar o email.');
+                    }
+                } catch (error) {
+                    emailMessage.textContent = error.message;
+                    emailMessage.style.color = 'red';
+                }
+            });
+
+            // Lógica para upload de foto
+            document.getElementById('profilePicInput').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('profile-pic').src = e.target.result;
+                        document.getElementById('savePicIcon').style.display = 'inline-block';
+                        document.getElementById('editPicIcon').style.display = 'none';
+                        document.getElementById('deletePicIcon').style.display = 'none';
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+
         function logout() {
             localStorage.removeItem('token');
             window.location.replace('login.html');
         }
-
-        // Lógica para upload de foto
-        document.getElementById('profilePicInput').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('profile-pic').src = e.target.result;
-                    document.getElementById('savePicIcon').style.display = 'inline-block';
-                    document.getElementById('editPicIcon').style.display = 'none';
-                    document.getElementById('deletePicIcon').style.display = 'none';
-                }
-                reader.readAsDataURL(file);
-            }
-        });
 
         async function saveProfilePic() {
             const input = document.getElementById('profilePicInput');
@@ -548,161 +655,6 @@
                 console.error('Erro ao salvar foto:', error);
                 alert(`Erro: ${error.message}`);
             }
-        }
-
-        async function selectPredefinedIcon(iconUrl) {
-            const response = await fetchWithAuth('/api/auth/profile-icon', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ iconUrl })
-            });
-            const data = await response.json();
-            document.getElementById('profile-pic').src = data.fotoPerfilUrl;
-            document.getElementById('deletePicIcon').style.display = 'inline-block';
-            document.getElementById('savePicIcon').style.display = 'none';
-            document.getElementById('editPicIcon').style.display = 'inline-block';
-        }
-
-        async function deleteProfilePic() {
-            if (!confirm('Tem certeza que deseja remover sua foto de perfil?')) {
-                return;
-            }
-            try {
-                const response = await fetchWithAuth('/api/auth/profile-pic', {
-                    method: 'DELETE'
-                });
-                if (response && response.ok) {
-                    const data = await response.json();
-                    alert('Foto de perfil removida com sucesso!');
-                    document.getElementById('profile-pic').src = data.fotoPerfilUrl; // Usa a URL retornada pelo servidor
-                    document.getElementById('deletePicIcon').style.display = 'none';
-                } else {
-                    throw new Error('Falha ao remover a foto.');
-                }
-            } catch (error) {
-                console.error('Erro ao remover foto:', error);
-                alert(`Erro: ${error.message}`);
-            }
-        }
-
-        // Lógica para alterar senha
-        document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const senhaAtual = document.getElementById('senhaAtual').value;
-            const novaSenha = document.getElementById('novaSenha').value;
-            const confirmarNovaSenha = document.getElementById('confirmarNovaSenha').value;
-            const passwordMessage = document.getElementById('passwordMessage');
-
-            if (novaSenha !== confirmarNovaSenha) {
-                passwordMessage.textContent = 'As novas senhas não coincidem.';
-                passwordMessage.style.color = 'red';
-                return;
-            }
-
-            try {
-                const response = await fetchWithAuth('/api/auth/change-password', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ senhaAtual, novaSenha })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    passwordMessage.textContent = data.msg;
-                    passwordMessage.style.color = 'green';
-                    this.reset();
-                    // Esconde o formulário após um tempo para o usuário ver a mensagem
-                    setTimeout(() => {
-                        document.getElementById('changePasswordContainer').style.display = 'none';
-                    }, 2000);
-                } else {
-                    throw new Error(data.msg || 'Erro ao alterar a senha.');
-                }
-            } catch (error) {
-                passwordMessage.textContent = error.message;
-                passwordMessage.style.color = 'red';
-            }
-        });
-
-        // Lógica para alterar email
-        document.getElementById('changeEmailForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const novoEmail = document.getElementById('novoEmail').value;
-            const confirmarNovoEmail = document.getElementById('confirmarNovoEmail').value;
-            const emailMessage = document.getElementById('emailMessage');
-
-            if (novoEmail !== confirmarNovoEmail) {
-                emailMessage.textContent = 'Os emails não coincidem.';
-                emailMessage.style.color = 'red';
-                return;
-            }
-
-            try {
-                const response = await fetchWithAuth('/api/auth/change-email', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ novoEmail })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    emailMessage.textContent = data.msg;
-                    emailMessage.style.color = 'green';
-                    // Atualiza o email na tela
-                    document.getElementById('user-email').textContent = data.usuario.email;
-                    this.reset();
-                    // Esconde o formulário após um tempo para o usuário ver a mensagem
-                    setTimeout(() => {
-                        document.getElementById('changeEmailContainer').style.display = 'none';
-                    }, 2000);
-                } else {
-                    throw new Error(data.msg || 'Erro ao alterar o email.');
-                }
-            } catch (error) {
-                emailMessage.textContent = error.message;
-                emailMessage.style.color = 'red';
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            await getUsuario();
-            await createHeaderFromHome(); // Chama a nova função de cabeçalho
-
-            // Lógica para o menu dropdown do usuário
-            const userMenuBtn = document.getElementById('userMenuBtn');
-            const userMenu = document.getElementById('userMenu');
-
-            if (userMenuBtn) {
-                userMenuBtn.addEventListener('click', () => userMenu.classList.toggle('show'));
-            }
-            
-            // Lógica para mostrar/esconder os formulários de configuração
-            document.getElementById('togglePasswordBtn').addEventListener('click', (e) => {
-                e.preventDefault();
-                const container = document.getElementById('changePasswordContainer');
-                container.style.display = container.style.display === 'none' ? 'block' : 'none';
-            });
-
-            document.getElementById('toggleEmailBtn').addEventListener('click', (e) => {
-                e.preventDefault();
-                const container = document.getElementById('changeEmailContainer');
-                container.style.display = container.style.display === 'none' ? 'block' : 'none';
-            });
-        });
-
-        // Função separada para criar o cabeçalho na home, já que o placeholder está em outro local
-        async function createHeaderFromHome() {
-            const placeholder = document.querySelector('.header'); // Seleciona o cabeçalho existente
-            if (!placeholder || !usuario) return;
-
-            // A lógica de busca do nome da empresa e criação do HTML agora está em shared.js
-            // Aqui, apenas garantimos que o cabeçalho seja renderizado corretamente.
-            // A função createHeader agora é assíncrona.
-            await createHeader(null, usuario); // Passamos null pois não vamos usar o placeholderId
-            document.querySelector('.header h1 a').textContent = (await (await fetchWithAuth('/api/configuracao')).json()).nome_fantasia || 'ADCON - Painel';
-            document.getElementById('header-user-name').textContent = `Olá, ${usuario.nome.split(' ')[0]}!`;
         }
     </script>
 </body>
