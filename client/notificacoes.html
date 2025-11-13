@@ -32,6 +32,7 @@
         .notifications-list-page li.unread { background-color: #eaf2ff; font-weight: bold; }
         .notification-link { text-decoration: none; color: inherit; flex-grow: 1; }
         .notification-date { font-size: 0.9rem; color: #6c757d; margin-left: 1rem; flex-shrink: 0; }
+        .btn-excluir-notificacao { background-color: #dc3545; font-size: 0.8rem; padding: 0.3rem 0.6rem; margin-left: 1rem; }
 
         /* Paginação */
         .pagination { margin-top: 2rem; text-align: center; }
@@ -110,6 +111,7 @@
                         <a href="notificacao-detalhes.html?id=${n._id}" class="notification-link">
                             ${n.mensagem}
                         </a>
+                        <button class="btn-excluir-notificacao" onclick="deleteNotification('${n._id}')">Excluir</button>
                         <span class="notification-date">${new Date(n.criado_em).toLocaleString('pt-BR')}</span>
                     </li>
                 `).join('');
@@ -130,6 +132,23 @@
             prevBtn.disabled = currentPage === 1;
             nextBtn.disabled = currentPage === totalPages;
             document.querySelector('.pagination').style.display = totalPages > 1 ? 'block' : 'none';
+        }
+
+        async function deleteNotification(notificationId) {
+            if (!confirm('Tem certeza que deseja excluir esta notificação permanentemente?')) return;
+
+            try {
+                const response = await fetchWithAuth(`/api/notificacoes/${notificationId}`, { method: 'DELETE' });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Falha ao excluir a notificação.');
+                }
+                
+                // Recarrega a lista da página atual para refletir a exclusão
+                loadAllNotifications(currentPage);
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+            }
         }
     </script>
 </body>

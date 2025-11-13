@@ -96,24 +96,12 @@
     flex-grow: 1;
 }
 
-.notification-delete-btn {
-    font-size: 1rem;
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
-    transition: background-color 0.2s;
-}
-
 .notification-list a.notification-item:last-child {
     border-bottom: none;
 }
 
 .notification-list a.notification-item:hover {
     background-color: #f8f9fa;
-}
-
-.notification-delete-btn:hover {
-    background-color: #e9ecef;
 }
 
 /* Item individual da notificação */

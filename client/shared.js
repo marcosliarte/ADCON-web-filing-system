@@ -227,12 +227,11 @@ async function loadNotifications() {
         const isAdmin = usuario && usuario.role === 'admin';
 
         list.innerHTML = notifications.map(n => `
-            <a href="notificacao-detalhes.html?id=${n._id}" class="notification-item ${!n.lida ? 'unread' : ''}" id="notification-${n._id}" data-batch-id="${n.batchId || ''}">
+            <a href="notificacao-detalhes.html?id=${n._id}" class="notification-item ${!n.lida ? 'unread' : ''}" id="notification-${n._id}">
                 <div class="notification-item-content">
                     <p style="margin: 0; font-size: 0.9rem; white-space: normal;">${n.mensagem}</p>
                     <small style="color: #6c757d;">${new Date(n.criado_em).toLocaleString('pt-BR')}</small>
                 </div>
-                <span class="notification-delete-btn" onclick="deleteNotification(event, '${n._id}')" title="${isAdmin && n.batchId ? 'Excluir para todos' : 'Excluir esta notificação'}">🗑️</span>
             </a>
         `).join('');
 
@@ -256,26 +255,6 @@ async function markAllNotificationsAsRead(event) {
     } catch (error) {
         console.error(error.message);
         alert('Não foi possível marcar as notificações como lidas.');
-    }
-}
-
-// --- NOVA FUNÇÃO PARA EXCLUIR NOTIFICAÇÕES ---
-async function deleteNotification(event, notificationId) {
-    event.preventDefault(); // Impede a navegação ao clicar no link pai
-    event.stopPropagation(); // Impede que o dropdown feche
-
-    if (!confirm('Tem certeza que deseja excluir esta notificação?')) return;
-
-    try {
-        const response = await fetchWithAuth(`/api/notificacoes/${notificationId}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error('Falha ao excluir notificação.');
-
-        // Remove o item da lista e atualiza a contagem
-        document.getElementById(`notification-${notificationId}`).remove();
-        updateNotificationCount();
-
-    } catch (error) {
-        alert(error.message);
     }
 }
 
