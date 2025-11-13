@@ -134,9 +134,13 @@
                 const response = await fetchWithAuth(`/api/relatorios/mensal?ano=${ano}&mes=${mes}`);
                 const data = await response.json();
 
+                if (!response.ok) {
+                    throw new Error(data.msg || 'Erro desconhecido ao gerar relatório.');
+                }
+
                 // Métricas principais
                 document.getElementById('mensal-metrics').innerHTML = `
-                    <div class="metric-card receita"><span class="value">${formatarMoeda(data.receita)}</span><span class="label">Receita do Mês</span></div>
+                    <div class="metric-card receita"><span class="value">${formatarMoeda(data.receita || 0)}</span><span class="label">Receita do Mês</span></div>
                     <div class="metric-card pagas"><span class="value">${data.pagas.quantidade} / ${data.totalMensalidades}</span><span class="label">Pagas</span></div>
                     <div class="metric-card pendentes"><span class="value">${data.pendentes.quantidade}</span><span class="label">Pendentes</span></div>
                     <div class="metric-card atrasadas"><span class="value">${data.atrasadas.quantidade}</span><span class="label">Atrasadas</span></div>
@@ -144,25 +148,30 @@
 
                 // Detalhes em tabelas
                 let detailsHtml = '';
-                if (data.atrasadas.quantidade > 0) {
-                    detailsHtml += criarTabela('Clientes com Pagamento Atrasado', data.atrasadas.lista);
-                }
-                if (data.pendentes.quantidade > 0) {
-                    detailsHtml += criarTabela('Clientes com Pagamento Pendente', data.pendentes.lista);
-                }
+                detailsHtml += criarTabela('❌ Clientes com Pagamento Atrasado', data.atrasadas.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataVencimento']);
+                detailsHtml += criarTabela('⏳ Clientes com Pagamento Pendente', data.pendentes.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataVencimento']);
+                detailsHtml += criarTabela('✅ Clientes com Pagamento em Dia', data.pagas.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataPagamento']);
+
                 document.getElementById('mensal-details').innerHTML = detailsHtml;
 
                 content.style.display = 'block';
             } catch (error) {
                 console.error(error);
-                document.getElementById('mensal-metrics').innerHTML = `<p style="color: red;">Erro ao gerar relatório.</p>`;
+                // Exibe o erro de forma clara para o usuário
+                const contentDiv = document.getElementById('relatorio-mensal-content');
+                contentDiv.style.display = 'block';
+                contentDiv.innerHTML = `<p style="color: red; text-align: center; padding: 2rem;"><b>Erro ao gerar relatório:</b> ${error.message}</p>`;
             } finally {
                 loading.style.display = 'none';
             }
         }
 
-        function criarTabela(titulo, itens) {
+        function criarTabela(titulo, itens, colunas) {
             if (!itens || itens.length === 0) return '';
+
+            const isPago = titulo.includes('em Dia');
+            const headerVencimento = isPago ? 'Data Pagamento' : 'Vencimento';
+            const dataKey = isPago ? 'dataPagamento' : 'dataVencimento';
 
             let rows = '';
             itens.forEach(item => {
@@ -171,7 +180,7 @@
                         <td>${item.empresa.nome}</td>
                         <td>${formatarCNPJ(item.empresa.cnpj)}</td>
                         <td>${formatarMoeda(item.valor)}</td>
-                        <td>${formatarData(item.dataVencimento)}</td>
+                        <td>${formatarData(item[dataKey])}</td>
                     </tr>
                 `;
             });
@@ -184,7 +193,7 @@
                             <th>Empresa</th>
                             <th>CNPJ</th>
                             <th>Valor</th>
-                            <th>Vencimento</th>
+                            <th>${headerVencimento}</th>
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>
@@ -194,7 +203,7 @@
 
         // Funções de formatação (adicione ao seu shared.js se preferir)
         function formatarMoeda(valor) {
-            return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
         function formatarCNPJ(cnpj) {

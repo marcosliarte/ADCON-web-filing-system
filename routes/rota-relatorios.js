@@ -40,59 +40,45 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
     }
 
     try {
-        // CORREÇÃO: Buscar pelo mês e ano da mensalidade, não pela data de vencimento.
+        // REESTRUTURAÇÃO COMPLETA DA LÓGICA
+        // 1. Busca as mensalidades do período e já popula os dados da empresa.
+        //    Usa .lean() para retornar objetos JS puros, o que é mais rápido e seguro.
         const mensalidades = await Mensalidade.find({
             ano: parseInt(ano),
             mes: parseInt(mes)
-        }).populate('empresaId', 'nome cnpj');
+        }).populate('empresaId', 'nome cnpj').lean();
 
         const totalMensalidades = mensalidades.length;
         const pagas = mensalidades.filter(m => m.status === 'Pago');
         
-        // CORREÇÃO: Verifica se dataVencimento existe antes de comparar.
-        // E considera atrasada se o mês de referência já passou.
+        // 2. Lógica de classificação precisa baseada na data de hoje.
+        //    Normaliza 'hoje' para o início do dia para evitar problemas com fuso horário.
         const hoje = new Date();
-        const dataReferenciaFinal = new Date(ano, mes, 0); // Último dia do mês de referência
+        hoje.setHours(0, 0, 0, 0);
 
         const pendentes = mensalidades.filter(m => 
-            m.status === 'Pendente' && hoje <= dataReferenciaFinal
+            m.status === 'Pendente' && m.dataVencimento && new Date(m.dataVencimento) >= hoje
         );
         const atrasadas = mensalidades.filter(m => 
-            m.status !== 'Pago' && hoje > dataReferenciaFinal
+            m.status !== 'Pago' && m.dataVencimento && new Date(m.dataVencimento) < hoje
         );
 
-        // CORREÇÃO 2: Renomear 'empresaId' para 'empresa' para o frontend funcionar
-        const formatarLista = (lista) => {
-            return lista.map(item => {
-                const itemObj = item.toObject(); // Converte para um objeto simples
-                itemObj.empresa = itemObj.empresaId;
-                delete itemObj.empresaId;
-                return itemObj;
-            });
-        };
+        // 3. Formata a lista para o front-end, renomeando 'empresaId' para 'empresa'.
+        const formatarLista = (lista) => lista.map(item => ({ ...item, empresa: item.empresaId, empresaId: undefined }));
 
         const listaPagas = formatarLista(pagas);
         const listaPendentes = formatarLista(pendentes);
         const listaAtrasadas = formatarLista(atrasadas);
 
-        const receita = listaPagas.reduce((acc, m) => acc + m.valor, 0);
+        const receita = pagas.reduce((acc, m) => acc + m.valor, 0);
 
         res.json({
             periodo: { ano, mes },
             totalMensalidades,
             receita,
-            pagas: {
-                quantidade: pagas.length,
-                lista: listaPagas
-            },
-            pendentes: {
-                quantidade: pendentes.length,
-                lista: listaPendentes
-            },
-            atrasadas: {
-                quantidade: atrasadas.length,
-                lista: listaAtrasadas
-            }
+            pagas: { quantidade: pagas.length, lista: listaPagas },
+            pendentes: { quantidade: pendentes.length, lista: listaPendentes },
+            atrasadas: { quantidade: atrasadas.length, lista: listaAtrasadas }
         });
 
     } catch (err) {
