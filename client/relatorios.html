@@ -40,10 +40,22 @@
         .form-section h3 { margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 0.5rem; margin-bottom: 1rem; }
         .btn-delete { background-color: #dc3545; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
         .btn-delete:hover { background-color: #c82333; }
+        .btn-edit { background-color: #ffc107; color: #212529; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-right: 5px; }
         td.actions { text-align: center; }
+        /* Estilos para o novo formulário de despesas */
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 0.3rem; font-size: 0.9rem; }
 
     </style>
 </head>
+<style>
+    /* Estilos do Modal */
+    .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+    .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; }
+    .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    .modal-form .form-group { display: flex; flex-direction: column; margin-bottom: 1rem; }
+    .modal-form label { margin-bottom: 0.5rem; font-weight: bold; }
+</style>
 <body style="display: none;">
     <!-- Script de bloqueio de acesso -->
     <script>
@@ -64,14 +76,49 @@
         <div id="generalSummary" class="summary" style="margin-bottom: 2rem;"></div>
 
         <!-- NOVA SEÇÃO: Lançamentos Manuais -->
-        <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-            <!-- Formulário para Lançar Despesas -->
-            <div class="form-section" style="flex: 1;">
+        <div class="row" style="display: flex; gap: 2rem; flex-wrap: wrap;">
+            <!-- Formulário para Lançar Despesas (ATUALIZADO) -->
+            <div class="form-section" style="flex: 2;">
                 <h3>Lançar Despesa</h3>
-                <form id="formDespesa" onsubmit="lancarDespesa(event)">
-                    <input type="text" id="despesaDescricao" placeholder="Descrição (ex: Aluguel)" required style="width: calc(100% - 1.2rem); margin-bottom: 0.5rem;">
-                    <input type="number" id="despesaValor" placeholder="Valor (R$)" step="0.01" required style="width: calc(100% - 1.2rem); margin-bottom: 0.5rem;">
-                    <button type="submit">Lançar Despesa</button>
+                <form id="form-nova-despesa">
+                    <div class="form-grid">
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label for="despesa-descricao">Descrição</label>
+                            <input type="text" id="despesa-descricao" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="despesa-valor">Valor (R$)</label>
+                            <input type="number" step="0.01" id="despesa-valor" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="despesa-tipo">Tipo</label>
+                            <select id="despesa-tipo">
+                                <option value="unica" selected>Única</option>
+                                <option value="fixa">Fixa (Mensal)</option>
+                                <option value="parcelada">Parcelada</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Campos Condicionais -->
+                    <div class="form-grid" style="margin-top: 1rem;">
+                        <div class="form-group" id="campo-data-unica" style="display: none;">
+                            <label for="despesa-data">Data da Despesa</label>
+                            <input type="date" id="despesa-data">
+                        </div>
+                        <div class="form-group" id="campo-data-inicio" style="display: none;">
+                            <label for="despesa-data-inicio">Data de Início</label>
+                            <input type="date" id="despesa-data-inicio">
+                        </div>
+                        <div class="form-group" id="campo-dia-vencimento" style="display: none;">
+                            <label for="despesa-dia-vencimento">Dia do Vencimento</label>
+                            <input type="number" id="despesa-dia-vencimento" min="1" max="31" placeholder="Ex: 10">
+                        </div>
+                        <div class="form-group" id="campo-total-parcelas" style="display: none;">
+                            <label for="despesa-total-parcelas">Nº de Parcelas</label>
+                            <input type="number" id="despesa-total-parcelas" min="2">
+                        </div>
+                    </div>
+                    <button type="submit" style="margin-top: 1rem;">Lançar Despesa</button>
                 </form>
             </div>
             <!-- Formulário para Lançar Outras Receitas -->
@@ -157,6 +204,27 @@
         </div>
     </div>
 
+    <!-- Modal para Edição -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="fecharModalEdicao()">&times;</span>
+            <h2 id="modal-edit-titulo">Editar Lançamento</h2>
+            <form id="modal-edit-form" class="modal-form">
+                <input type="hidden" id="modal-edit-id">
+                <input type="hidden" id="modal-edit-tipo">
+                <div class="form-group">
+                    <label for="modal-edit-descricao">Descrição</label>
+                    <input type="text" id="modal-edit-descricao" required>
+                </div>
+                <div class="form-group">
+                    <label for="modal-edit-valor">Valor (R$)</label>
+                    <input type="number" id="modal-edit-valor" step="0.01" required>
+                </div>
+                <button type="submit">Salvar Alterações</button>
+            </form>
+        </div>
+    </div>
+
     <script src="shared.js"></script>
     <script>
         let currentUser;
@@ -176,6 +244,7 @@
                 setupFilters();
                 gerarRelatorioGeral(); // Chama a nova função
                 toggleFilters();
+                setupExpenseForm(); // INICIA O NOVO FORMULÁRIO DE DESPESAS
             }
         });
 
@@ -236,24 +305,76 @@
             setTimeout(() => { statusDiv.style.display = 'none'; }, 4000);
         }
 
-        async function lancarDespesa(event) {
-            event.preventDefault();
-            const descricao = document.getElementById('despesaDescricao').value;
-            const valor = parseFloat(document.getElementById('despesaValor').value);
+        // NOVA FUNÇÃO PARA CONFIGURAR O FORMULÁRIO DE DESPESAS
+        function setupExpenseForm() {
+            const form = document.getElementById('form-nova-despesa');
+            const tipoSelect = document.getElementById('despesa-tipo');
 
-            try {
-                const response = await fetchWithAuth('/api/relatorios/despesas', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ descricao, valor, data: new Date() })
-                });
-                if (!response.ok) throw new Error('Falha ao lançar despesa.');
-                showStatus('Despesa lançada com sucesso!');
-                document.getElementById('formDespesa').reset();
-                gerarRelatorio(); // Atualiza o relatório
-            } catch (err) {
-                showStatus(err.message, true);
-            }
+            const campos = {
+                unica: document.getElementById('campo-data-unica'),
+                inicio: document.getElementById('campo-data-inicio'),
+                vencimento: document.getElementById('campo-dia-vencimento'),
+                parcelas: document.getElementById('campo-total-parcelas')
+            };
+
+            const atualizarCamposVisiveis = () => {
+                const tipo = tipoSelect.value;
+                Object.values(campos).forEach(c => c.style.display = 'none');
+
+                if (tipo === 'unica') {
+                    campos.unica.style.display = 'block';
+                } else { // Fixa ou Parcelada
+                    campos.inicio.style.display = 'block';
+                    campos.vencimento.style.display = 'block';
+                    if (tipo === 'parcelada') {
+                        campos.parcelas.style.display = 'block';
+                    }
+                }
+            };
+
+            tipoSelect.addEventListener('change', atualizarCamposVisiveis);
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const tipo = tipoSelect.value;
+                const payload = {
+                    descricao: document.getElementById('despesa-descricao').value,
+                    valor: parseFloat(document.getElementById('despesa-valor').value),
+                    tipo: tipo
+                };
+
+                if (tipo === 'unica') {
+                    const dataInput = document.getElementById('despesa-data').value;
+                    if (dataInput) payload.data = dataInput;
+                } else {
+                    const dataInicioInput = document.getElementById('despesa-data-inicio').value;
+                    if (dataInicioInput) payload.dataInicio = dataInicioInput;
+                    payload.diaVencimento = parseInt(document.getElementById('despesa-dia-vencimento').value);
+                    if (tipo === 'parcelada') {
+                        payload.totalParcelas = parseInt(document.getElementById('despesa-total-parcelas').value);
+                    }
+                }
+
+                try {
+                    const response = await fetchWithAuth('/api/relatorios/despesas', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.msg || 'Falha ao lançar despesa.');
+                    }
+                    showStatus('Despesa lançada com sucesso!');
+                    form.reset();
+                    atualizarCamposVisiveis();
+                    gerarRelatorio(); // Atualiza o relatório
+                } catch (err) {
+                    showStatus(err.message, true);
+                }
+            });
+
+            atualizarCamposVisiveis(); // Chama na inicialização
         }
 
         async function lancarReceita(event) {
@@ -279,7 +400,7 @@
             
             try {
                 const response = await fetchWithAuth(url, { method: 'DELETE' });
-                if (!response.ok) {
+                if (!response || !response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.msg || `Falha ao excluir ${tipo}.`);
                 }
@@ -289,6 +410,70 @@
                 showStatus(err.message, true);
             }
 
+        }
+
+        // --- LÓGICA DO MODAL DE EDIÇÃO ---
+
+        const modal = document.getElementById('edit-modal');
+
+        async function abrirModalEdicao(tipo, id) {
+            const form = document.getElementById('modal-edit-form');
+            form.reset();
+
+            document.getElementById('modal-edit-id').value = id;
+            document.getElementById('modal-edit-tipo').value = tipo;
+
+            try {
+                const url = tipo === 'despesa' ? `/api/relatorios/despesas/${id}` : `/api/relatorios/receitas/${id}`;
+                const response = await fetchWithAuth(url);
+                if (!response || !response.ok) throw new Error('Falha ao buscar dados do lançamento.');
+                
+                const data = await response.json();
+                document.getElementById('modal-edit-descricao').value = data.descricao;
+                document.getElementById('modal-edit-valor').value = data.valor;
+
+                modal.style.display = 'block';
+            } catch (err) {
+                showStatus(err.message, true);
+            }
+        }
+
+        function fecharModalEdicao() {
+            modal.style.display = 'none';
+        }
+
+        document.getElementById('modal-edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('modal-edit-id').value;
+            const tipo = document.getElementById('modal-edit-tipo').value;
+            
+            const payload = {
+                descricao: document.getElementById('modal-edit-descricao').value,
+                valor: parseFloat(document.getElementById('modal-edit-valor').value)
+            };
+
+            const url = tipo === 'despesa' ? `/api/relatorios/despesas/${id}` : `/api/relatorios/receitas/${id}`;
+
+            try {
+                const response = await fetchWithAuth(url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response || !response.ok) throw new Error('Falha ao salvar alterações.');
+
+                showStatus('Lançamento atualizado com sucesso!');
+                fecharModalEdicao();
+                gerarRelatorio(); // Atualiza o relatório
+            } catch (err) {
+                showStatus(err.message, true);
+            }
+        });
+
+        // Fecha o modal se o usuário clicar fora dele
+        window.onclick = function(event) {
+            if (event.target == modal) fecharModalEdicao();
         }
 
         async function gerarRelatorio() {
@@ -408,7 +593,18 @@
                 if (tipoLancamento) {
                     const actionsCell = row.insertCell();
                     actionsCell.className = 'actions';
-                    actionsCell.innerHTML = `<button class="btn-delete" onclick="excluirLancamento('${tipoLancamento}', '${item._id}')">Excluir</button>`;
+
+                    const buttonsHtml = `
+                        <button class="btn-edit" onclick="abrirModalEdicao('${tipoLancamento}', '${item._id}')">Editar</button>
+                        <button class="btn-delete" onclick="excluirLancamento('${tipoLancamento}', '${item._id}')">Excluir</button>
+                    `;
+
+                    actionsCell.innerHTML = buttonsHtml;
+                }
+
+                if (item.tipo === 'fixa' && item.status === 'cancelada') {
+                    row.style.textDecoration = 'line-through';
+                    row.style.color = '#888';
                 }
             });
         }

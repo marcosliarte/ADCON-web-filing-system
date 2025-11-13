@@ -12,7 +12,23 @@ const ConfiguracaoEmpresa = require('../models/model-configuracao'); // Importa 
 const DespesaSchema = new mongoose.Schema({
     descricao: { type: String, required: true, trim: true },
     valor: { type: Number, required: true },
-    data: { type: Date, default: Date.now }
+    tipo: {
+        type: String,
+        required: true,
+        enum: ['unica', 'fixa', 'parcelada'],
+        default: 'unica'
+    },
+    data: { type: Date }, // Usado para despesa 'unica'
+    dataInicio: { type: Date }, // Usado para despesa 'fixa' e 'parcelada'
+    diaVencimento: { type: Number, min: 1, max: 31 }, // Dia do mês para recorrência
+    totalParcelas: { type: Number }, // Apenas para tipo 'parcelada'
+    status: { // Apenas para tipo 'fixa'
+        type: String,
+        enum: ['ativa', 'cancelada'],
+        default: 'ativa'
+    }
+}, {
+    timestamps: true // Adiciona createdAt e updatedAt
 });
 
 const ReceitaSchema = new mongoose.Schema({
@@ -53,14 +69,25 @@ router.get('/geral', [auth, adminAuth], async (req, res) => {
 // @desc    Lançar uma nova despesa
 router.post('/despesas', [auth, adminAuth], async (req, res) => {
     try {
-        const { descricao, valor, data } = req.body;
+        const { descricao, valor, tipo, data, dataInicio, diaVencimento, totalParcelas } = req.body;
         if (!descricao || !valor) return res.status(400).json({ msg: 'Descrição e valor são obrigatórios.' });
-        const novaDespesa = new Despesa({ descricao, valor, data: data ? new Date(data) : new Date() });
+
+        const dadosDespesa = { descricao, valor, tipo };
+
+        if (tipo === 'unica') {
+            dadosDespesa.data = data ? new Date(data) : new Date();
+        } else { // 'fixa' ou 'parcelada'
+            dadosDespesa.dataInicio = dataInicio ? new Date(dataInicio) : new Date();
+            dadosDespesa.diaVencimento = diaVencimento;
+            if (tipo === 'parcelada') dadosDespesa.totalParcelas = totalParcelas;
+        }
+
+        const novaDespesa = new Despesa(dadosDespesa);
         await novaDespesa.save();
         res.status(201).json(novaDespesa);
     } catch (err) {
-        console.error('Erro ao salvar despesa:', err.message);
-        res.status(500).send('Erro no servidor ao salvar despesa.');
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor ao salvar despesa.' });
     }
 });
 
@@ -79,6 +106,50 @@ router.post('/receitas', [auth, adminAuth], async (req, res) => {
     }
 });
 
+// @route   GET api/relatorios/despesas/:id
+// @desc    Obter uma despesa específica
+router.get('/despesas/:id', [auth, adminAuth], async (req, res) => {
+    try {
+        const despesa = await Despesa.findById(req.params.id);
+        if (!despesa) return res.status(404).json({ msg: 'Despesa não encontrada.' });
+        res.json(despesa);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor.' });
+    }
+});
+
+// @route   GET api/relatorios/receitas/:id
+// @desc    Obter uma receita específica
+router.get('/receitas/:id', [auth, adminAuth], async (req, res) => {
+    try {
+        const receita = await Receita.findById(req.params.id);
+        if (!receita) return res.status(404).json({ msg: 'Receita não encontrada.' });
+        res.json(receita);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor.' });
+    }
+});
+
+// @route   PUT api/relatorios/despesas/:id
+// @desc    Atualizar uma despesa
+router.put('/despesas/:id', [auth, adminAuth], async (req, res) => {
+    try {
+        const despesa = await Despesa.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+        res.json(despesa);
+    } catch (err) { res.status(500).json({ msg: 'Erro no servidor.' }); }
+});
+
+// @route   PUT api/relatorios/receitas/:id
+// @desc    Atualizar uma receita
+router.put('/receitas/:id', [auth, adminAuth], async (req, res) => {
+    try {
+        const receita = await Receita.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true });
+        res.json(receita);
+    } catch (err) { res.status(500).json({ msg: 'Erro no servidor.' }); }
+});
+
 // @route   DELETE api/relatorios/despesas/:id
 // @desc    Excluir uma despesa
 router.delete('/despesas/:id', [auth, adminAuth], async (req, res) => {
@@ -86,6 +157,28 @@ router.delete('/despesas/:id', [auth, adminAuth], async (req, res) => {
         await Despesa.findByIdAndDelete(req.params.id);
         res.json({ msg: 'Despesa excluída com sucesso.' });
     } catch (err) { res.status(500).json({ msg: 'Erro no servidor.' }); }
+});
+
+// @route   PUT api/relatorios/despesas/:id/cancelar
+// @desc    Cancela uma despesa fixa (muda o status para 'cancelada')
+router.put('/despesas/:id/cancelar', [auth, adminAuth], async (req, res) => {
+    try {
+        const despesa = await Despesa.findById(req.params.id);
+        if (!despesa) {
+            return res.status(404).json({ msg: 'Despesa não encontrada.' });
+        }
+        if (despesa.tipo !== 'fixa') {
+            return res.status(400).json({ msg: 'Apenas despesas fixas podem ser canceladas.' });
+        }
+
+        despesa.status = 'cancelada';
+        await despesa.save();
+
+        res.json({ msg: 'Despesa fixa cancelada com sucesso.', despesa });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor ao cancelar despesa.' });
+    }
 });
 
 // @route   DELETE api/relatorios/receitas/:id
@@ -146,7 +239,32 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
 
         // --- CÁLCULO DE OUTRAS RECEITAS E DESPESAS ---
         const outrasReceitas = await Receita.find({ data: { $gte: inicioMes, $lte: fimMes } }).lean();
-        const despesasManuais = await Despesa.find({ data: { $gte: inicioMes, $lte: fimMes } }).lean();
+        
+        // NOVA LÓGICA PARA BUSCAR DESPESAS
+        const despesasUnicas = await Despesa.find({
+            tipo: 'unica',
+            data: { $gte: inicioMes, $lte: fimMes }
+        }).lean();
+
+        const despesasRecorrentes = await Despesa.find({
+            tipo: { $in: ['fixa', 'parcelada'] },
+            dataInicio: { $lte: fimMes }, // A despesa deve ter começado antes do fim do mês
+        }).lean();
+
+        const despesasDoMes = despesasRecorrentes.filter(d => {
+            if (d.tipo === 'fixa' && d.status === 'cancelada' && d.updatedAt < inicioMes) {
+                return false; // Ignora despesas fixas canceladas antes do mês atual
+            }
+            if (d.tipo === 'parcelada') {
+                const dataFimParcelas = new Date(d.dataInicio);
+                dataFimParcelas.setMonth(dataFimParcelas.getMonth() + d.totalParcelas);
+                return dataFimParcelas > inicioMes; // Inclui se o período de parcelamento ainda não terminou
+            }
+            return true; // Inclui despesas fixas ativas
+        });
+
+        const despesasManuais = [...despesasUnicas, ...despesasDoMes];
+
         const totalOutrasReceitas = outrasReceitas.reduce((acc, r) => acc + r.valor, 0);
         const totalDespesasManuais = despesasManuais.reduce((acc, d) => acc + d.valor, 0);
 
