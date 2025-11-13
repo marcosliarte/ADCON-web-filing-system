@@ -65,6 +65,21 @@ async function createHeader(placeholderId, usuario) {
         }
     }
 
+    // --- LÓGICA DE PERSONIFICAÇÃO ---
+    // Decodifica o token para verificar se é uma sessão de personificação
+    let impersonatorId = null;
+    try {
+        const payloadBase64 = token.split('.')[1];
+        const decodedPayload = JSON.parse(atob(payloadBase64));
+        if (decodedPayload.usuario && decodedPayload.usuario.impersonatorId) {
+            impersonatorId = decodedPayload.usuario.impersonatorId;
+        }
+    } catch (e) {
+        console.error("Erro ao decodificar token para personificação:", e);
+    }
+
+    const impersonationBanner = impersonatorId ? `<div style="background-color: #ffc107; color: #333; text-align: center; padding: 0.5rem; font-weight: bold;">Você está navegando como ${usuario.nome}. <a href="#" onclick="stopImpersonating(event)" style="color: #007bff; text-decoration: underline;">Voltar para sua conta</a>.</div>` : '';
+
     // Adiciona o link de Relatórios apenas para admin ou gerente
     const relatoriosLink = (usuario && ['admin', 'gerente'].includes(usuario.role))
         ? `<a href="relatorios.html"><span>📊</span> Relatórios</a>`
@@ -72,6 +87,7 @@ async function createHeader(placeholderId, usuario) {
 
     placeholder.innerHTML = `
         <div class="header">
+            ${impersonationBanner}
             <h1><a href="home.html" style="color: white; text-decoration: none;">${nomeFantasia}</a></h1>
             <div class="user-actions dropdown">
                 <button class="dropdown-toggle" id="userMenuBtn">
@@ -102,4 +118,22 @@ async function createHeader(placeholderId, usuario) {
 function logout() {
     localStorage.removeItem('token');
     window.location.replace('login.html');
+}
+
+/**
+ * Para a sessão de personificação e retorna para a conta do admin.
+ */
+async function stopImpersonating(event) {
+    event.preventDefault();
+    try {
+        const response = await fetchWithAuth('/api/auth/admin/stop-impersonating', { method: 'POST' });
+        if (!response.ok) throw new Error('Falha ao retornar para a conta original.');
+
+        const { token } = await response.json();
+        localStorage.setItem('token', token);
+        window.location.href = 'user-management.html'; // Volta para a tela de gerenciamento de usuários
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+        logout(); // Em caso de erro grave, faz logout por segurança
+    }
 }

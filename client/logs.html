@@ -100,7 +100,7 @@
 
             if (usuario) params.append('usuario', usuario);
             if (entidade) params.append('entidadeNome', entidade);
-            if (acao) params.append('acao', acao.startsWith('Alteração') ? new RegExp('^Alteração de Perfil') : acao);
+            if (acao) params.append('acao', acao);
             if (dataInicio) params.append('dataInicio', dataInicio);
             if (dataFim) params.append('dataFim', dataFim);
 

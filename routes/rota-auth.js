@@ -483,7 +483,7 @@ router.get('/admin/logs', [auth, adminAuth], async (req, res) => {
     const query = {};
 
     if (usuario) query.usuarioNome = new RegExp(usuario, 'i');
-    if (acao) query.acao = acao;
+    if (acao) query.acao = new RegExp(acao, 'i'); // Busca flexível (case-insensitive)
     if (entidadeNome) query.entidadeNome = new RegExp(entidadeNome, 'i');
 
     if (dataInicio && dataFim) {
@@ -503,6 +503,99 @@ router.get('/admin/logs', [auth, adminAuth], async (req, res) => {
   } catch (err) {
     res.status(500).json({ msg: 'Erro no servidor ao buscar logs.' });
   }
+});
+
+// @route   POST api/auth/admin/impersonate/:id
+// @desc    Permite que um admin personifique outro usuário
+// @access  Private (Admin)
+router.post('/admin/impersonate/:id', [auth, adminAuth], async (req, res) => {
+    try {
+        const adminId = req.usuario.id;
+        const targetUserId = req.params.id;
+
+        if (adminId === targetUserId) {
+            return res.status(400).json({ msg: 'Você não pode personificar a si mesmo.' });
+        }
+
+        const targetUser = await Usuario.findById(targetUserId);
+        if (!targetUser) {
+            return res.status(404).json({ msg: 'Usuário alvo não encontrado.' });
+        }
+
+        // Cria um novo token para o usuário alvo, mas com uma "lembrança" de quem é o admin original
+        const payload = {
+            usuario: {
+                id: targetUser.id,
+                role: targetUser.role,
+                impersonatorId: adminId // ID do admin que está personificando
+            },
+        };
+
+        jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
+            if (err) throw err;
+            res.json({ token });
+        });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor ao tentar personificar usuário.' });
+    }
+});
+
+// @route   POST api/auth/admin/stop-impersonating
+// @desc    Para a personificação e retorna para a conta do admin
+// @access  Private (Durante a personificação)
+router.post('/admin/stop-impersonating', auth, async (req, res) => {
+    try {
+        const impersonatorId = req.usuario.impersonatorId; // Este campo só existe no token de personificação
+
+        if (!impersonatorId) {
+            return res.status(400).json({ msg: 'Esta não é uma sessão de personificação.' });
+        }
+
+        const adminUser = await Usuario.findById(impersonatorId);
+        if (!adminUser) {
+            return res.status(404).json({ msg: 'Conta do administrador original não encontrada.' });
+        }
+
+        // Gera um novo token para o admin original
+        const payload = {
+            usuario: {
+                id: adminUser.id,
+                role: adminUser.role,
+            },
+        };
+
+        jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: 3600 }, (err, token) => {
+            if (err) throw err;
+            res.json({ token });
+        });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor ao parar a personificação.' });
+    }
+});
+
+// @route   POST api/auth/admin/users/:id/reset-password
+// @desc    Reseta a senha de um usuário e retorna a nova senha temporária
+// @access  Private (Admin)
+router.post('/admin/users/:id/reset-password', [auth, adminAuth], async (req, res) => {
+    try {
+        const targetUser = await Usuario.findById(req.params.id);
+        if (!targetUser) return res.status(404).json({ msg: 'Usuário não encontrado.' });
+
+        // Gera uma senha aleatória simples
+        const tempPassword = Math.random().toString(36).slice(-8);
+        targetUser.senha = tempPassword; // O hook pre-save no modelo irá hashear
+        await targetUser.save();
+
+        res.json({ msg: `A senha de ${targetUser.nome} foi resetada.`, tempPassword: tempPassword });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor ao resetar a senha.' });
+    }
 });
 
 module.exports = router;

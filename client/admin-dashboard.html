@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Central do Administrador</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Estilos consistentes com o restante do sistema */
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; }
+        .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-toggle { background-color: transparent; border: none; color: white; padding: 0.5rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; }
+        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; border-radius: 5px; overflow: hidden; }
+        .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .dropdown-content a:hover { background-color: #f1f1f1; }
+        .show { display: block; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        h1.page-title { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .widget { background-color: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.06); }
+        .widget h3 { margin-top: 0; color: #007bff; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+        .widget-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; font-size: 1.1rem; }
+        .widget-item span:first-child { font-weight: 500; }
+        .status-indicator { padding: 0.3rem 0.8rem; border-radius: 12px; color: white; font-size: 0.9rem; }
+        .status-ok { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .quick-links { display: flex; gap: 1rem; margin-top: 1rem; }
+        .quick-links a { background-color: #6c757d; color: white; text-decoration: none; padding: 0.6rem 1rem; border-radius: 5px; transition: background-color 0.2s; }
+        .quick-links a:hover { background-color: #5a6268; }
+    </style>
+</head>
+<body style="display: none;">
+    <script>
+        if (!localStorage.getItem('token')) window.location.replace('login.html');
+    </script>
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1 class="page-title">Central do Administrador</h1>
+
+        <div class="dashboard-grid">
+            <!-- Widget de Saúde do Sistema -->
+            <div class="widget">
+                <h3>Saúde do Sistema</h3>
+                <div id="system-status-widget">
+                    <p>Carregando status...</p>
+                </div>
+            </div>
+
+            <!-- Widget de Alertas -->
+            <div class="widget">
+                <h3>Alertas e Vencimentos</h3>
+                <div id="alerts-widget">
+                    <p>Carregando alertas...</p>
+                </div>
+            </div>
+
+            <!-- Widget de Ações Rápidas -->
+            <div class="widget">
+                <h3>Ações Rápidas</h3>
+                <div class="quick-links">
+                    <a href="user-management.html">Gerenciar Usuários</a>
+                    <a href="logs.html">Ver Logs de Atividade</a>
+                    <a href="configuracao-empresa.html">Configurações Gerais</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userResponse = await fetchWithAuth('/api/auth');
+            if (!userResponse) return;
+
+            const usuario = await userResponse.json();
+            createHeader('header-placeholder', usuario);
+
+            if (usuario.role !== 'admin') {
+                document.querySelector('.container').innerHTML = '<h1>Acesso Negado</h1><p>Apenas administradores podem acessar esta página.</p>';
+                document.body.style.display = 'block';
+                return;
+            }
+
+            document.body.style.display = 'block';
+            loadSystemStatus();
+            loadAlerts();
+        });
+
+        async function loadSystemStatus() {
+            const widget = document.getElementById('system-status-widget');
+            try {
+                const response = await fetchWithAuth('/api/admin/dashboard/status');
+                if (!response.ok) throw new Error('Falha ao carregar status.');
+                const data = await response.json();
+
+                const dbStatusClass = data.dbStatus.state === 1 ? 'status-ok' : 'status-error';
+
+                widget.innerHTML = `
+                    <div class="widget-item">
+                        <span>Banco de Dados</span>
+                        <span class="status-indicator ${dbStatusClass}">${data.dbStatus.status}</span>
+                    </div>
+                    <div class="widget-item">
+                        <span>Uso de Disco (Uploads)</span>
+                        <span>${data.diskUsage.megabytes} MB</span>
+                    </div>
+                `;
+            } catch (error) {
+                widget.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            }
+        }
+
+        async function loadAlerts() {
+            const widget = document.getElementById('alerts-widget');
+            try {
+                const response = await fetchWithAuth('/api/admin/dashboard/expiring-docs');
+                if (!response.ok) throw new Error('Falha ao carregar alertas.');
+                const alertas = await response.json();
+
+                if (alertas.length === 0) {
+                    widget.innerHTML = '<p>Nenhum documento vencendo nos próximos 30 dias.</p>';
+                    return;
+                }
+
+                let html = '<ul>';
+                alertas.forEach(alerta => {
+                    html += `<li>
+                        <strong>${alerta.empresaNome}:</strong> ${alerta.documento} vence em ${alerta.diasRestantes} dias.
+                    </li>`;
+                });
+                html += '</ul>';
+                widget.innerHTML = html;
+
+            } catch (error) {
+                widget.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
+```
+
+### 4. Atualização do Painel Principal (`client/home.html`)
+
+Por fim, atualizei o card da "Central do Admin" para direcionar ao novo dashboard, que agora centraliza as outras ações.
+
+```diff
+--- a/c/Users/Marcos/Documents/sistema/ADCON-web-filing-system/client/home.html
++++ b/c/Users/Marcos/Documents/sistema/ADCON-web-filing-system/client/home.html

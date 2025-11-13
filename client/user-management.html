@@ -40,6 +40,8 @@
         button:hover { background-color: #0056b3; }
         button.delete-btn { background-color: #dc3545; }
         button.delete-btn:hover { background-color: #c82333; }
+        button.action-btn { font-size: 0.8rem; padding: 0.4rem 0.6rem; margin-left: 5px; }
+        button.impersonate-btn { background-color: #ffc107; color: #212529; }
         table { width: 100%; border-collapse: collapse; margin-top: 1em; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #e9ecef; }
@@ -169,11 +171,32 @@
                         } else {
                             // Adiciona o evento para alterar o perfil
                             roleSelect.addEventListener('change', () => {
-                                updateUserRole(user._id, roleSelect.value, user.role);
+                                // Apenas admins podem alterar perfis
+                                if (currentUser.role === 'admin') {
+                                    updateUserRole(user._id, roleSelect.value, user.role);
+                                } else {
+                                    roleSelect.disabled = true;
+                                }
                             });
 
-                            // Botão de exclusão
-                            actionsCell.innerHTML = `<button class="delete-btn" onclick="deleteUser('${user._id}')">Excluir</button>`;
+                            let buttonsHtml = ''; // Inicia a string de botões
+
+                            // Lógica para o botão de exclusão
+                            // Admin pode excluir, ou Gerente pode excluir funcionários/empresários
+                            if ( (currentUser.role === 'admin') || (isModifierManager && (user.role === 'funcionario' || user.role === 'empresario')) ) {
+                                buttonsHtml += `<button class="delete-btn action-btn" onclick="deleteUser('${user._id}')">Excluir</button>`;
+                            }
+
+                            // Apenas Admin vê os botões de Personificar e Resetar Senha.
+                            // Esta verificação deve ser separada.
+                            if (currentUser.role === 'admin') {
+                                buttonsHtml += `
+                                    <button class="action-btn impersonate-btn" onclick="impersonateUser('${user._id}')">Personificar</button>
+                                    <button class="action-btn" onclick="resetUserPassword('${user._id}')">Resetar Senha</button>
+                                `;
+                            }
+
+                            actionsCell.innerHTML = buttonsHtml;
                         }
                     });
 
@@ -222,6 +245,40 @@
             } catch (error) {
                 alert(`Erro: ${error.message}`);
                 userRow.value = oldRole; // Reverte em caso de erro na API
+            }
+        }
+
+        async function impersonateUser(userId) {
+            if (!confirm('Você está prestes a navegar no sistema como este usuário. Deseja continuar?')) return;
+
+            try {
+                const response = await fetchWithAuth(`/api/auth/admin/impersonate/${userId}`, { method: 'POST' });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Falha ao personificar usuário.');
+                }
+                const { token } = await response.json();
+                localStorage.setItem('token', token);
+                window.location.href = 'home.html'; // Redireciona para a home como o novo usuário
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+            }
+        }
+
+        async function resetUserPassword(userId) {
+            if (!confirm('Tem certeza que deseja resetar a senha deste usuário? Uma nova senha temporária será gerada.')) return;
+
+            try {
+                const response = await fetchWithAuth(`/api/auth/admin/users/${userId}/reset-password`, { method: 'POST' });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Falha ao resetar a senha.');
+                }
+                const result = await response.json();
+                // Exibe a senha temporária para o admin copiar
+                alert(`${result.msg}\n\nNova Senha: ${result.tempPassword}\n\nPor favor, copie esta senha e a envie para o usuário de forma segura.`);
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
             }
         }
 

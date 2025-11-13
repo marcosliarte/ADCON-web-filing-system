@@ -13,6 +13,7 @@ const empresaRoutes = require('./routes/rota-empresas');
 const mensalidadeRoutes = require('./routes/rota-mensalidades');
 const relatoriosRoutes = require('./routes/rota-relatorios'); // ROTA DE RELATÓRIOS
 const configuracaoRoutes = require('./routes/rota-configuracao'); // NOVA ROTA
+const adminRoutes = require('./routes/rota-admin'); // ROTA PARA DASHBOARD DO ADMIN
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,6 +53,7 @@ app.use('/api/empresas', empresaRoutes);
 app.use('/api/mensalidades', mensalidadeRoutes); // ROTA REGISTRADA
 app.use('/api/relatorios', relatoriosRoutes); // REGISTRANDO ROTA DE RELATÓRIOS
 app.use('/api/configuracao', configuracaoRoutes); // REGISTRANDO NOVA ROTA
+app.use('/api/admin', adminRoutes); // REGISTRANDO ROTA DO ADMIN
 
 // 4. Middlewares para servir arquivos estáticos (frontend e uploads)
 app.use(express.static('client'));
