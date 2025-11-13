@@ -27,6 +27,8 @@
         .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
         .summary-card { background-color: #f8f9fa; padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 5px solid #007bff; }
         .summary-card h3 { margin-top: 0; color: #555; font-size: 1rem; }
+        .summary-card.despesa { border-left-color: #dc3545; }
+        .summary-card.lucro { border-left-color: #28a745; }
         .summary-card p { font-size: 1.8rem; font-weight: bold; color: #007bff; margin: 0; }
         table { width: 100%; border-collapse: collapse; margin-top: 1em; }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
@@ -103,7 +105,7 @@
             <h2 id="annualTitle"></h2>
             <div id="annualSummary" class="summary"></div>
             <table>
-                <thead><tr><th>Mês</th><th>Receita Total</th></tr></thead>
+                <thead><tr><th>Mês</th><th>Receita Total</th><th>Despesa Total</th><th>Lucro Líquido</th></tr></thead>
                 <tbody id="annualTableBody"></tbody>
             </table>
         </div>
@@ -213,7 +215,9 @@
 
             const summary = document.getElementById('monthlySummary');
             summary.innerHTML = `
-                <div class="summary-card"><h3>Receita Realizada</h3><p>${formatarMoeda(data.receita)}</p></div>
+                <div class="summary-card"><h3>Receita Bruta</h3><p>${formatarMoeda(data.receita)}</p></div>
+                <div class="summary-card despesa"><h3>Total Despesas</h3><p>${formatarMoeda(data.totalDespesas)}</p></div>
+                <div class="summary-card lucro"><h3>Lucro Líquido</h3><p>${formatarMoeda(data.lucroLiquido)}</p></div>
                 <div class="summary-card"><h3>Mensalidades Pagas</h3><p>${data.pagas.quantidade}</p></div>
                 <div class="summary-card"><h3>Pendentes</h3><p>${data.pendentes.quantidade}</p></div>
                 <div class="summary-card"><h3>Atrasadas</h3><p>${data.atrasadas.quantidade}</p></div>
@@ -228,22 +232,31 @@
             document.getElementById('annualReport').style.display = 'block';
             document.getElementById('annualTitle').textContent = `Relatório Anual de ${ano}`;
             
-            const totalReceita = data.reduce((acc, item) => acc + item.receitaTotal, 0);
+            // CORREÇÃO: O backend agora envia um objeto { receita: [], despesas: [] }
+            const totalReceita = data.receita.reduce((acc, item) => acc + item.receitaTotal, 0);
+            const totalDespesa = data.despesas.reduce((acc, item) => acc + item.despesaTotal, 0);
             document.getElementById('annualSummary').innerHTML = `
                 <div class="summary-card"><h3>Receita Total do Ano</h3><p>${formatarMoeda(totalReceita)}</p></div>
+                <div class="summary-card despesa"><h3>Despesa Total do Ano</h3><p>${formatarMoeda(totalDespesa)}</p></div>
+                <div class="summary-card lucro"><h3>Lucro Líquido do Ano</h3><p>${formatarMoeda(totalReceita - totalDespesa)}</p></div>
             `;
 
             const tableBody = document.getElementById('annualTableBody');
             tableBody.innerHTML = '';
             const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
             
-            const monthlyData = new Map(data.map(item => [item._id, item.receitaTotal]));
+            const receitaData = new Map(data.receita.map(item => [item._id, item.receitaTotal]));
+            const despesaData = new Map(data.despesas.map(item => [item._id, item.despesaTotal]));
 
             for (let i = 1; i <= 12; i++) {
-                const receita = monthlyData.get(i) || 0;
+                const receita = receitaData.get(i) || 0;
+                const despesa = despesaData.get(i) || 0;
+                const lucro = receita - despesa;
                 const row = tableBody.insertRow();
                 row.insertCell(0).textContent = meses[i - 1];
                 row.insertCell(1).textContent = formatarMoeda(receita);
+                row.insertCell(2).textContent = formatarMoeda(despesa);
+                row.insertCell(3).textContent = formatarMoeda(lucro);
             }
         }
 

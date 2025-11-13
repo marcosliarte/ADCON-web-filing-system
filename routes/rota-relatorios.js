@@ -72,12 +72,28 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
         const listaPendentes = formatarLista(pendentes);
         const listaAtrasadas = formatarLista(atrasadas);
 
-        const receita = pagas.reduce((acc, m) => acc + m.valor, 0);
+        const receitaBruta = pagas.reduce((acc, m) => acc + m.valor, 0);
+
+        // --- CÁLCULO DE DESPESAS (FOLHA DE PAGAMENTO) ---
+        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' }).lean();
+        let totalDespesas = 0;
+        if (config && config.funcionarios) {
+            config.funcionarios.forEach(func => {
+                const pagamentoDoMes = (func.historicoPagamentos || []).find(p => p.ano == ano && p.mes == mes);
+                if (pagamentoDoMes) {
+                    totalDespesas += pagamentoDoMes.salarioLiquido;
+                }
+            });
+        }
+
+        const lucroLiquido = receitaBruta - totalDespesas;
 
         res.json({
             periodo: { ano, mes },
             totalMensalidades,
-            receita,
+            receita: receitaBruta,
+            totalDespesas,
+            lucroLiquido,
             pagas: { quantidade: pagas.length, lista: listaPagas },
             pendentes: { quantidade: pendentes.length, lista: listaPendentes },
             atrasadas: { quantidade: atrasadas.length, lista: listaAtrasadas }
@@ -109,7 +125,20 @@ router.get('/anual', [auth, adminAuth], async (req, res) => {
             { $sort: { _id: 1 } }
         ]);
 
-        res.json(receitaAnual);
+        // Agrega as despesas anuais da folha de pagamento
+        const despesasAnuais = await ConfiguracaoEmpresa.aggregate([
+            { $match: { identificador: 'adcon_config' } },
+            { $unwind: '$funcionarios' },
+            { $unwind: '$funcionarios.historicoPagamentos' },
+            { $match: { 'funcionarios.historicoPagamentos.ano': parseInt(ano) } },
+            { $group: {
+                _id: '$funcionarios.historicoPagamentos.mes',
+                despesaTotal: { $sum: '$funcionarios.historicoPagamentos.salarioLiquido' }
+            }},
+            { $sort: { _id: 1 } }
+        ]);
+
+        res.json({ receita: receitaAnual, despesas: despesasAnuais });
 
     } catch (err) {
         console.error(err.message);
