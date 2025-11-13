@@ -399,6 +399,46 @@ router.put(
         estado: req.body['endereco.estado']
       };
 
+      // LÓGICA PARA ATUALIZAR SÓCIOS (SUBSTITUIÇÃO COMPLETA)
+      if (req.body.socios) {
+        empresa.socios = req.body.socios.map(socio => ({
+          nome: socio.nome,
+          cpf: socio.cpf,
+          rg: socio.rg,
+          data_nascimento: socio.data_nascimento,
+          is_admin: socio.is_admin,
+        }));
+      } else {
+        // Se nenhum sócio for enviado no formulário, remove todos.
+        empresa.socios = [];
+      }
+
+      // NOVA LÓGICA: Remover arquivos marcados para exclusão
+      const deletarArquivoSeMarcado = (campoMarcacao, docSubPath) => {
+        if (req.body[campoMarcacao] === 'true' && empresa.documentos[docSubPath]?.caminhoArquivo) {
+          const caminhoCompleto = path.join(__dirname, '..', empresa.documentos[docSubPath].caminhoArquivo);
+          if (fs.existsSync(caminhoCompleto)) {
+            fs.unlinkSync(caminhoCompleto);
+            console.log(`Arquivo removido: ${caminhoCompleto}`);
+          }
+          empresa.documentos[docSubPath] = undefined;
+        }
+      };
+
+      deletarArquivoSeMarcado('remover_arquivo_cnpj', 'cartaoCnpj');
+      deletarArquivoSeMarcado('remover_certificado_digital', 'certificadoDigital');
+      deletarArquivoSeMarcado('remover_alvara_arquivo', 'alvara');
+      deletarArquivoSeMarcado('remover_certidao_prefeitura_arquivo', 'certidaoPrefeitura');
+      deletarArquivoSeMarcado('remover_certidao_receita_arquivo', 'certidaoReceita');
+      deletarArquivoSeMarcado('remover_certidao_fgts_arquivo', 'certidaoFGTS');
+      // Adicionando os que faltavam
+      deletarArquivoSeMarcado('remover_certidao_sefaz_arquivo', 'certidaoSefaz');
+      deletarArquivoSeMarcado('remover_certidao_trabalhista_arquivo', 'certidaoTrabalhista');
+      deletarArquivoSeMarcado('remover_certidao_falencia_arquivo', 'certidaoFalencia');
+
+      // Lógica para remover contratos também seria necessária aqui, se aplicável.
+
+
       // A lógica de upload de novos arquivos e remoção de antigos na edição
       // exigiria um tratamento mais detalhado dos `req.files`.
 
