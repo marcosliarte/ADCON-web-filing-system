@@ -14,13 +14,14 @@ router.get('/geral', [auth, adminAuth], async (req, res) => {
     try {
         const totalClientes = await Empresa.countDocuments();
 
-        // Para as próximas métricas, precisaremos de um campo que indique se a empresa é um cliente ativo/pagante.
-        // Esta é uma lógica simplificada. O ideal seria ter um status na própria empresa.
-        const clientesComMensalidade = await Mensalidade.distinct('empresaId');
+        // Conta como "cliente pagante" qualquer empresa que já teve ao menos uma mensalidade com status "Pago".
+        const clientesPagantes = await Mensalidade.distinct('empresaId', {
+            status: 'Pago'
+        });
 
         res.json({
             totalClientes,
-            clientesAtivos: clientesComMensalidade.length,
+            clientesPagantes: clientesPagantes.length,
         });
 
     } catch (err) {

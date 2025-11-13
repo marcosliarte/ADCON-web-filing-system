@@ -50,6 +50,10 @@
     <div class="container">
         <h1>Relatórios Financeiros</h1>
 
+        <!-- NOVA SEÇÃO: Visão Geral -->
+        <h2>Visão Geral</h2>
+        <div id="generalSummary" class="summary" style="margin-bottom: 2rem;"></div>
+
         <!-- Filtros -->
         <div class="filters">
             <select id="reportType" onchange="toggleFilters()">
@@ -122,6 +126,7 @@
             } else {
                 document.body.style.display = 'block';
                 setupFilters();
+                gerarRelatorioGeral(); // Chama a nova função
                 toggleFilters();
             }
         });
@@ -156,6 +161,23 @@
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
+        }
+
+        async function gerarRelatorioGeral() {
+            const summaryContainer = document.getElementById('generalSummary');
+            summaryContainer.innerHTML = `<p>Carregando visão geral...</p>`;
+            try {
+                const response = await fetchWithAuth('/api/relatorios/geral');
+                if (!response.ok) throw new Error('Falha ao carregar visão geral.');
+                const data = await response.json();
+
+                summaryContainer.innerHTML = `
+                    <div class="summary-card"><h3>Empresas Cadastradas</h3><p>${data.totalClientes}</p></div>
+                    <div class="summary-card"><h3>Empresas Pagantes</h3><p>${data.clientesPagantes}</p></div>
+                `;
+            } catch (err) {
+                summaryContainer.innerHTML = `<p class="error">${err.message}</p>`;
+            }
         }
 
         async function gerarRelatorio() {
