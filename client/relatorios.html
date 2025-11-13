@@ -34,7 +34,14 @@
         th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
         th { background-color: #e9ecef; }
         .loading, .error { text-align: center; padding: 2rem; font-size: 1.2rem; font-style: italic; }
+        .success { text-align: center; padding: 1rem; font-size: 1.1rem; color: #28a745; background-color: #eaf7ec; border-radius: 5px; margin-bottom: 1rem; }
         .error { color: #dc3545; }
+        .form-section { background-color: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; }
+        .form-section h3 { margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        .btn-delete { background-color: #dc3545; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-delete:hover { background-color: #c82333; }
+        td.actions { text-align: center; }
+
     </style>
 </head>
 <body style="display: none;">
@@ -55,6 +62,29 @@
         <!-- NOVA SEÇÃO: Visão Geral -->
         <h2>Visão Geral</h2>
         <div id="generalSummary" class="summary" style="margin-bottom: 2rem;"></div>
+
+        <!-- NOVA SEÇÃO: Lançamentos Manuais -->
+        <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+            <!-- Formulário para Lançar Despesas -->
+            <div class="form-section" style="flex: 1;">
+                <h3>Lançar Despesa</h3>
+                <form id="formDespesa" onsubmit="lancarDespesa(event)">
+                    <input type="text" id="despesaDescricao" placeholder="Descrição (ex: Aluguel)" required style="width: calc(100% - 1.2rem); margin-bottom: 0.5rem;">
+                    <input type="number" id="despesaValor" placeholder="Valor (R$)" step="0.01" required style="width: calc(100% - 1.2rem); margin-bottom: 0.5rem;">
+                    <button type="submit">Lançar Despesa</button>
+                </form>
+            </div>
+            <!-- Formulário para Lançar Outras Receitas -->
+            <div class="form-section" style="flex: 1;">
+                <h3>Lançar Outra Receita</h3>
+                <form id="formReceita" onsubmit="lancarReceita(event)">
+                    <input type="text" id="receitaDescricao" placeholder="Descrição (ex: Venda de Ativo)" required style="width: calc(100% - 1.2rem); margin-bottom: 0.5rem;">
+                    <input type="number" id="receitaValor" placeholder="Valor (R$)" step="0.01" required style="width: calc(100% - 1.2rem); margin-bottom: 0.5rem;">
+                    <button type="submit">Lançar Receita</button>
+                </form>
+            </div>
+        </div>
+        <div id="lancamentoStatus" style="display: none; margin-bottom: 1rem;"></div>
 
         <!-- Filtros -->
         <div class="filters">
@@ -95,6 +125,22 @@
                 <h3>❌ Mensalidades Atrasadas</h3>
                 <table id="overdueTable">
                      <thead><tr><th>Empresa</th><th>CNPJ</th><th>Valor</th><th>Vencimento</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="otherRevenuesSection" style="margin-top: 2rem;">
+                <h3>📈 Outras Receitas Lançadas</h3>
+                <table id="otherRevenuesTable">
+                    <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="expensesSection" style="margin-top: 2rem;">
+                <h3>📉 Despesas Lançadas</h3>
+                <table id="expensesTable">
+                    <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -182,6 +228,69 @@
             }
         }
 
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('lancamentoStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = isError ? 'error' : 'success';
+            statusDiv.style.display = 'block';
+            setTimeout(() => { statusDiv.style.display = 'none'; }, 4000);
+        }
+
+        async function lancarDespesa(event) {
+            event.preventDefault();
+            const descricao = document.getElementById('despesaDescricao').value;
+            const valor = parseFloat(document.getElementById('despesaValor').value);
+
+            try {
+                const response = await fetchWithAuth('/api/relatorios/despesas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ descricao, valor, data: new Date() })
+                });
+                if (!response.ok) throw new Error('Falha ao lançar despesa.');
+                showStatus('Despesa lançada com sucesso!');
+                document.getElementById('formDespesa').reset();
+                gerarRelatorio(); // Atualiza o relatório
+            } catch (err) {
+                showStatus(err.message, true);
+            }
+        }
+
+        async function lancarReceita(event) {
+            event.preventDefault();
+            const descricao = document.getElementById('receitaDescricao').value;
+            const valor = parseFloat(document.getElementById('receitaValor').value);
+
+            try {
+                const response = await fetchWithAuth('/api/relatorios/receitas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ descricao, valor, data: new Date() }) });
+                if (!response.ok) throw new Error('Falha ao lançar receita.');
+                showStatus('Receita lançada com sucesso!');
+                document.getElementById('formReceita').reset();
+                gerarRelatorio(); // Atualiza o relatório
+            } catch (err) {
+                showStatus(err.message, true);
+            }
+        }
+
+        async function excluirLancamento(tipo, id) {
+            if (!confirm(`Tem certeza que deseja excluir este lançamento?`)) return;
+
+            const url = tipo === 'despesa' ? `/api/relatorios/despesas/${id}` : `/api/relatorios/receitas/${id}`;
+            
+            try {
+                const response = await fetchWithAuth(url, { method: 'DELETE' });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || `Falha ao excluir ${tipo}.`);
+                }
+                showStatus(`${tipo.charAt(0).toUpperCase() + tipo.slice(1)} excluída com sucesso!`);
+                gerarRelatorio(); // Atualiza a visualização
+            } catch (err) {
+                showStatus(err.message, true);
+            }
+
+        }
+
         async function gerarRelatorio() {
             showLoading(true);
             const reportType = document.getElementById('reportType').value;
@@ -215,7 +324,7 @@
 
             const summary = document.getElementById('monthlySummary');
             summary.innerHTML = `
-                <div class="summary-card"><h3>Receita Bruta</h3><p>${formatarMoeda(data.receita)}</p></div>
+                <div class="summary-card"><h3>Receita Total</h3><p>${formatarMoeda(data.receita)}</p></div>
                 <div class="summary-card despesa"><h3>Total Despesas</h3><p>${formatarMoeda(data.totalDespesas)}</p></div>
                 <div class="summary-card lucro"><h3>Lucro Líquido</h3><p>${formatarMoeda(data.lucroLiquido)}</p></div>
                 <div class="summary-card"><h3>Mensalidades Pagas</h3><p>${data.pagas.quantidade}</p></div>
@@ -226,6 +335,10 @@
             populateTable('paidTable', data.pagas.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataPagamento']);
             populateTable('pendingTable', data.pendentes.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataVencimento']);
             populateTable('overdueTable', data.atrasadas.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataVencimento']);
+            
+            // Popula as novas tabelas
+            populateTable('otherRevenuesTable', data.outrasReceitas || [], ['descricao', 'valor', 'data'], 'receita');
+            populateTable('expensesTable', data.despesasManuais || [], ['descricao', 'valor', 'data'], 'despesa');
         }
 
         function renderAnnualReport(data, ano) {
@@ -233,24 +346,32 @@
             document.getElementById('annualTitle').textContent = `Relatório Anual de ${ano}`;
             
             // CORREÇÃO: O backend agora envia um objeto { receita: [], despesas: [] }
-            const totalReceita = data.receita.reduce((acc, item) => acc + item.receitaTotal, 0);
-            const totalDespesa = data.despesas.reduce((acc, item) => acc + item.despesaTotal, 0);
+            const totalReceitaMensalidades = data.receitaMensalidades.reduce((acc, item) => acc + item.receitaTotal, 0);
+            const totalOutrasReceitas = data.outrasReceitas.reduce((acc, item) => acc + item.total, 0);
+            const totalDespesasFolha = data.despesasFolha.reduce((acc, item) => acc + item.despesaTotal, 0);
+            const totalDespesasManuais = data.despesasManuais.reduce((acc, item) => acc + item.total, 0);
+
+            const totalReceitaAno = totalReceitaMensalidades + totalOutrasReceitas;
+            const totalDespesaAno = totalDespesasFolha + totalDespesasManuais;
+
             document.getElementById('annualSummary').innerHTML = `
-                <div class="summary-card"><h3>Receita Total do Ano</h3><p>${formatarMoeda(totalReceita)}</p></div>
-                <div class="summary-card despesa"><h3>Despesa Total do Ano</h3><p>${formatarMoeda(totalDespesa)}</p></div>
-                <div class="summary-card lucro"><h3>Lucro Líquido do Ano</h3><p>${formatarMoeda(totalReceita - totalDespesa)}</p></div>
+                <div class="summary-card"><h3>Receita Total do Ano</h3><p>${formatarMoeda(totalReceitaAno)}</p></div>
+                <div class="summary-card despesa"><h3>Despesa Total do Ano</h3><p>${formatarMoeda(totalDespesaAno)}</p></div>
+                <div class="summary-card lucro"><h3>Lucro Líquido do Ano</h3><p>${formatarMoeda(totalReceitaAno - totalDespesaAno)}</p></div>
             `;
 
             const tableBody = document.getElementById('annualTableBody');
             tableBody.innerHTML = '';
             const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
             
-            const receitaData = new Map(data.receita.map(item => [item._id, item.receitaTotal]));
-            const despesaData = new Map(data.despesas.map(item => [item._id, item.despesaTotal]));
+            const receitaMensalidadesMap = new Map(data.receitaMensalidades.map(item => [item._id, item.receitaTotal]));
+            const outrasReceitasMap = new Map(data.outrasReceitas.map(item => [item._id, item.total]));
+            const despesasFolhaMap = new Map(data.despesasFolha.map(item => [item._id, item.despesaTotal]));
+            const despesasManuaisMap = new Map(data.despesasManuais.map(item => [item._id, item.total]));
 
             for (let i = 1; i <= 12; i++) {
-                const receita = receitaData.get(i) || 0;
-                const despesa = despesaData.get(i) || 0;
+                const receita = (receitaMensalidadesMap.get(i) || 0) + (outrasReceitasMap.get(i) || 0);
+                const despesa = (despesasFolhaMap.get(i) || 0) + (despesasManuaisMap.get(i) || 0);
                 const lucro = receita - despesa;
                 const row = tableBody.insertRow();
                 row.insertCell(0).textContent = meses[i - 1];
@@ -260,7 +381,7 @@
             }
         }
 
-        function populateTable(tableId, data, columns) {
+        function populateTable(tableId, data, columns, tipoLancamento = null) {
             const tableSection = document.getElementById(tableId).parentElement;
             const tbody = document.getElementById(tableId).querySelector('tbody');
             tbody.innerHTML = '';
@@ -283,6 +404,12 @@
                     }
                     row.insertCell().textContent = cellValue || 'N/A';
                 });
+
+                if (tipoLancamento) {
+                    const actionsCell = row.insertCell();
+                    actionsCell.className = 'actions';
+                    actionsCell.innerHTML = `<button class="btn-delete" onclick="excluirLancamento('${tipoLancamento}', '${item._id}')">Excluir</button>`;
+                }
             });
         }
 

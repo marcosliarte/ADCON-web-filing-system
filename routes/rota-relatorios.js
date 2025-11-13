@@ -8,6 +8,22 @@ const Empresa = require('../models/model-empresa');
 const Mensalidade = require('../models/model-mensalidade'); // CORREÇÃO: Aponta para o arquivo correto na pasta models
 const ConfiguracaoEmpresa = require('../models/model-configuracao'); // Importa o modelo de configuração
 
+// --- DEFINIÇÃO DOS SCHEMAS E MODELOS DIRETAMENTE NO ARQUIVO ---
+const DespesaSchema = new mongoose.Schema({
+    descricao: { type: String, required: true, trim: true },
+    valor: { type: Number, required: true },
+    data: { type: Date, default: Date.now }
+});
+
+const ReceitaSchema = new mongoose.Schema({
+    descricao: { type: String, required: true, trim: true },
+    valor: { type: Number, required: true },
+    data: { type: Date, default: Date.now }
+});
+
+const Despesa = mongoose.model('Despesa', DespesaSchema);
+const Receita = mongoose.model('Receita', ReceitaSchema);
+
 // @route   GET api/relatorios/geral
 // @desc    Obter um relatório geral (total de clientes, etc.)
 // @access  Private (Admin, Gerente)
@@ -31,6 +47,55 @@ router.get('/geral', [auth, adminAuth], async (req, res) => {
     }
 });
 
+// --- NOVAS ROTAS PARA LANÇAMENTOS (DENTRO DE /api/relatorios) ---
+
+// @route   POST api/relatorios/despesas
+// @desc    Lançar uma nova despesa
+router.post('/despesas', [auth, adminAuth], async (req, res) => {
+    try {
+        const { descricao, valor, data } = req.body;
+        if (!descricao || !valor) return res.status(400).json({ msg: 'Descrição e valor são obrigatórios.' });
+        const novaDespesa = new Despesa({ descricao, valor, data: data ? new Date(data) : new Date() });
+        await novaDespesa.save();
+        res.status(201).json(novaDespesa);
+    } catch (err) {
+        console.error('Erro ao salvar despesa:', err.message);
+        res.status(500).send('Erro no servidor ao salvar despesa.');
+    }
+});
+
+// @route   POST api/relatorios/receitas
+// @desc    Lançar uma nova receita
+router.post('/receitas', [auth, adminAuth], async (req, res) => {
+    try {
+        const { descricao, valor, data } = req.body;
+        if (!descricao || !valor) return res.status(400).json({ msg: 'Descrição e valor são obrigatórios.' });
+        const novaReceita = new Receita({ descricao, valor, data: data ? new Date(data) : new Date() });
+        await novaReceita.save();
+        res.status(201).json(novaReceita);
+    } catch (err) {
+        console.error('Erro ao salvar receita:', err.message);
+        res.status(500).send('Erro no servidor ao salvar receita.');
+    }
+});
+
+// @route   DELETE api/relatorios/despesas/:id
+// @desc    Excluir uma despesa
+router.delete('/despesas/:id', [auth, adminAuth], async (req, res) => {
+    try {
+        await Despesa.findByIdAndDelete(req.params.id);
+        res.json({ msg: 'Despesa excluída com sucesso.' });
+    } catch (err) { res.status(500).json({ msg: 'Erro no servidor.' }); }
+});
+
+// @route   DELETE api/relatorios/receitas/:id
+router.delete('/receitas/:id', [auth, adminAuth], async (req, res) => {
+    try {
+        await Receita.findByIdAndDelete(req.params.id);
+        res.json({ msg: 'Receita excluída com sucesso.' });
+    } catch (err) { res.status(500).json({ msg: 'Erro no servidor.' }); }
+});
+
 // @route   GET api/relatorios/mensal
 // @desc    Obter relatório financeiro de um mês/ano específico
 // @access  Private (Admin, Gerente)
@@ -42,6 +107,11 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
     }
 
     try {
+        const anoInt = parseInt(ano);
+        const mesInt = parseInt(mes);
+        const inicioMes = new Date(anoInt, mesInt - 1, 1);
+        const fimMes = new Date(anoInt, mesInt, 0, 23, 59, 59);
+
         // REESTRUTURAÇÃO COMPLETA DA LÓGICA
         // 1. Busca as mensalidades do período e já popula os dados da empresa.
         //    Usa .lean() para retornar objetos JS puros, o que é mais rápido e seguro.
@@ -72,31 +142,41 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
         const listaPendentes = formatarLista(pendentes);
         const listaAtrasadas = formatarLista(atrasadas);
 
-        const receitaBruta = pagas.reduce((acc, m) => acc + m.valor, 0);
+        const receitaMensalidades = pagas.reduce((acc, m) => acc + m.valor, 0);
+
+        // --- CÁLCULO DE OUTRAS RECEITAS E DESPESAS ---
+        const outrasReceitas = await Receita.find({ data: { $gte: inicioMes, $lte: fimMes } }).lean();
+        const despesasManuais = await Despesa.find({ data: { $gte: inicioMes, $lte: fimMes } }).lean();
+        const totalOutrasReceitas = outrasReceitas.reduce((acc, r) => acc + r.valor, 0);
+        const totalDespesasManuais = despesasManuais.reduce((acc, d) => acc + d.valor, 0);
 
         // --- CÁLCULO DE DESPESAS (FOLHA DE PAGAMENTO) ---
         const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' }).lean();
-        let totalDespesas = 0;
+        let despesasFolha = 0;
         if (config && config.funcionarios) {
             config.funcionarios.forEach(func => {
                 const pagamentoDoMes = (func.historicoPagamentos || []).find(p => p.ano == ano && p.mes == mes);
                 if (pagamentoDoMes) {
-                    totalDespesas += pagamentoDoMes.salarioLiquido;
+                    despesasFolha += pagamentoDoMes.salarioLiquido;
                 }
             });
         }
 
-        const lucroLiquido = receitaBruta - totalDespesas;
+        const receitaTotal = receitaMensalidades + totalOutrasReceitas;
+        const totalDespesas = despesasFolha + totalDespesasManuais;
+        const lucroLiquido = receitaTotal - totalDespesas;
 
         res.json({
             periodo: { ano, mes },
             totalMensalidades,
-            receita: receitaBruta,
+            receita: receitaTotal,
             totalDespesas,
             lucroLiquido,
             pagas: { quantidade: pagas.length, lista: listaPagas },
             pendentes: { quantidade: pendentes.length, lista: listaPendentes },
-            atrasadas: { quantidade: atrasadas.length, lista: listaAtrasadas }
+            atrasadas: { quantidade: atrasadas.length, lista: listaAtrasadas },
+            outrasReceitas: outrasReceitas, // Envia para o frontend
+            despesasManuais: despesasManuais // Envia para o frontend
         });
 
     } catch (err) {
@@ -125,6 +205,19 @@ router.get('/anual', [auth, adminAuth], async (req, res) => {
             { $sort: { _id: 1 } }
         ]);
 
+        // Agrega as despesas e receitas manuais
+        const outrasReceitasAnual = await Receita.aggregate([
+            { $match: { data: { $gte: new Date(parseInt(ano), 0, 1), $lt: new Date(parseInt(ano) + 1, 0, 1) } } },
+            { $group: { _id: { $month: '$data' }, total: { $sum: '$valor' } } },
+            { $sort: { _id: 1 } }
+        ]);
+
+        const despesasManuaisAnual = await Despesa.aggregate([
+            { $match: { data: { $gte: new Date(parseInt(ano), 0, 1), $lt: new Date(parseInt(ano) + 1, 0, 1) } } },
+            { $group: { _id: { $month: '$data' }, total: { $sum: '$valor' } } },
+            { $sort: { _id: 1 } }
+        ]);
+
         // Agrega as despesas anuais da folha de pagamento
         const despesasAnuais = await ConfiguracaoEmpresa.aggregate([
             { $match: { identificador: 'adcon_config' } },
@@ -138,7 +231,12 @@ router.get('/anual', [auth, adminAuth], async (req, res) => {
             { $sort: { _id: 1 } }
         ]);
 
-        res.json({ receita: receitaAnual, despesas: despesasAnuais });
+        res.json({
+            receitaMensalidades: receitaAnual,
+            outrasReceitas: outrasReceitasAnual,
+            despesasFolha: despesasAnuais,
+            despesasManuais: despesasManuaisAnual
+        });
 
     } catch (err) {
         console.error(err.message);
