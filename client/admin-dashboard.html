@@ -25,9 +25,16 @@
         .status-indicator { padding: 0.3rem 0.8rem; border-radius: 12px; color: white; font-size: 0.9rem; }
         .status-ok { background-color: #28a745; }
         .status-error { background-color: #dc3545; }
-        .quick-links { display: flex; gap: 1rem; margin-top: 1rem; }
+        .quick-links { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
         .quick-links a { background-color: #6c757d; color: white; text-decoration: none; padding: 0.6rem 1rem; border-radius: 5px; transition: background-color 0.2s; }
         .quick-links a:hover { background-color: #5a6268; }
+        .backup-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; }
+        .backup-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid #eee; }
+        .backup-item:last-child { border-bottom: none; }
+        .backup-actions button, .backup-actions a button { font-size: 0.8rem; padding: 0.3rem 0.6rem; margin-left: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .backup-actions .btn-download { background-color: #17a2b8; color: white; }
+        .backup-actions .btn-restore { background-color: #ffc107; color: #212529; }
+        .backup-actions .btn-delete { background-color: #dc3545; color: white; }
     </style>
 </head>
 <body style="display: none;">
@@ -65,6 +72,16 @@
                     <a href="configuracao-empresa.html">Configurações Gerais</a>
                 </div>
             </div>
+
+            <!-- Widget de Backup -->
+            <div class="widget">
+                <h3>Backup e Restauração</h3>
+                <button onclick="criarBackup()">Criar Backup Agora</button>
+                <div id="backup-status" style="margin-top: 1rem;"></div>
+                <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Backups Disponíveis:</h4>
+                <ul id="backup-list" class="backup-list">
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -86,6 +103,7 @@
             document.body.style.display = 'block';
             loadSystemStatus();
             loadAlerts();
+            loadBackups();
         });
 
         async function loadSystemStatus() {
@@ -137,16 +155,94 @@
                 widget.innerHTML = `<p style="color: red;">${error.message}</p>`;
             }
         }
+
+        // --- FUNÇÕES DE BACKUP ---
+
+        async function loadBackups() {
+            const list = document.getElementById('backup-list');
+            list.innerHTML = '<li>Carregando...</li>';
+            try {
+                const response = await fetchWithAuth('/api/admin/backup/list');
+                if (!response.ok) throw new Error('Falha ao listar backups.');
+                const backups = await response.json();
+
+                if (backups.length === 0) {
+                    list.innerHTML = '<li>Nenhum backup encontrado.</li>';
+                    return;
+                }
+
+                list.innerHTML = '';
+                backups.forEach(backup => {
+                    const item = document.createElement('li');
+                    item.className = 'backup-item';
+                    item.innerHTML = `
+                        <div>
+                            <strong>${backup.filename}</strong><br>
+                            <small>${new Date(backup.createdAt).toLocaleString('pt-BR')} - ${backup.size} MB</small>
+                        </div>
+                        <div class="backup-actions">
+                            <a href="/api/admin/backup/download/${backup.filename}" download><button class="btn-download">Baixar</button></a>
+                            <button class="btn-restore" onclick="restaurarBackup('${backup.filename}')">Restaurar</button>
+                            <button class="btn-delete" onclick="excluirBackup('${backup.filename}')">Excluir</button>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch (error) {
+                list.innerHTML = `<li style="color: red;">${error.message}</li>`;
+            }
+        }
+
+        async function criarBackup() {
+            const statusDiv = document.getElementById('backup-status');
+            statusDiv.innerHTML = '<p>Criando backup, por favor aguarde...</p>';
+            try {
+                const response = await fetchWithAuth('/api/admin/backup/create', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.msg || 'Falha ao iniciar o backup.');
+
+                statusDiv.innerHTML = `<p style="color: green;">${result.msg}</p>`;
+                loadBackups(); // Atualiza a lista
+            } catch (error) {
+                statusDiv.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            }
+        }
+
+        async function restaurarBackup(filename) {
+            const confirmacao = prompt(`AÇÃO PERIGOSA!\n\nVocê está prestes a substituir TODOS os dados atuais do sistema pelos dados do backup "${filename}".\n\nPara confirmar, digite "RESTAURAR" no campo abaixo:`);
+            if (confirmacao !== 'RESTAURAR') {
+                alert('Restauração cancelada.');
+                return;
+            }
+
+            const statusDiv = document.getElementById('backup-status');
+            statusDiv.innerHTML = '<p>Restaurando banco de dados... O sistema pode ficar instável por alguns instantes.</p>';
+            try {
+                const response = await fetchWithAuth('/api/admin/backup/restore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.msg || 'Falha ao restaurar.');
+
+                alert(result.msg); // Alerta de sucesso
+                window.location.reload(); // Recarrega a página para refletir os dados restaurados
+            } catch (error) {
+                statusDiv.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            }
+        }
+
+        async function excluirBackup(filename) {
+            if (!confirm(`Tem certeza que deseja excluir o arquivo de backup "${filename}" permanentemente?`)) return;
+            try {
+                const response = await fetchWithAuth(`/api/admin/backup/delete/${filename}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Falha ao excluir o backup.');
+                loadBackups(); // Atualiza a lista
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+            }
+        }
     </script>
 </body>
 </html>
-
-```
-
-### 4. Atualização do Painel Principal (`client/home.html`)
-
-Por fim, atualizei o card da "Central do Admin" para direcionar ao novo dashboard, que agora centraliza as outras ações.
-
-```diff
---- a/c/Users/Marcos/Documents/sistema/ADCON-web-filing-system/client/home.html
-+++ b/c/Users/Marcos/Documents/sistema/ADCON-web-filing-system/client/home.html
