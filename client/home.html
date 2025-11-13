@@ -483,10 +483,8 @@
                         document.getElementById('card-ver-relatorios').style.display = 'flex';
                         document.getElementById('card-config-empresa').style.display = 'flex'; // Mostra o novo cartão
                     }
-                    // Mostra o link de cadastro para Admin e Funcionário
-                    if (usuario.role === 'admin' || usuario.role === 'funcionario') {
-                        document.getElementById('card-cadastrar-empresa').style.display = 'flex';
-                    }
+                    // CORREÇÃO DEFINITIVA: Remove a restrição. O card de cadastro agora aparece para TODOS os perfis.
+                    document.getElementById('card-cadastrar-empresa').style.display = 'flex';
                 }
             } catch (error) {
                 console.error('Erro ao carregar dados do usuário:', error);

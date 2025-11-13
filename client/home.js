@@ -1,11 +1,15 @@
 let usuario;
 
+// Função para carregar os dados do usuário e atualizar a UI
 async function getUsuario() {
     try {
         const response = await fetchWithAuth('/api/auth');
         if (response) {
             usuario = await response.json();
-            createHeader('header-placeholder', usuario);
+            // Cria o cabeçalho usando a função de shared.js
+            createHeader('header-placeholder', usuario); 
+
+            // Popula os dados do usuário na sidebar
             document.getElementById('user-name').textContent = usuario.nome;
             document.getElementById('user-email').textContent = usuario.email;
             document.getElementById('user-role').textContent = usuario.role.charAt(0).toUpperCase() + usuario.role.slice(1);
@@ -14,11 +18,32 @@ async function getUsuario() {
             if (usuario.fotoPerfilUrl && usuario.fotoPerfilUrl !== 'assets/profile-icon.svg') {
                 document.getElementById('deletePicIcon').style.display = 'inline-block';
             }
-            if (usuario.role === 'admin') {
-                document.getElementById('admin-links').style.display = 'block';
+
+            // --- LÓGICA DE PERMISSÕES CENTRALIZADA ---
+            const userRole = usuario.role;
+            const getCard = (id) => document.getElementById(id);
+
+            // Funcionalidades para Admin e Gerente
+            if (userRole === 'admin' || userRole === 'gerente') {
+                if (getCard('card-gerenciar-mensalidades')) getCard('card-gerenciar-mensalidades').style.display = 'flex';
+                if (getCard('card-ver-relatorios')) getCard('card-ver-relatorios').style.display = 'flex';
+                if (getCard('card-config-empresa')) getCard('card-config-empresa').style.display = 'flex';
+                if (getCard('card-gerenciar-funcionarios')) getCard('card-gerenciar-funcionarios').style.display = 'flex';
+                
+                // Gerenciar Usuários é visível para Admin e Gerente
+                const adminLinks = getCard('admin-links');
+                if (adminLinks) adminLinks.style.display = 'block';
             }
-            if (usuario.role === 'admin' || usuario.role === 'funcionario') {
-                document.getElementById('cadastrar-empresa-link').style.display = 'block';
+
+            // CORREÇÃO: O card "Cadastrar Empresa" agora é visível para Admin, Gerente e Funcionário.
+            if (userRole === 'admin' || userRole === 'gerente' || userRole === 'funcionario') {
+                if (getCard('card-cadastrar-empresa')) getCard('card-cadastrar-empresa').style.display = 'flex';
+            }
+
+            // Funcionalidades apenas para Admin
+            if (userRole === 'admin') {
+                // Se houver alguma funcionalidade exclusiva do admin no futuro,
+                // ela será adicionada aqui.
             }
         }
     } catch (error) {
@@ -28,6 +53,7 @@ async function getUsuario() {
     }
 }
 
+// Funções de manipulação de foto de perfil
 document.getElementById('profilePicInput').addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (file) {
@@ -98,6 +124,7 @@ async function deleteProfilePic() {
     }
 }
 
+// Funções de alteração de senha e email
 document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const senhaAtual = document.getElementById('senhaAtual').value;
@@ -136,6 +163,7 @@ document.getElementById('changePasswordForm').addEventListener('submit', async f
     }
 });
 
+// Funções de alteração de email
 document.getElementById('changeEmailForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const novoEmail = document.getElementById('novoEmail').value;
@@ -175,7 +203,7 @@ document.getElementById('changeEmailForm').addEventListener('submit', async func
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await getUsuario();
+    await initializeHome(); // Chama a função initializeHome ao carregar o DOM
 
     document.getElementById('editPicIcon').addEventListener('click', () => document.getElementById('profilePicInput').click());
     document.getElementById('savePicIcon').addEventListener('click', saveProfilePic);

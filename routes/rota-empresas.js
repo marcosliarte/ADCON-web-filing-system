@@ -92,12 +92,6 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    // Verificar permissão
-    const usuarioLogado = await Usuario.findById(req.usuario.id);
-    if (!usuarioLogado || !['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
-      return res.status(403).json({ msg: 'Acesso negado. Você não tem permissão para cadastrar empresas.' });
-    }
-
     const { cnpj } = req.body;
 
     try {
