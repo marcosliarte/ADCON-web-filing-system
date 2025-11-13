@@ -162,12 +162,14 @@
         const cellAcoes = row.insertCell(2);
         cellAcoes.className = 'actions';
         cellAcoes.style.whiteSpace = 'nowrap';
-        let acoesHtml = `<button onclick="visualizarEmpresa('${empresa._id}')">Visualizar</button>`; // Botão de visualizar para todos
-        if (usuario.role === 'admin' || usuario.role === 'funcionario') {
-          acoesHtml += `<button onclick="editarEmpresa('${empresa._id}')">Editar</button>`; // Botão de editar para admin e funcionário
-        }
-        if (usuario.role === 'admin') {
-          acoesHtml += `<button class="delete-btn" onclick="confirmarExclusao('${empresa._id}')">Excluir</button>`; // Botão de excluir apenas para admin
+        let acoesHtml = `<button onclick="visualizarEmpresa('${empresa._id}')">Visualizar</button> `; // Botão de visualizar para todos
+
+        // CORREÇÃO: Lógica de permissões para os botões de ação.
+        // Gerente e Funcionário podem editar.
+        if (['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
+          acoesHtml += `<button onclick="editarEmpresa('${empresa._id}')">Editar</button> `;
+          // Gerente e Funcionário também podem excluir.
+          acoesHtml += `<button class="delete-btn" onclick="confirmarExclusao('${empresa._id}')">Excluir</button>`;
         }
         cellAcoes.innerHTML = acoesHtml;
       });

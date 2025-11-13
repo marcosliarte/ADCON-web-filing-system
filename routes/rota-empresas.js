@@ -274,20 +274,12 @@ router.get('/:id', auth, async (req, res) => {
 
 // @route   DELETE api/empresa/:id
 // @desc    Excluir uma empresa
-// @access  Private (Apenas Admin)
+// @access  Private (Admin, Gerente, Funcionário)
 router.delete('/:id', auth, async (req, res) => {
   try {
     const usuarioLogado = await Usuario.findById(req.usuario.id);
-    if (!usuarioLogado || usuarioLogado.role !== 'admin') {
-      // Funcionários também não podem excluir, apenas admins
-      if (usuarioLogado.role === 'funcionario') {
-        return res.status(403).json({ msg: 'Acesso negado. Apenas administradores podem excluir empresas.' });
-      }
-      // Empresários não podem excluir
-      if (usuarioLogado.role === 'empresario') {
-        return res.status(403).json({ msg: 'Acesso negado. Empresários não podem excluir empresas.' });
-      }
-      return res.status(403).json({ msg: 'Acesso negado. Apenas administradores podem excluir empresas.' });
+    if (!['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
+      return res.status(403).json({ msg: 'Acesso negado. Você não tem permissão para excluir empresas.' });
     }
 
     const empresa = await Empresa.findById(req.params.id);
