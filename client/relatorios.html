@@ -2,10 +2,10 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>ADCON - Relatórios</title>
+    <title>ADCON - Relatórios Financeiros</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
+        /* Estilos do cabeçalho (copiados de home.html para consistência) */
         .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
         .header h1 { margin: 0; font-size: 1.5rem; }
         .dropdown { position: relative; display: inline-block; }
@@ -14,191 +14,241 @@
         .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
         .dropdown-content a:hover { background-color: #f1f1f1; }
         .show { display: block; }
-        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+
+        /* Estilos da página */
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 1200px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
         h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-        .card { background-color: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1.5rem; }
-        .filter-card { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
-        .filter-card select, .filter-card button { padding: 0.7rem; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
-        button { background-color: #007bff; color: white; border: none; cursor: pointer; transition: background-color 0.2s; }
+        .filters { display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; }
+        .filters select, .filters input, .filters button { padding: 0.6rem; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem; }
+        button { background-color: #007bff; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 5px; cursor: pointer; transition: background-color 0.2s ease; }
         button:hover { background-color: #0056b3; }
-        .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
-        .metric-card { text-align: center; padding: 1.5rem; border-radius: 8px; background-color: #f8f9fa; border-left: 5px solid; }
-        .metric-card.receita { border-color: #28a745; }
-        .metric-card.pagas { border-color: #17a2b8; }
-        .metric-card.pendentes { border-color: #ffc107; }
-        .metric-card.atrasadas { border-color: #dc3545; }
-        .metric-card .value { font-size: 2.5rem; font-weight: bold; display: block; margin-bottom: 0.5rem; }
-        .metric-card .label { font-size: 1rem; color: #555; }
-        .details-section h3 { color: #495057; border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; margin-top: 2rem; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        th, td { padding: 0.8rem; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
-        #loading { text-align: center; font-size: 1.2rem; padding: 2rem; display: none; }
+        .report-section { display: none; margin-top: 2rem; }
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .summary-card { background-color: #f8f9fa; padding: 1.5rem; border-radius: 8px; text-align: center; border-left: 5px solid #007bff; }
+        .summary-card h3 { margin-top: 0; color: #555; font-size: 1rem; }
+        .summary-card p { font-size: 1.8rem; font-weight: bold; color: #007bff; margin: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #e9ecef; }
+        .loading, .error { text-align: center; padding: 2rem; font-size: 1.2rem; font-style: italic; }
+        .error { color: #dc3545; }
     </style>
 </head>
 <body style="display: none;">
+    <!-- Script de bloqueio de acesso -->
+    <script>
+        if (localStorage.getItem('token')) {
+            document.body.style.display = 'block';
+        } else {
+            window.location.replace('login.html');
+        }
+    </script>
 
     <div id="header-placeholder"></div>
 
     <div class="container">
-        <h1>Relatórios</h1>
+        <h1>Relatórios Financeiros</h1>
 
-        <!-- Relatório Geral de Clientes -->
-        <div class="card">
-            <h2>Visão Geral dos Clientes</h2>
-            <div class="report-grid" id="geral-metrics">
-                <p>Carregando...</p>
+        <!-- Filtros -->
+        <div class="filters">
+            <select id="reportType" onchange="toggleFilters()">
+                <option value="mensal">Relatório Mensal</option>
+                <option value="anual">Relatório Anual</option>
+            </select>
+            <select id="mes" name="mes"></select>
+            <input type="number" id="ano" name="ano" placeholder="Ano">
+            <button onclick="gerarRelatorio()">Gerar Relatório</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">Carregando...</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <!-- Seção do Relatório Mensal -->
+        <div id="monthlyReport" class="report-section">
+            <h2 id="monthlyTitle"></h2>
+            <div id="monthlySummary" class="summary"></div>
+            
+            <div id="paidSection">
+                <h3>✅ Mensalidades Pagas</h3>
+                <table id="paidTable">
+                    <thead><tr><th>Empresa</th><th>CNPJ</th><th>Valor Pago</th><th>Data Pagamento</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <div id="pendingSection">
+                <h3>⏳ Mensalidades Pendentes</h3>
+                <table id="pendingTable">
+                    <thead><tr><th>Empresa</th><th>CNPJ</th><th>Valor</th><th>Vencimento</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="overdueSection">
+                <h3>❌ Mensalidades Atrasadas</h3>
+                <table id="overdueTable">
+                     <thead><tr><th>Empresa</th><th>CNPJ</th><th>Valor</th><th>Vencimento</th></tr></thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
 
-        <!-- Relatório Mensal -->
-        <div class="card">
-            <h2>Relatório Mensal de Mensalidades</h2>
-            <div class="filter-card">
-                <select id="select-ano"></select>
-                <select id="select-mes"></select>
-                <button onclick="gerarRelatorioMensal()">Gerar Relatório</button>
-            </div>
-
-            <div id="loading">Carregando...</div>
-
-            <div id="relatorio-mensal-content" style="display: none;">
-                <div class="report-grid" id="mensal-metrics" style="margin-top: 2rem;"></div>
-                <div class="details-section" id="mensal-details"></div>
-            </div>
+        <!-- Seção do Relatório Anual -->
+        <div id="annualReport" class="report-section">
+            <h2 id="annualTitle"></h2>
+            <div id="annualSummary" class="summary"></div>
+            <table>
+                <thead><tr><th>Mês</th><th>Receita Total</th></tr></thead>
+                <tbody id="annualTableBody"></tbody>
+            </table>
         </div>
     </div>
 
     <script src="shared.js"></script>
     <script>
+        let currentUser;
+
         document.addEventListener('DOMContentLoaded', async () => {
             const userResponse = await fetchWithAuth('/api/auth');
             if (!userResponse) return;
 
-            const usuario = await userResponse.json();
-            createHeader('header-placeholder', usuario);
+            currentUser = await userResponse.json();
+            createHeader('header-placeholder', currentUser);
 
-            if (!['admin', 'gerente'].includes(usuario.role)) {
+            if (!['admin', 'gerente'].includes(currentUser.role)) {
                 alert('Acesso negado. Apenas administradores e gerentes podem ver os relatórios.');
-                window.location.href = 'home.html';
-                return;
+                document.querySelector('.container').innerHTML = '<h1>Acesso Negado</h1><p>Você não tem permissão para visualizar esta página.</p>';
+            } else {
+                document.body.style.display = 'block';
+                setupFilters();
+                toggleFilters();
             }
-
-            document.body.style.display = 'block';
-            popularFiltros();
-            gerarRelatorioGeral();
         });
 
-        function popularFiltros() {
-            const anoSelect = document.getElementById('select-ano');
-            const mesSelect = document.getElementById('select-mes');
+        function setupFilters() {
+            const mesSelect = document.getElementById('mes');
+            const anoInput = document.getElementById('ano');
             const anoAtual = new Date().getFullYear();
-
-            for (let i = anoAtual; i >= anoAtual - 5; i--) {
-                anoSelect.innerHTML += `<option value="${i}">${i}</option>`;
-            }
+            anoInput.value = anoAtual;
 
             const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
             meses.forEach((mes, index) => {
-                mesSelect.innerHTML += `<option value="${index + 1}">${mes}</option>`;
+                mesSelect.options.add(new Option(mes, index + 1));
             });
 
             mesSelect.value = new Date().getMonth() + 1;
         }
 
-        async function gerarRelatorioGeral() {
-            const container = document.getElementById('geral-metrics');
-            try {
-                const response = await fetchWithAuth('/api/relatorios/geral');
-                const data = await response.json();
-
-                container.innerHTML = `
-                    <div class="metric-card pagas"><span class="value">${data.totalClientes}</span><span class="label">Total de Clientes Cadastrados</span></div>
-                    <div class="metric-card receita"><span class="value">${data.clientesAtivos}</span><span class="label">Clientes Ativos (com mensalidade)</span></div>
-                `;
-            } catch (error) {
-                container.innerHTML = `<p style="color: red;">Erro ao carregar relatório geral.</p>`;
-            }
+        function toggleFilters() {
+            const reportType = document.getElementById('reportType').value;
+            document.getElementById('mes').style.display = reportType === 'mensal' ? 'inline-block' : 'none';
         }
 
-        async function gerarRelatorioMensal() {
-            const ano = document.getElementById('select-ano').value;
-            const mes = document.getElementById('select-mes').value;
-            const loading = document.getElementById('loading');
-            const content = document.getElementById('relatorio-mensal-content');
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('monthlyReport').style.display = 'none';
+            document.getElementById('annualReport').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+        }
 
-            loading.style.display = 'block';
-            content.style.display = 'none';
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        async function gerarRelatorio() {
+            showLoading(true);
+            const reportType = document.getElementById('reportType').value;
+            const ano = document.getElementById('ano').value;
 
             try {
-                const response = await fetchWithAuth(`/api/relatorios/mensal?ano=${ano}&mes=${mes}`);
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.msg || 'Erro desconhecido ao gerar relatório.');
+                if (reportType === 'mensal') {
+                    const mes = document.getElementById('mes').value;
+                    if (!mes || !ano) throw new Error("Mês e Ano são obrigatórios para o relatório mensal.");
+                    const response = await fetchWithAuth(`/api/relatorios/mensal?mes=${mes}&ano=${ano}`);
+                    if (!response.ok) throw new Error((await response.json()).msg || 'Erro ao buscar relatório mensal.');
+                    const data = await response.json();
+                    renderMonthlyReport(data);
+                } else { // anual
+                    if (!ano) throw new Error("O Ano é obrigatório para o relatório anual.");
+                    const response = await fetchWithAuth(`/api/relatorios/anual?ano=${ano}`);
+                    if (!response.ok) throw new Error((await response.json()).msg || 'Erro ao buscar relatório anual.');
+                    const data = await response.json();
+                    renderAnnualReport(data, ano);
                 }
-
-                // Métricas principais
-                document.getElementById('mensal-metrics').innerHTML = `
-                    <div class="metric-card receita"><span class="value">${formatarMoeda(data.receita || 0)}</span><span class="label">Receita do Mês</span></div>
-                    <div class="metric-card pagas"><span class="value">${data.pagas.quantidade} / ${data.totalMensalidades}</span><span class="label">Pagas</span></div>
-                    <div class="metric-card pendentes"><span class="value">${data.pendentes.quantidade}</span><span class="label">Pendentes</span></div>
-                    <div class="metric-card atrasadas"><span class="value">${data.atrasadas.quantidade}</span><span class="label">Atrasadas</span></div>
-                `;
-
-                // Detalhes em tabelas
-                let detailsHtml = '';
-                detailsHtml += criarTabela('❌ Clientes com Pagamento Atrasado', data.atrasadas.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataVencimento']);
-                detailsHtml += criarTabela('⏳ Clientes com Pagamento Pendente', data.pendentes.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataVencimento']);
-                detailsHtml += criarTabela('✅ Clientes com Pagamento em Dia', data.pagas.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataPagamento']);
-
-                document.getElementById('mensal-details').innerHTML = detailsHtml;
-
-                content.style.display = 'block';
-            } catch (error) {
-                console.error(error);
-                // Exibe o erro de forma clara para o usuário
-                const contentDiv = document.getElementById('relatorio-mensal-content');
-                contentDiv.style.display = 'block';
-                contentDiv.innerHTML = `<p style="color: red; text-align: center; padding: 2rem;"><b>Erro ao gerar relatório:</b> ${error.message}</p>`;
+            } catch (err) {
+                showError(err.message);
             } finally {
                 loading.style.display = 'none';
             }
         }
 
-        function criarTabela(titulo, itens, colunas) {
-            if (!itens || itens.length === 0) return '';
+        function renderMonthlyReport(data) {
+            document.getElementById('monthlyReport').style.display = 'block';
+            document.getElementById('monthlyTitle').textContent = `Relatório de ${document.getElementById('mes').options[document.getElementById('mes').selectedIndex].text} de ${data.periodo.ano}`;
 
-            const isPago = titulo.includes('em Dia');
-            const headerVencimento = isPago ? 'Data Pagamento' : 'Vencimento';
-            const dataKey = isPago ? 'dataPagamento' : 'dataVencimento';
-
-            let rows = '';
-            itens.forEach(item => {
-                rows += `
-                    <tr>
-                        <td>${item.empresa.nome}</td>
-                        <td>${formatarCNPJ(item.empresa.cnpj)}</td>
-                        <td>${formatarMoeda(item.valor)}</td>
-                        <td>${formatarData(item[dataKey])}</td>
-                    </tr>
-                `;
-            });
-
-            return `
-                <h3>${titulo}</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Empresa</th>
-                            <th>CNPJ</th>
-                            <th>Valor</th>
-                            <th>${headerVencimento}</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
+            const summary = document.getElementById('monthlySummary');
+            summary.innerHTML = `
+                <div class="summary-card"><h3>Receita Realizada</h3><p>${formatarMoeda(data.receita)}</p></div>
+                <div class="summary-card"><h3>Mensalidades Pagas</h3><p>${data.pagas.quantidade}</p></div>
+                <div class="summary-card"><h3>Pendentes</h3><p>${data.pendentes.quantidade}</p></div>
+                <div class="summary-card"><h3>Atrasadas</h3><p>${data.atrasadas.quantidade}</p></div>
             `;
+
+            populateTable('paidTable', data.pagas.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataPagamento']);
+            populateTable('pendingTable', data.pendentes.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataVencimento']);
+            populateTable('overdueTable', data.atrasadas.lista, ['empresa.nome', 'empresa.cnpj', 'valor', 'dataVencimento']);
+        }
+
+        function renderAnnualReport(data, ano) {
+            document.getElementById('annualReport').style.display = 'block';
+            document.getElementById('annualTitle').textContent = `Relatório Anual de ${ano}`;
+            
+            const totalReceita = data.reduce((acc, item) => acc + item.receitaTotal, 0);
+            document.getElementById('annualSummary').innerHTML = `
+                <div class="summary-card"><h3>Receita Total do Ano</h3><p>${formatarMoeda(totalReceita)}</p></div>
+            `;
+
+            const tableBody = document.getElementById('annualTableBody');
+            tableBody.innerHTML = '';
+            const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+            
+            const monthlyData = new Map(data.map(item => [item._id, item.receitaTotal]));
+
+            for (let i = 1; i <= 12; i++) {
+                const receita = monthlyData.get(i) || 0;
+                const row = tableBody.insertRow();
+                row.insertCell(0).textContent = meses[i - 1];
+                row.insertCell(1).textContent = formatarMoeda(receita);
+            }
+        }
+
+        function populateTable(tableId, data, columns) {
+            const tableSection = document.getElementById(tableId).parentElement;
+            const tbody = document.getElementById(tableId).querySelector('tbody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tableSection.style.display = 'none';
+                return;
+            }
+            tableSection.style.display = 'block';
+
+            data.forEach(item => {
+                const row = tbody.insertRow();
+                columns.forEach(col => {
+                    let cellValue = col.split('.').reduce((o, i) => o ? o[i] : '', item);
+                    if (col.includes('data')) {
+                        cellValue = cellValue ? formatarData(cellValue) : 'N/A';
+                    }
+                    if (typeof cellValue === 'number') {
+                        cellValue = formatarMoeda(cellValue);
+                    }
+                    row.insertCell().textContent = cellValue || 'N/A';
+                });
+            });
         }
 
         // Funções de formatação (adicione ao seu shared.js se preferir)
@@ -207,13 +257,11 @@
         }
 
         function formatarCNPJ(cnpj) {
-            if (!cnpj) return '';
-            return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+            return cnpj ? cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : '';
         }
 
         function formatarData(dataISO) {
-            if (!dataISO) return '';
-            return new Date(dataISO).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+            return dataISO ? new Date(dataISO).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '';
         }
     </script>
 </body>

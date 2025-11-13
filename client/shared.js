@@ -48,6 +48,11 @@ function createHeader(placeholderId, usuario) {
 
     const nomeAbreviado = usuario ? `Olá, ${usuario.nome.split(' ')[0]}!` : '';
 
+    // Adiciona o link de Relatórios apenas para admin ou gerente
+    const relatoriosLink = (usuario && ['admin', 'gerente'].includes(usuario.role))
+        ? `<a href="relatorios.html"><span>📊</span> Relatórios</a>`
+        : '';
+
     placeholder.innerHTML = `
         <div class="header">
             <h1><a href="home.html" style="color: white; text-decoration: none;">ADCON - Painel</a></h1>
@@ -58,6 +63,7 @@ function createHeader(placeholderId, usuario) {
                 </button>
                 <div id="userMenu" class="dropdown-content">
                     <a href="home.html"><span>🏠</span> Início</a>
+                    ${relatoriosLink}
                     <hr style="margin: 0;">
                     <a href="#" onclick="logout()"><span>⏻</span> Sair</a>
                 </div>

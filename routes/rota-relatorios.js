@@ -87,4 +87,32 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
     }
 });
 
+// @route   GET api/relatorios/anual
+// @desc    Obter relatório financeiro anual (receita por mês)
+// @access  Private (Admin, Gerente)
+router.get('/anual', [auth, adminAuth], async (req, res) => {
+    const { ano } = req.query;
+
+    if (!ano) {
+        return res.status(400).json({ msg: 'O ano é obrigatório.' });
+    }
+
+    try {
+        const receitaAnual = await Mensalidade.aggregate([
+            // 1. Filtrar mensalidades pagas do ano especificado
+            { $match: { ano: parseInt(ano), status: 'Pago' } },
+            // 2. Agrupar por mês e somar os valores
+            { $group: { _id: '$mes', receitaTotal: { $sum: '$valor' } } },
+            // 3. Ordenar pelo mês
+            { $sort: { _id: 1 } }
+        ]);
+
+        res.json(receitaAnual);
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor ao gerar relatório anual' });
+    }
+});
+
 module.exports = router;
