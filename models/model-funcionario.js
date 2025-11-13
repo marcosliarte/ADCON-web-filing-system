@@ -26,19 +26,10 @@ const DescontoSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    mesInicio: { // Mês de início da aplicação do desconto (1-12)
-        type: Number,
-        min: 1,
-        max: 12
-    },
-    anoInicio: { // Ano de início da aplicação do desconto
-        type: Number
-    },
-    mesesDuracao: { // Quantidade de meses que o desconto será aplicado (-1 para indefinido/permanente)
-        type: Number,
-        default: -1 // -1 significa que o desconto é permanente
-    }
-}, { _id: false }); // _id: false para não criar IDs para cada desconto individualmente
+    mesInicio: { type: Number, min: 1, max: 12 },
+    anoInicio: { type: Number },
+    mesesDuracao: { type: Number, default: -1 }
+}, { _id: false });
 
 // Schema principal do Funcionário
 const FuncionarioSchema = new mongoose.Schema({
@@ -56,8 +47,8 @@ const FuncionarioSchema = new mongoose.Schema({
         type: Number,
         required: [true, 'O salário bruto é obrigatório.']
     },
-    descontos: [DescontoSchema], // Array de descontos fixos
-    historicoPagamentos: [PagamentoSchema] // Novo campo para o histórico
+    descontos: [DescontoSchema],
+    historicoPagamentos: [PagamentoSchema]
 });
 
 module.exports = mongoose.model('Funcionario', FuncionarioSchema);

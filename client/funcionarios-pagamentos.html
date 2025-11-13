@@ -13,37 +13,30 @@
     <div class="container">
         <h2>Gestão de Funcionários</h2>
 
-        <!-- Formulário de Cadastro -->
+        <!-- Formulário de Cadastro/Edição -->
         <div class="card">
             <h3>Cadastrar Novo Funcionário</h3>
             <form id="form-novo-funcionario">
-                <input type="hidden" id="funcionarioId" name="funcionarioId">
-                <div class="form-group">
-                    <label for="nome">Nome Completo:</label>
-                    <input type="text" id="nome" name="nome" required>
-                </div>
-                <div class="form-group">
-                    <label for="cargo">Cargo:</label>
-                    <input type="text" id="cargo" name="cargo" required>
-                </div>
-                <div class="form-group">
-                    <label for="salarioBruto">Salário Bruto (R$):</label>
-                    <input type="number" id="salarioBruto" name="salarioBruto" step="0.01" required>
-                </div>
-
-                <!-- Seção de Descontos Dinâmicos -->
-                <div class="form-group-full">
-                    <label>Descontos Mensais Fixos:</label>
-                    <div id="descontos-container">
-                    <!-- Exemplo de desconto inicial (opcional, pode ser removido se preferir começar vazio) -->
-                    <!-- <div class="desconto-item">
-                        <input type="text" name="desconto-descricao" placeholder="Descrição (ex: Vale Transporte)" required><input type="number" name="desconto-valor" placeholder="Valor (R$)" step="0.01" required><input type="number" name="desconto-mes-inicio" placeholder="Mês Início (opc)" min="1" max="12"><input type="number" name="desconto-ano-inicio" placeholder="Ano Início (opc)"><input type="number" name="desconto-duracao" placeholder="Duração (meses, -1 p/ sempre)" min="-1"><button type="button" class="btn-remover btn-sm">Remover</button>
-                    </div> -->
-                        <!-- Campos de desconto serão adicionados aqui via JS -->
+                <input type="hidden" id="funcionarioId">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="nome">Nome Completo:</label>
+                        <input type="text" id="nome" required>
                     </div>
+                    <div class="form-group">
+                        <label for="cargo">Cargo:</label>
+                        <input type="text" id="cargo" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="salarioBruto">Salário Bruto (R$):</label>
+                        <input type="number" id="salarioBruto" step="0.01" required>
+                    </div>
+                </div>
+                <div class="form-group-full" style="margin-top: 1.5rem;">
+                    <label>Descontos Fixos Recorrentes:</label>
+                    <div id="descontos-container"></div>
                     <button type="button" id="btn-add-desconto" class="btn-secondary" style="margin-top: 0.5rem;">+ Adicionar Desconto</button>
                 </div>
-
                 <div class="action-buttons">
                     <button type="submit" id="btn-salvar-funcionario" class="btn">Cadastrar</button>
                     <button type="button" id="btn-cancelar-edicao" class="btn-secondary" style="display: none;">Cancelar Edição</button>
@@ -60,19 +53,18 @@
                         <th>Nome</th>
                         <th>Cargo</th>
                         <th>Salário Bruto</th>
-                        <th>Descontos Fixos</th>
                         <th>Status (Mês Atual)</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Linhas de funcionários serão inseridas aqui via JS -->
+                    <!-- Linhas de funcionários serão inseridas aqui -->
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Modal para Detalhes de Pagamento -->
+    <!-- Modal para Demonstrativo de Pagamento -->
     <div id="modal-pagamento" class="modal">
         <div class="modal-content">
             <span class="close-button">&times;</span>
@@ -88,15 +80,10 @@
                         <button id="btn-gerar-demonstrativo" class="btn-sm">Gerar Demonstrativo</button>
                     </div>
                 </div>
-                <hr>
-                <div id="demonstrativo-corpo">
-                    <!-- O demonstrativo será gerado aqui -->
-                </div>
+                <div id="demonstrativo-corpo"></div>
                 <div id="demonstrativo-historico" style="margin-top: 2rem;">
                     <h4>Histórico de Pagamentos</h4>
-                    <ul id="lista-historico-pagamentos">
-                        <!-- Histórico será preenchido aqui -->
-                    </ul>
+                    <ul id="lista-historico-pagamentos"></ul>
                 </div>
             </div>
         </div>

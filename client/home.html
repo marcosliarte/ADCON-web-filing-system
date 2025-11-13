@@ -428,6 +428,12 @@
                     <h3>Configurar Empresa</h3>
                     <p>Gerencie os dados cadastrais da sua própria empresa.</p>
                 </a>
+
+                <a href="funcionarios-pagamentos.html" class="dashboard-card" id="card-gerenciar-funcionarios" style="display: none;">
+                    <div class="card-icon">💵</div>
+                    <h3>Folha de Pagamento</h3>
+                    <p>Gerencie funcionários, descontos e realize pagamentos mensais.</p>
+                </a>
             </div>
         </div>
     </div>
@@ -482,8 +488,8 @@
                     if (['admin', 'gerente'].includes(usuario.role)) {
                         document.getElementById('admin-links').style.display = 'block';
                         document.getElementById('card-ver-relatorios').style.display = 'flex';
-                        // O card 'card-gerenciar-funcionarios' não existe, então foi removido para evitar o crash.
-                        // A funcionalidade de funcionários está dentro de "Configurar Empresa"
+                        // CORREÇÃO: Agora o card existe e será exibido para admin e gerente.
+                        document.getElementById('card-gerenciar-funcionarios').style.display = 'flex';
                     }
                     // Funcionalidades para Admin, Gerente e Funcionário
                     if (['admin', 'gerente', 'funcionario'].includes(usuario.role)) {

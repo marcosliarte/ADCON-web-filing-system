@@ -100,4 +100,155 @@ router.post('/logotipo', [auth, upload.single('logotipo')], async (req, res) => 
     }
 });
 
+// --- ROTAS PARA GESTÃO DE FUNCIONÁRIOS ---
+
+// @route   GET api/configuracao/funcionarios
+// @desc    Listar todos os funcionários com status de pagamento do mês atual
+// @access  Private (Admin, Gerente)
+router.get('/funcionarios', [auth, adminAuth], async (req, res) => {
+    try {
+        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' }).select('funcionarios').lean();
+        if (!config || !config.funcionarios) return res.json([]);
+
+        const hoje = new Date();
+        const mesAtual = hoje.getMonth() + 1;
+        const anoAtual = hoje.getFullYear();
+
+        const funcionariosComStatus = config.funcionarios.map(func => {
+            const pagamentoMesAtual = (func.historicoPagamentos || []).find(p => p.mes === mesAtual && p.ano === anoAtual);
+            func.statusPagamentoMesAtual = pagamentoMesAtual ? 'Pago' : 'A Pagar';
+            return func;
+        });
+
+        res.json(funcionariosComStatus);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor' });
+    }
+});
+
+// @route   POST api/configuracao/funcionarios
+// @desc    Adicionar um novo funcionário
+// @access  Private (Admin, Gerente)
+router.post('/funcionarios', [auth, adminAuth], async (req, res) => {
+    const { nome, cargo, salarioBruto, descontos } = req.body;
+    if (!nome || !cargo || !salarioBruto) {
+        return res.status(400).json({ msg: 'Nome, cargo e salário bruto são obrigatórios.' });
+    }
+    try {
+        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
+        if (!config) return res.status(404).json({ msg: 'Configuração da empresa não encontrada.' });
+
+        config.funcionarios.push({ nome, cargo, salarioBruto, descontos });
+        await config.save();
+        res.status(201).json(config.funcionarios);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor' });
+    }
+});
+
+// @route   PUT api/configuracao/funcionarios/:id
+// @desc    Atualizar um funcionário
+// @access  Private (Admin, Gerente)
+router.put('/funcionarios/:id', [auth, adminAuth], async (req, res) => {
+    const { nome, cargo, salarioBruto, descontos } = req.body;
+    try {
+        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
+        const funcionario = config.funcionarios.id(req.params.id);
+        if (!funcionario) return res.status(404).json({ msg: 'Funcionário não encontrado.' });
+
+        funcionario.nome = nome;
+        funcionario.cargo = cargo;
+        funcionario.salarioBruto = salarioBruto;
+        funcionario.descontos = descontos;
+
+        await config.save();
+        res.json(funcionario);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor' });
+    }
+});
+
+// @route   GET api/configuracao/funcionarios/:id
+// @desc    Obter um funcionário pelo ID
+// @access  Private (Admin, Gerente)
+router.get('/funcionarios/:id', [auth, adminAuth], async (req, res) => {
+    try {
+        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
+        if (!config) {
+            return res.status(404).json({ msg: 'Configuração da empresa não encontrada.' });
+        }
+        const funcionario = config.funcionarios.id(req.params.id);
+        if (!funcionario) return res.status(404).json({ msg: 'Funcionário não encontrado.' });
+        res.json(funcionario);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor' });
+    }
+});
+
+// @route   POST api/configuracao/funcionarios/:id/pagamentos
+// @desc    Registrar um novo pagamento para um funcionário
+// @access  Private (Admin, Gerente)
+router.post('/funcionarios/:id/pagamentos', [auth, adminAuth], async (req, res) => {
+    const { mes, ano, salarioBase, adicionais, descontosFixos, descontosVariaveis, totalProventos, totalDescontos, salarioLiquido } = req.body;
+    if (!mes || !ano || !salarioBase) {
+        return res.status(400).json({ message: 'Mês, ano e salário base são obrigatórios.' });
+    }
+    try {
+        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
+        const funcionario = config.funcionarios.id(req.params.id);
+        if (!funcionario) return res.status(404).json({ message: 'Funcionário não encontrado.' });
+
+        const pagamentoExistente = funcionario.historicoPagamentos.find(p => p.mes === mes && p.ano === ano);
+        if (pagamentoExistente) {
+            return res.status(400).json({ message: `Pagamento para ${mes}/${ano} já foi registrado.` });
+        }
+
+        funcionario.historicoPagamentos.push({ mes, ano, salarioBase, adicionais, descontosFixos, descontosVariaveis, totalProventos, totalDescontos, salarioLiquido });
+        await config.save();
+
+        res.status(201).json({ message: 'Pagamento registrado com sucesso!', funcionario });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor' });
+    }
+});
+
+// @route   DELETE api/configuracao/funcionarios/:id
+// @desc    Excluir um funcionário
+// @access  Private (Admin, Gerente)
+router.delete('/funcionarios/:id', [auth, adminAuth], async (req, res) => {
+    try {
+        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
+        if (!config) return res.status(404).json({ msg: 'Configuração da empresa não encontrada.' });
+
+        config.funcionarios.pull({ _id: req.params.id }); // Remove o funcionário do array
+        await config.save();
+        res.json({ msg: 'Funcionário removido com sucesso!' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor' });
+    }
+});
+
+// @route   DELETE api/configuracao/funcionarios/:id
+// @desc    Excluir um funcionário
+// @access  Private (Admin, Gerente)
+router.delete('/funcionarios/:id', [auth, adminAuth], async (req, res) => {
+    try {
+        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
+        if (!config) return res.status(404).json({ msg: 'Configuração da empresa não encontrada.' });
+
+        config.funcionarios.pull({ _id: req.params.id }); // Remove o funcionário do array
+        await config.save();
+        res.json({ msg: 'Funcionário removido com sucesso!' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor' });
+    }
+});
+
 module.exports = router;
