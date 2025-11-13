@@ -403,4 +403,45 @@ router.delete('/admin/users/:id', [auth, adminAuth], async (req, res) => {
   }
 });
 
+// @route   PUT api/auth/admin/users/:id/role
+// @desc    Atualizar o perfil de um usuário (por um admin/gerente)
+// @access  Private (Admin/Gerente)
+router.put('/admin/users/:id/role', [auth, adminAuth], async (req, res) => {
+    const { role } = req.body;
+    const { id: targetUserId } = req.params;
+    const modifierUserId = req.usuario.id;
+
+    // Regra 1: Ninguém pode alterar o próprio perfil.
+    if (targetUserId === modifierUserId) {
+        return res.status(400).json({ msg: 'Você não pode alterar seu próprio perfil.' });
+    }
+
+    // Validação do perfil enviado
+    if (!['admin', 'gerente', 'funcionario', 'empresario'].includes(role)) {
+        return res.status(400).json({ msg: 'Perfil inválido.' });
+    }
+
+    try {
+        const targetUser = await Usuario.findById(targetUserId);
+        const modifierUser = await Usuario.findById(modifierUserId);
+
+        if (!targetUser) {
+            return res.status(404).json({ msg: 'Usuário alvo não encontrado.' });
+        }
+
+        // Regra 2: Gerente não pode modificar admins ou outros gerentes, nem promover ninguém a admin.
+        if (modifierUser.role === 'gerente' && (targetUser.role === 'admin' || targetUser.role === 'gerente' || role === 'admin')) {
+            return res.status(403).json({ msg: 'Acesso negado. Gerentes não têm permissão para esta ação.' });
+        }
+
+        targetUser.role = role;
+        await targetUser.save();
+
+        res.json({ msg: `Perfil de ${targetUser.nome} atualizado para ${role} com sucesso.` });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor ao atualizar perfil.' });
+    }
+});
+
 module.exports = router;

@@ -137,21 +137,43 @@
                         const row = tbody.insertRow();
                         row.insertCell(0).textContent = user.nome;
                         row.insertCell(1).textContent = user.email;
-                        // Capitaliza a primeira letra do perfil
-                        row.insertCell(2).textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+                        
+                        // Célula de Perfil (agora com um <select>)
+                        const roleCell = row.insertCell(2);
+                        const roleSelect = document.createElement('select');
+                        roleSelect.id = `role-select-${user._id}`;
+                        roleSelect.innerHTML = `
+                            <option value="funcionario">Funcionário</option>
+                            <option value="empresario">Empresário</option>
+                            <option value="gerente">Gerente</option>
+                            ${currentUser.role === 'admin' ? '<option value="admin">Administrador</option>' : ''}
+                        `;
+                        roleSelect.value = user.role;
+                        roleCell.appendChild(roleSelect);
+
+                        // Célula de Ações
                         const actionsCell = row.insertCell(3);
 
-                        // CORREÇÃO: Define a condição para mostrar o botão de exclusão.
-                        const podeExcluir = 
-                            // 1. Não pode excluir a si mesmo.
-                            user._id !== currentUser._id && 
-                            // 2. Um gerente não pode excluir um administrador.
-                            !(currentUser.role === 'gerente' && user.role === 'admin');
+                        // Condições para desabilitar ações
+                        const isSelf = user._id === currentUser._id;
+                        const isTargetAdmin = user.role === 'admin';
+                        const isModifierManager = currentUser.role === 'gerente';
 
-                        if (podeExcluir) {
-                            actionsCell.innerHTML = `<button class="delete-btn" onclick="deleteUser('${user._id}')">Excluir</button>`;
+                        if (isSelf) {
+                            roleSelect.disabled = true;
+                            actionsCell.textContent = 'Você';
+                        } else if (isModifierManager && isTargetAdmin) {
+                            // Gerente não pode editar ou excluir admin
+                            roleSelect.disabled = true;
+                            actionsCell.textContent = 'Ação não permitida';
                         } else {
-                            actionsCell.textContent = (user._id === currentUser._id) ? 'Você' : 'Ação não permitida';
+                            // Adiciona o evento para alterar o perfil
+                            roleSelect.addEventListener('change', () => {
+                                updateUserRole(user._id, roleSelect.value, user.role);
+                            });
+
+                            // Botão de exclusão
+                            actionsCell.innerHTML = `<button class="delete-btn" onclick="deleteUser('${user._id}')">Excluir</button>`;
                         }
                     });
 
@@ -174,6 +196,32 @@
             } catch (error) {
                 console.error('Erro ao carregar usuários:', error);
                 alert('Erro ao carregar usuários.');
+            }
+        }
+
+        async function updateUserRole(userId, newRole, oldRole) {
+            const userRow = document.getElementById(`role-select-${userId}`);
+            if (!confirm(`Tem certeza que deseja alterar o perfil deste usuário para "${newRole}"?`)) {
+                userRow.value = oldRole; // Reverte a seleção se o usuário cancelar
+                return;
+            }
+
+            try {
+                const response = await fetchWithAuth(`/api/auth/admin/users/${userId}/role`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role: newRole })
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.msg);
+                }
+                alert(result.msg);
+                loadUsers(); // Recarrega a lista para garantir consistência
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+                userRow.value = oldRole; // Reverte em caso de erro na API
             }
         }
 
