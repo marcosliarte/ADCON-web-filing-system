@@ -482,7 +482,6 @@
                     if (['admin', 'gerente'].includes(usuario.role)) {
                         document.getElementById('admin-links').style.display = 'block';
                         document.getElementById('card-ver-relatorios').style.display = 'flex';
-                        document.getElementById('card-config-empresa').style.display = 'flex'; // Mostra o novo cartão
                         // O card 'card-gerenciar-funcionarios' não existe, então foi removido para evitar o crash.
                         // A funcionalidade de funcionários está dentro de "Configurar Empresa"
                     }
@@ -490,8 +489,9 @@
                     if (['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
                         document.getElementById('card-gerenciar-mensalidades').style.display = 'flex';
                     }
-                    // O card de cadastro agora aparece para TODOS os perfis.
+                    // Os cards de cadastro e configuração agora aparecem para TODOS os perfis.
                     document.getElementById('card-cadastrar-empresa').style.display = 'flex';
+                    document.getElementById('card-config-empresa').style.display = 'flex';
                 }
             } catch (error) {
                 console.error('Erro ao carregar dados do usuário:', error);

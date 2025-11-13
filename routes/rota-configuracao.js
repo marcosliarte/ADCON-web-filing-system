@@ -27,7 +27,7 @@ const upload = multer({ storage: logoStorage, limits: { fileSize: 5 * 1024 * 102
 // @route   GET api/configuracao
 // @desc    Buscar os dados da empresa administradora
 // @access  Private (Admin, Gerente)
-router.get('/', [auth, adminAuth], async (req, res) => {
+router.get('/', auth, async (req, res) => {
     try {
         let config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
         if (!config) {
@@ -44,7 +44,7 @@ router.get('/', [auth, adminAuth], async (req, res) => {
 // @route   PUT api/configuracao
 // @desc    Atualizar os dados da empresa administradora
 // @access  Private (Admin, Gerente)
-router.put('/', [auth, adminAuth], async (req, res) => {
+router.put('/', auth, async (req, res) => {
     try {
         const dadosAtualizados = req.body;
 
@@ -70,7 +70,7 @@ router.put('/', [auth, adminAuth], async (req, res) => {
 // @route   POST api/configuracao/logotipo
 // @desc    Fazer upload do logotipo da empresa
 // @access  Private (Admin, Gerente)
-router.post('/logotipo', [auth, adminAuth, upload.single('logotipo')], async (req, res) => {
+router.post('/logotipo', [auth, upload.single('logotipo')], async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ msg: 'Nenhum arquivo enviado.' });
     }
