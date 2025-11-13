@@ -42,6 +42,7 @@
         .btn-delete:hover { background-color: #c82333; }
         .btn-edit { background-color: #ffc107; color: #212529; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-right: 5px; }
         td.actions { text-align: center; }
+        .btn-print { background-color: #17a2b8; }
         /* Estilos para o novo formulário de despesas */
         .form-group { display: flex; flex-direction: column; }
         .form-group label { margin-bottom: 0.3rem; font-size: 0.9rem; }
@@ -55,6 +56,35 @@
     .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
     .modal-form .form-group { display: flex; flex-direction: column; margin-bottom: 1rem; }
     .modal-form label { margin-bottom: 0.5rem; font-weight: bold; }
+
+    /* Estilos de Impressão */
+    @media print {
+        body {
+            background-color: white;
+        }
+        .header, .filters, .form-section, .modal, #lancamentoStatus, td.actions, .action-buttons {
+            display: none !important;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            box-shadow: none;
+            border-radius: 0;
+        }
+        #print-header {
+            display: block !important;
+        }
+        .summary-card {
+            border: 1px solid #ddd;
+        }
+        h1, h2, h3 {
+            page-break-after: avoid;
+        }
+        table {
+            page-break-inside: auto;
+        }
+    }
 </style>
 <body style="display: none;">
     <!-- Script de bloqueio de acesso -->
@@ -69,6 +99,15 @@
     <div id="header-placeholder"></div>
 
     <div class="container">
+        <!-- Cabeçalho de Impressão (oculto por padrão) -->
+        <div id="print-header" style="display: none; margin-bottom: 2rem; border-bottom: 2px solid #333; padding-bottom: 1rem;">
+            <img id="print-logo" src="" alt="Logotipo" style="max-height: 70px; float: left; margin-right: 20px;">
+            <div>
+                <h1 id="print-company-name" style="margin: 0; border: none; padding: 0;"></h1>
+                <p id="print-company-details" style="margin: 0; font-size: 0.9rem;"></p>
+            </div>
+        </div>
+
         <h1>Relatórios Financeiros</h1>
 
         <!-- NOVA SEÇÃO: Visão Geral -->
@@ -142,6 +181,7 @@
             <select id="mes" name="mes"></select>
             <input type="number" id="ano" name="ano" placeholder="Ano">
             <button onclick="gerarRelatorio()">Gerar Relatório</button>
+            <button onclick="imprimirRelatorio()" class="btn-print">Imprimir</button>
         </div>
 
         <div id="loading" class="loading" style="display: none;">Carregando...</div>
@@ -475,6 +515,38 @@
         // Fecha o modal se o usuário clicar fora dele
         window.onclick = function(event) {
             if (event.target == modal) fecharModalEdicao();
+        }
+
+        async function imprimirRelatorio() {
+            const printHeader = document.getElementById('print-header');
+            const printLogo = document.getElementById('print-logo');
+            const printCompanyName = document.getElementById('print-company-name');
+            const printCompanyDetails = document.getElementById('print-company-details');
+
+            try {
+                // 1. Busca os dados da empresa nas configurações
+                const response = await fetchWithAuth('/api/configuracao');
+                if (!response || !response.ok) throw new Error('Não foi possível carregar os dados da empresa para o cabeçalho.');
+                
+                const config = await response.json();
+
+                // 2. Preenche o cabeçalho de impressão
+                printCompanyName.textContent = config.nome_fantasia || config.nome_empresarial || 'Relatório Financeiro';
+                
+                let details = [];
+                if (config.cnpj) details.push(`CNPJ: ${formatarCNPJ(config.cnpj)}`);
+                if (config.contato?.email) details.push(`Email: ${config.contato.email}`);
+                if (config.contato?.telefone) details.push(`Telefone: ${config.contato.telefone}`);
+                printCompanyDetails.innerHTML = details.join(' &nbsp;|&nbsp; ');
+
+                printLogo.src = config.logotipoUrl || '';
+                printLogo.style.display = config.logotipoUrl ? 'block' : 'none';
+
+                // 3. Chama a impressão do navegador
+                window.print();
+            } catch (error) {
+                alert(error.message);
+            }
         }
 
         async function gerarRelatorio() {
