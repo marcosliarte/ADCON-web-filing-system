@@ -119,9 +119,10 @@
                 </div>
             </div>
 
-            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                <button type="button" class="btn-secondary" onclick="window.location.href='home.html'">Cancelar</button>
-                <button type="submit" id="submitBtn">Salvar Alterações</button>
+            <div id="action-buttons" style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                <button type="button" id="editBtn">Editar</button>
+                <button type="button" id="cancelBtn" class="btn-secondary" style="display: none;">Cancelar</button>
+                <button type="submit" id="submitBtn" style="display: none;">Salvar Alterações</button>
             </div>
         </form>
         <div id="message"></div>
@@ -129,6 +130,8 @@
 
     <script src="shared.js"></script>
     <script>
+        let originalData = {}; // Armazena os dados originais para o cancelamento
+
         document.addEventListener('DOMContentLoaded', async () => {
             const userResponse = await fetchWithAuth('/api/auth');
             if (!userResponse) return;
@@ -143,6 +146,14 @@
             
             document.body.style.display = 'block';
             loadConfigData();
+
+            document.getElementById('editBtn').addEventListener('click', () => toggleEditMode(true));
+            document.getElementById('cancelBtn').addEventListener('click', () => {
+                if (confirm('Deseja descartar as alterações?')) {
+                    populateForm(originalData); // Restaura os dados originais
+                    toggleEditMode(false);
+                }
+            });
         });
 
         async function loadConfigData() {
@@ -150,7 +161,9 @@
                 const response = await fetchWithAuth('/api/configuracao');
                 if (!response.ok) throw new Error('Falha ao carregar configurações.');
                 const data = await response.json();
+                originalData = JSON.parse(JSON.stringify(data)); // Clona os dados
                 populateForm(data);
+                toggleEditMode(false); // Inicia em modo de leitura
             } catch (error) {
                 showMessage(error.message, 'error');
             }
@@ -202,6 +215,7 @@
                 if (!response.ok) throw new Error(result.msg || 'Erro ao salvar.');
 
                 showMessage(result.msg, 'success');
+                toggleEditMode(false); // Volta para o modo de leitura após salvar
             } catch (error) {
                 showMessage(`Erro: ${error.message}`, 'error');
             } finally {
@@ -216,6 +230,19 @@
             messageEl.className = `message ${type}`;
             messageEl.style.display = 'block';
             setTimeout(() => { messageEl.style.display = 'none'; }, 4000);
+        }
+
+        function toggleEditMode(isEditing) {
+            const form = document.getElementById('form-configuracao');
+            const inputs = form.querySelectorAll('input');
+
+            inputs.forEach(input => {
+                input.readOnly = !isEditing;
+            });
+
+            document.getElementById('editBtn').style.display = isEditing ? 'none' : 'flex';
+            document.getElementById('submitBtn').style.display = isEditing ? 'flex' : 'none';
+            document.getElementById('cancelBtn').style.display = isEditing ? 'flex' : 'none';
         }
     </script>
 </body>
