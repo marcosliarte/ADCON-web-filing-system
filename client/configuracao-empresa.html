@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Configurações da Empresa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Estilos consistentes com o restante do sistema */
+        .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-toggle { background-color: transparent; border: none; color: white; padding: 0.5rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; }
+        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; border-radius: 5px; overflow: hidden; }
+        .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .dropdown-content a:hover { background-color: #f1f1f1; }
+        .show { display: block; }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 900px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group-full { grid-column: 1 / -1; }
+        label { margin-bottom: 0.5rem; font-weight: bold; font-size: 0.9rem; }
+        input { width: 100%; padding: 0.7rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        input:read-only { background-color: #e9ecef; }
+        button { background-color: #007bff; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        #message { margin-top: 1.5rem; padding: 1rem; border-radius: 5px; text-align: center; display: none; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body style="display: none;">
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1>Gerenciar Dados da Empresa</h1>
+        <form id="form-configuracao">
+            <h2>Dados Gerais</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="cnpj">CNPJ</label>
+                    <input type="text" id="cnpj" name="cnpj" required>
+                </div>
+                <div class="form-group">
+                    <label for="data_abertura">Data de Abertura</label>
+                    <input type="text" id="data_abertura" name="data_abertura">
+                </div>
+                <div class="form-group form-group-full">
+                    <label for="nome_empresarial">Nome Empresarial</label>
+                    <input type="text" id="nome_empresarial" name="nome_empresarial" required>
+                </div>
+                <div class="form-group form-group-full">
+                    <label for="nome_fantasia">Nome Fantasia</label>
+                    <input type="text" id="nome_fantasia" name="nome_fantasia">
+                </div>
+                <div class="form-group">
+                    <label for="porte">Porte</label>
+                    <input type="text" id="porte" name="porte">
+                </div>
+            </div>
+
+            <h2>Atividade e Natureza</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="atividade_principal_codigo">Cód. Atividade Principal</label>
+                    <input type="text" id="atividade_principal_codigo" name="atividade_principal.codigo">
+                </div>
+                <div class="form-group">
+                    <label for="atividade_principal_descricao">Descrição da Atividade</label>
+                    <input type="text" id="atividade_principal_descricao" name="atividade_principal.descricao">
+                </div>
+                <div class="form-group">
+                    <label for="natureza_juridica_codigo">Cód. Natureza Jurídica</label>
+                    <input type="text" id="natureza_juridica_codigo" name="natureza_juridica.codigo">
+                </div>
+                <div class="form-group">
+                    <label for="natureza_juridica_descricao">Descrição Natureza Jurídica</label>
+                    <input type="text" id="natureza_juridica_descricao" name="natureza_juridica.descricao">
+                </div>
+            </div>
+
+            <h2>Endereço e Contato</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="cep">CEP</label>
+                    <input type="text" id="cep" name="endereco.cep">
+                </div>
+                <div class="form-group form-group-full">
+                    <label for="logradouro">Logradouro</label>
+                    <input type="text" id="logradouro" name="endereco.logradouro">
+                </div>
+                <div class="form-group">
+                    <label for="numero">Número</label>
+                    <input type="text" id="numero" name="endereco.numero">
+                </div>
+                <div class="form-group">
+                    <label for="bairro">Bairro</label>
+                    <input type="text" id="bairro" name="endereco.bairro_distrito">
+                </div>
+                <div class="form-group">
+                    <label for="municipio">Município</label>
+                    <input type="text" id="municipio" name="endereco.municipio">
+                </div>
+                <div class="form-group">
+                    <label for="uf">UF</label>
+                    <input type="text" id="uf" name="endereco.uf">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="contato.email">
+                </div>
+                <div class="form-group">
+                    <label for="telefone">Telefone</label>
+                    <input type="text" id="telefone" name="contato.telefone">
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                <button type="button" class="btn-secondary" onclick="window.location.href='home.html'">Cancelar</button>
+                <button type="submit" id="submitBtn">Salvar Alterações</button>
+            </div>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userResponse = await fetchWithAuth('/api/auth');
+            if (!userResponse) return;
+
+            const usuario = await userResponse.json();
+            createHeader('header-placeholder', usuario);
+
+            if (!['admin', 'gerente'].includes(usuario.role)) {
+                document.querySelector('.container').innerHTML = '<h1>Acesso Negado</h1><p>Você não tem permissão para visualizar ou editar estas configurações.</p>';
+                return;
+            }
+            
+            document.body.style.display = 'block';
+            loadConfigData();
+        });
+
+        async function loadConfigData() {
+            try {
+                const response = await fetchWithAuth('/api/configuracao');
+                if (!response.ok) throw new Error('Falha ao carregar configurações.');
+                const data = await response.json();
+                populateForm(data);
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        }
+
+        function populateForm(data) {
+            // Itera sobre as chaves do objeto de dados para preencher o formulário
+            for (const key in data) {
+                if (typeof data[key] === 'object' && data[key] !== null) {
+                    for (const subKey in data[key]) {
+                        const fieldName = `${key}.${subKey}`;
+                        const field = document.querySelector(`[name="${fieldName}"]`);
+                        if (field) field.value = data[key][subKey] || '';
+                    }
+                } else {
+                    const field = document.querySelector(`[name="${key}"]`);
+                    if (field) field.value = data[key] || '';
+                }
+            }
+        }
+
+        document.getElementById('form-configuracao').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Salvando...';
+
+            const formData = new FormData(this);
+            const data = {};
+            // Converte o FormData em um objeto aninhado, como a API espera
+            formData.forEach((value, key) => {
+                const keys = key.split('.');
+                if (keys.length > 1) {
+                    if (!data[keys[0]]) data[keys[0]] = {};
+                    data[keys[0]][keys[1]] = value;
+                } else {
+                    data[key] = value;
+                }
+            });
+
+            try {
+                const response = await fetchWithAuth('/api/configuracao', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.msg || 'Erro ao salvar.');
+
+                showMessage(result.msg, 'success');
+            } catch (error) {
+                showMessage(`Erro: ${error.message}`, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Salvar Alterações';
+            }
+        });
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+            setTimeout(() => { messageEl.style.display = 'none'; }, 4000);
+        }
+    </script>
+</body>
+</html>

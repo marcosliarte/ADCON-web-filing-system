@@ -179,6 +179,34 @@
             margin-bottom: 1.5rem;
         }
 
+        /* --- NOVO: Painel de Funcionalidades (Dashboard) --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .dashboard-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 123, 255, 0.15);
+        }
+        .dashboard-card .card-icon { font-size: 3rem; margin-bottom: 1rem; color: #007bff; }
+        .dashboard-card h3 { color: #007bff; margin-bottom: 0.5rem; }
+        .dashboard-card p { font-size: 0.9rem; color: #6c757d; }
+
         /* --- Cards e Formulários --- */
         .card, .form-card {
             background-color: white;
@@ -320,17 +348,8 @@
             <p><strong>Perfil:</strong> <span id="user-role"></span></p>
             <hr style="margin: 1.5rem 0;">
             <h3>Navegação Rápida</h3>
-            <div class="card">
-                <p><a href="empresas.html">Gerenciar Empresas</a></p>
-            </div>
-            <div class="card" id="cadastrar-empresa-link" style="display: none;">
-                <p><a href="cliente-formulario.html">Cadastrar Nova Empresa</a></p>
-            </div>
             <div class="card" id="admin-links" style="display: none;">
                 <p><a href="user-management.html">Gerenciar Usuários</a></p>
-            </div>
-            <div class="card" id="relatorios-link" style="display: none;">
-                <p><a href="relatorios.html">Ver Relatórios</a></p>
             </div>
             <hr style="margin: 1.5rem 0;">
             <h3>Configurações</h3>
@@ -376,19 +395,39 @@
                 </form>
                 <div id="emailMessage" style="margin-top: 1rem;"></div>
             </div>
-            <h2>Visão Geral</h2>
-            <div class="card">
-                <h3>Boas-vindas!</h3>
-                <p>Esta é a sua página inicial. Aqui você pode ver um resumo das suas atividades e acessar as principais funcionalidades do sistema.</p>
-            </div>
-            <div class="card">
-                <h3>Próximas Funções</h3>
-                <p>Em breve, você encontrará aqui gráficos, notificações e acesso rápido a outras ferramentas.</p>
-            </div>
-            <!-- Card de Mensalidades Adicionado -->
-            <div class="card" id="mensalidades-link" style="display: none;">
-                <h3 style="margin-top: 0; color: #007bff;">💰 Gerenciar Mensalidades</h3>
-                <p>Controle pagamentos, gere novas mensalidades e visualize o status financeiro das empresas. <a href="mensalidades.html">Acessar</a></p>
+            
+            <!-- PAINEL DE FUNCIONALIDADES -->
+            <h2>Painel de Funcionalidades</h2>
+            <div class="dashboard-grid">
+                <a href="empresas.html" class="dashboard-card">
+                    <div class="card-icon">🏢</div>
+                    <h3>Gerenciar Empresas</h3>
+                    <p>Visualize, edite e gerencie todas as empresas cadastradas.</p>
+                </a>
+
+                <a href="cliente-formulario.html" class="dashboard-card" id="card-cadastrar-empresa" style="display: none;">
+                    <div class="card-icon">➕</div>
+                    <h3>Cadastrar Empresa</h3>
+                    <p>Adicione uma nova empresa ao sistema com todos os seus dados.</p>
+                </a>
+
+                <a href="mensalidades.html" class="dashboard-card" id="card-gerenciar-mensalidades" style="display: none;">
+                    <div class="card-icon">💰</div>
+                    <h3>Gerenciar Mensalidades</h3>
+                    <p>Controle pagamentos, gere mensalidades e veja o status financeiro.</p>
+                </a>
+
+                <a href="relatorios.html" class="dashboard-card" id="card-ver-relatorios" style="display: none;">
+                    <div class="card-icon">📊</div>
+                    <h3>Ver Relatórios</h3>
+                    <p>Acesse relatórios financeiros detalhados, mensais e anuais.</p>
+                </a>
+
+                <a href="configuracao-empresa.html" class="dashboard-card" id="card-config-empresa" style="display: none;">
+                    <div class="card-icon">⚙️</div>
+                    <h3>Configurar Empresa</h3>
+                    <p>Gerencie os dados cadastrais da sua própria empresa.</p>
+                </a>
             </div>
         </div>
     </div>
@@ -426,7 +465,7 @@
         async function getUsuario() {
             try {
                 const response = await fetchWithAuth('/api/auth');
-                if (response) {
+                if (response && response.ok) {
                     usuario = await response.json();
                     document.getElementById('header-user-name').textContent = `Olá, ${usuario.nome.split(' ')[0]}!`;
                     document.getElementById('user-name').textContent = usuario.nome;
@@ -439,13 +478,14 @@
                         document.getElementById('deletePicIcon').style.display = 'inline-block';
                     }
                     if (usuario.role === 'admin' || usuario.role === 'gerente') {
-                        document.getElementById('mensalidades-link').style.display = 'block';
+                        document.getElementById('card-gerenciar-mensalidades').style.display = 'flex';
                         document.getElementById('admin-links').style.display = 'block';
-                        document.getElementById('relatorios-link').style.display = 'block';
+                        document.getElementById('card-ver-relatorios').style.display = 'flex';
+                        document.getElementById('card-config-empresa').style.display = 'flex'; // Mostra o novo cartão
                     }
                     // Mostra o link de cadastro para Admin e Funcionário
                     if (usuario.role === 'admin' || usuario.role === 'funcionario') {
-                        document.getElementById('cadastrar-empresa-link').style.display = 'block';
+                        document.getElementById('card-cadastrar-empresa').style.display = 'flex';
                     }
                 }
             } catch (error) {
@@ -628,15 +668,16 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             await getUsuario();
+            await createHeaderFromHome(); // Chama a nova função de cabeçalho
 
             // Lógica para o menu dropdown do usuário
             const userMenuBtn = document.getElementById('userMenuBtn');
             const userMenu = document.getElementById('userMenu');
 
-            userMenuBtn.addEventListener('click', () => {
-                userMenu.classList.toggle('show');
-            });
-
+            if (userMenuBtn) {
+                userMenuBtn.addEventListener('click', () => userMenu.classList.toggle('show'));
+            }
+            
             // Lógica para mostrar/esconder os formulários de configuração
             document.getElementById('togglePasswordBtn').addEventListener('click', (e) => {
                 e.preventDefault();
@@ -650,6 +691,19 @@
                 container.style.display = container.style.display === 'none' ? 'block' : 'none';
             });
         });
+
+        // Função separada para criar o cabeçalho na home, já que o placeholder está em outro local
+        async function createHeaderFromHome() {
+            const placeholder = document.querySelector('.header'); // Seleciona o cabeçalho existente
+            if (!placeholder || !usuario) return;
+
+            // A lógica de busca do nome da empresa e criação do HTML agora está em shared.js
+            // Aqui, apenas garantimos que o cabeçalho seja renderizado corretamente.
+            // A função createHeader agora é assíncrona.
+            await createHeader(null, usuario); // Passamos null pois não vamos usar o placeholderId
+            document.querySelector('.header h1 a').textContent = (await (await fetchWithAuth('/api/configuracao')).json()).nome_fantasia || 'ADCON - Painel';
+            document.getElementById('header-user-name').textContent = `Olá, ${usuario.nome.split(' ')[0]}!`;
+        }
     </script>
 </body>
 </html>

@@ -42,11 +42,25 @@ async function fetchWithAuth(url, options = {}) {
  * @param {string} placeholderId - O ID do elemento onde o cabeçalho será inserido.
  * @param {object} usuario - O objeto do usuário logado.
  */
-function createHeader(placeholderId, usuario) {
+async function createHeader(placeholderId, usuario) {
     const placeholder = document.getElementById(placeholderId);
     if (!placeholder) return;
 
     const nomeAbreviado = usuario ? `Olá, ${usuario.nome.split(' ')[0]}!` : '';
+
+    // --- NOVA FUNCIONALIDADE: Busca o nome da empresa para o cabeçalho ---
+    let nomeFantasia = 'ADCON - Painel'; // Nome padrão
+    try {
+        const configResponse = await fetchWithAuth('/api/configuracao');
+        if (configResponse && configResponse.ok) {
+            const configData = await configResponse.json();
+            if (configData && configData.nome_fantasia) {
+                nomeFantasia = configData.nome_fantasia;
+            }
+        }
+    } catch (e) {
+        console.error("Não foi possível carregar o nome da empresa para o cabeçalho.", e);
+    }
 
     // Adiciona o link de Relatórios apenas para admin ou gerente
     const relatoriosLink = (usuario && ['admin', 'gerente'].includes(usuario.role))
@@ -55,7 +69,7 @@ function createHeader(placeholderId, usuario) {
 
     placeholder.innerHTML = `
         <div class="header">
-            <h1><a href="home.html" style="color: white; text-decoration: none;">ADCON - Painel</a></h1>
+            <h1><a href="home.html" style="color: white; text-decoration: none;">${nomeFantasia}</a></h1>
             <div class="user-actions dropdown">
                 <button class="dropdown-toggle" id="userMenuBtn">
                     <span style="margin-right: 0.5rem;">${nomeAbreviado}</span>
