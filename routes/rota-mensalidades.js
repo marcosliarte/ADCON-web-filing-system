@@ -12,10 +12,10 @@ const Usuario = require('../models/model-usuario');
 // @access  Private (Admin ou Gerente)
 router.get('/status-geral', auth, async (req, res) => {
   const usuarioLogado = await Usuario.findById(req.usuario.id);
-  if (!['admin', 'gerente'].includes(usuarioLogado.role)) {
-    return res.status(403).json({ msg: 'Acesso negado.' });
+  // CORREÇÃO: Completa a verificação de permissão.
+  if (!['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
+    return res.status(403).json({ msg: 'Acesso negado para este recurso.' });
   }
-
   try {
     const mes = parseInt(req.query.mes);
     const ano = parseInt(req.query.ano);
@@ -98,10 +98,10 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const usuarioLogado = await Usuario.findById(req.usuario.id);
-    if (!['admin', 'gerente'].includes(usuarioLogado.role)) {
-      return res.status(403).json({ msg: 'Acesso negado.' });
+    // CORREÇÃO: Completa a verificação de permissão.
+    if (!['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
+      return res.status(403).json({ msg: 'Acesso negado para criar mensalidades.' });
     }
-
     const { empresaId, mes, ano, valor } = req.body;
 
     try {
@@ -134,8 +134,8 @@ router.post(
 // @access  Private (Admin ou Gerente)
 router.put('/:id', auth, async (req, res) => {
   const usuarioLogado = await Usuario.findById(req.usuario.id);
-  if (!['admin', 'gerente'].includes(usuarioLogado.role)) {
-    return res.status(403).json({ msg: 'Acesso negado.' });
+  if (!['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
+    return res.status(403).json({ msg: 'Acesso negado para atualizar mensalidades.' });
   }
 
   try {
@@ -164,8 +164,8 @@ router.put('/:id', auth, async (req, res) => {
 // @access  Private (Admin ou Gerente)
 router.delete('/:id', auth, async (req, res) => {
   const usuarioLogado = await Usuario.findById(req.usuario.id);
-  if (!['admin', 'gerente'].includes(usuarioLogado.role)) {
-    return res.status(403).json({ msg: 'Acesso negado.' });
+  if (!['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
+    return res.status(403).json({ msg: 'Acesso negado para excluir mensalidades.' });
   }
 
   try {

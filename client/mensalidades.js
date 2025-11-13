@@ -14,8 +14,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         usuario = await response.json();
         createHeader('header-placeholder', usuario);
 
-        // Apenas admin e gerente podem ver esta página
-        if (!['admin', 'gerente'].includes(usuario.role)) {
+        // CORREÇÃO: Admin, Gerente e Funcionário podem ver esta página.
+        if (!['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
             document.body.innerHTML = '<h1>Acesso Negado</h1><p>Você não tem permissão para ver esta página.</p>';
             document.body.style.display = 'block';
             return;
