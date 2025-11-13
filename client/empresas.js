@@ -1,30 +1,38 @@
-checkAuth(); // Verifica se o usuário está autenticado
-
 let usuario; // Variável global para armazenar os dados do usuário logado
 let pagina = 1;
 let ordenacao = 'nome';
 let direcao = 'asc';
 let termoBusca = '';
 let totalPaginas = 1;
-
+ 
 document.addEventListener('DOMContentLoaded', async () => {
-    usuario = await getUsuario(); // Agora getUsuario vem de shared.js
-    if (usuario) {
-        createHeader('header-placeholder', usuario); // Cria o cabeçalho
-        document.body.style.display = 'block'; // Mostra o conteúdo da página
-
-        // CORREÇÃO: O botão "Cadastrar Nova Empresa" agora é visível para TODOS os perfis.
+    try {
+        // CORREÇÃO: Usa o fluxo de autenticação padrão que já funciona no resto do sistema.
+        const response = await fetchWithAuth('/api/auth');
+        if (!response || !response.ok) {
+            throw new Error('Falha na autenticação.');
+        }
+        
+        usuario = await response.json();
+        createHeader('header-placeholder', usuario);
+        document.body.style.display = 'block';
+ 
+        // A visibilidade do botão de cadastro será definida após carregar os dados
         const btnCadastrar = document.getElementById('btn-cadastrar');
-        if (btnCadastrar) btnCadastrar.style.display = 'inline-block';
-
-        carregarEmpresas(); // Carrega a lista de empresas
-    } else {
-        logout(); // Se não encontrar o usuário, desloga por segurança
+        if (btnCadastrar && ['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
+            btnCadastrar.style.display = 'inline-block';
+        }
+ 
+        carregarEmpresas(); // CORREÇÃO: Não precisa de 'await' aqui, a função já é assíncrona.
+    } catch (error) {
+        console.error("Erro na inicialização da página de empresas:", error);
+        logout();
     }
 });
 
 async function carregarEmpresas() {
     const tbody = document.getElementById('lista-empresas');
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Carregando empresas...</td></tr>'; // Garante que a mensagem de carregamento esteja na tabela
     try {
         mostrarLoading(true); // Mostra o indicador de carregamento
         const response = await fetchWithAuth(`/api/empresas?pagina=${pagina}&limite=10&busca=${encodeURIComponent(termoBusca)}&ordenacao=${ordenacao}&direcao=${direcao}`);
@@ -36,30 +44,34 @@ async function carregarEmpresas() {
         totalPaginas = data.totalPages || 1;
 
         tbody.innerHTML = ''; // Limpa a tabela
+        atualizarPaginacao(); // Atualiza a paginação antes de popular a tabela
 
         if (empresas.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Nenhuma empresa encontrada.</td></tr>'; // Mensagem de tabela vazia
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Nenhuma empresa encontrada.</td></tr>'; // Ajustado para 4 colunas
             return;
         }
-
-        atualizarPaginacao();
-        atualizarOrdenacaoUI();
-
+ 
         empresas.forEach(empresa => {
             const row = tbody.insertRow();
-            const dataCadastro = new Date(empresa.dataCadastro).toLocaleDateString('pt-BR');
-
-            row.insertCell(0).textContent = formatarCNPJ(empresa.cnpj);
-            const nomeCell = row.insertCell(1);
-            nomeCell.innerHTML = `<a href="empresa-detalhes.html?id=${empresa._id}">${empresa.nome}</a>`;
-            row.insertCell(2).textContent = dataCadastro;
             
-            // CORREÇÃO: Usa a variável 'usuario' global para verificar a permissão
-            const acoesCell = row.insertCell(3);
+            row.insertCell(0).textContent = formatarCNPJ(empresa.cnpj);
+            
+            const nomeCell = row.insertCell(1);
+            // CORREÇÃO: O link correto é para detalhes-empresa.html
+            nomeCell.innerHTML = `<a href="detalhes-empresa.html?id=${empresa._id}">${empresa.nome}</a>`;
+            
+            // Adiciona a data de cadastro
+            row.insertCell(2).textContent = new Date(empresa.dataCadastro).toLocaleDateString('pt-BR');
+
+            const acoesCell = row.insertCell(3); // Ajusta o índice da célula de ações
+            acoesCell.style.whiteSpace = 'nowrap'; // Impede que os botões quebrem linha
+
+            // CORREÇÃO: Lógica de permissão para os botões de ação
             if (usuario && ['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
                 acoesCell.innerHTML = `
-                    <a href="empresa-editar.html?id=${empresa._id}" class="btn btn-sm btn-edit" title="Editar">✏️</a>
-                    <button onclick="excluirEmpresa('${empresa._id}')" class="btn btn-sm btn-danger" title="Excluir">🗑️</button>
+                    <button onclick="window.location.href='detalhes-empresa.html?id=${empresa._id}'">Visualizar</button>
+                    <button onclick="window.location.href='editar.html?id=${empresa._id}'" style="background-color: #ffc107; color: #212529;">Editar</button>
+                    <button onclick="excluirEmpresa('${empresa._id}')" class="delete-btn">Excluir</button>
                 `;
             }
         });
@@ -85,6 +97,7 @@ function ordenarPor(coluna) {
         direcao = 'asc';
     }
     pagina = 1;
+    atualizarOrdenacaoUI(); // CORREÇÃO: Atualiza a UI antes de carregar os dados.
     carregarEmpresas();
 }
 
@@ -136,7 +149,9 @@ async function excluirEmpresa(empresaId) {
 }
 
 function mostrarLoading(mostrar) {
-    document.getElementById('loading').style.display = mostrar ? 'inline' : 'none';
+    // CORREÇÃO: O elemento 'loading' existe e deve ser manipulado
+    const loadingEl = document.getElementById('loading');
+    if (loadingEl) loadingEl.style.display = mostrar ? 'inline' : 'none';
 }
 
 function formatarCNPJ(cnpj) {

@@ -182,8 +182,8 @@
                         ${createItem('CPF', formatarCPF(socio.cpf))}
                         ${createItem('RG', socio.rg)}
                         ${createItem('Data de Nascimento', formatarData(socio.data_nascimento))}
-                        ${createItem('Estado Civil', `${socio.estado_civil}${socio.estado_civil === 'casado' ? ` (${socio.regime_casamento.replace(/_/g, ' ')})` : ''}`)}
-                        ${createItem('Endereço', `${socio.endereco.rua}, ${socio.endereco.numero} - ${socio.endereco.bairro}, ${socio.endereco.cidade}/${socio.endereco.estado}`)}
+                        ${createItem('Estado Civil', socio.estado_civil ? `${socio.estado_civil}${socio.estado_civil === 'casado' ? ` (${socio.regime_casamento.replace(/_/g, ' ')})` : ''}` : 'Não informado')}
+                        ${createItem('Endereço', socio.endereco ? `${socio.endereco.rua}, ${socio.endereco.numero} - ${socio.endereco.bairro}, ${socio.endereco.cidade}/${socio.endereco.estado}` : 'Não informado')}
                     </div>
                 </div>
             `).join('');

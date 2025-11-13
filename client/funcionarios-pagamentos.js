@@ -288,22 +288,38 @@ function renderizarDemonstrativo(dados, isPago, mes, ano) {
     const salarioBase = isPago ? dados.salarioBase : dados.salarioBruto;
     const descontosFixosAtivos = isPago ? dados.descontosFixos : getDescontosFixosAtivos(dados, mes, ano);
 
+    // --- MELHORIA DE DESIGN: Gera uma tabela em vez de divs ---
     let html = `
-        <div class="demonstrativo-tabela" id="demonstrativo-print-area">
-            <div class="demonstrativo-section coluna-proventos">
-                <h4>Proventos</h4>
-                <div class="item-calculo"><span>Salário Base</span><span class="valor-positivo">${salarioBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
-                <div id="adicionais-container"></div>
-                ${!isPago ? '<button type="button" id="btn-add-adicional" class="btn-sm">+ Adicional</button>' : ''}
-            </div>
-            <div class="demonstrativo-section coluna-descontos"> 
-                <h4>Descontos</h4>
-                ${descontosFixosAtivos.map(d => `<div class="item-calculo"><span>${d.descricao}</span><span class="valor-negativo">- ${d.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>`).join('')}
-                <div id="descontos-variaveis-container"></div>
-                ${!isPago ? '<button type="button" id="btn-add-desconto-variavel" class="btn-sm">+ Desconto</button>' : ''}
-            </div>
+        <table class="demonstrativo-tabela" id="demonstrativo-print-area">
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th class="valor-coluna">Proventos</th>
+                    <th class="valor-coluna">Descontos</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Salário Base</td>
+                    <td class="valor-coluna valor-positivo">${salarioBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    <td class="valor-coluna"></td>
+                </tr>
+                <!-- Adicionais serão inseridos aqui -->
+                <tr id="adicionais-placeholder"></tr>
+                ${descontosFixosAtivos.map(d => `
+                    <tr>
+                        <td>${d.descricao}</td>
+                        <td class="valor-coluna"></td>
+                        <td class="valor-coluna valor-negativo">${d.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    </tr>
+                `).join('')}
+                <!-- Descontos variáveis serão inseridos aqui -->
+                <tr id="descontos-variaveis-placeholder"></tr>
+            </tbody>
+        </table>
+        <div class="resumo-pagamento" id="resumo-pagamento">
+            <!-- O resumo será calculado e inserido aqui -->
         </div>
-        <div id="resumo-pagamento" style="margin-top: 1.5rem;"></div>
         <div class="action-buttons demonstrativo-actions">
             ${isPago ? `<p><strong>Pagamento realizado em: ${new Date(dados.dataPagamento).toLocaleDateString('pt-BR')}</strong></p>` : `<button id="btn-registrar-pagamento" class="btn btn-success">Registrar Pagamento</button>`}
             <button id="btn-imprimir-demonstrativo" class="btn btn-secondary">Imprimir</button>
@@ -314,8 +330,12 @@ function renderizarDemonstrativo(dados, isPago, mes, ano) {
     document.getElementById('btn-imprimir-demonstrativo').addEventListener('click', () => window.print());
     
     if (!isPago) {
-        document.getElementById('btn-add-adicional').addEventListener('click', () => adicionarCampoVariavel('adicionais-container', 'adicional', 'Descrição do Adicional'));
-        document.getElementById('btn-add-desconto-variavel').addEventListener('click', () => adicionarCampoVariavel('descontos-variaveis-container', 'desconto-variavel', 'Descrição do Desconto'));
+        // Adiciona botões para adicionar campos dinamicamente
+        document.getElementById('adicionais-placeholder').innerHTML = `<td><button type="button" id="btn-add-adicional" class="btn-sm">+ Adicional</button></td><td></td><td></td>`;
+        document.getElementById('descontos-variaveis-placeholder').innerHTML = `<td><button type="button" id="btn-add-desconto-variavel" class="btn-sm">+ Desconto</button></td><td></td><td></td>`;
+
+        document.getElementById('btn-add-adicional').addEventListener('click', () => adicionarCampoVariavel('adicional'));
+        document.getElementById('btn-add-desconto-variavel').addEventListener('click', () => adicionarCampoVariavel('desconto-variavel'));
         document.getElementById('btn-registrar-pagamento').addEventListener('click', () => registrarPagamento(dados, mes, ano));
         corpo.addEventListener('input', () => calcularResumo(salarioBase, descontosFixosAtivos));
     }
@@ -323,46 +343,54 @@ function renderizarDemonstrativo(dados, isPago, mes, ano) {
     calcularResumo(salarioBase, descontosFixosAtivos);
 }
 
-function adicionarCampoVariavel(containerId, tipo, placeholder) {
-    const container = document.getElementById(containerId);
-    const item = document.createElement('div');
-    item.className = 'campo-variavel';
-    item.innerHTML = `
-        <input type="text" data-tipo="${tipo}" data-campo="descricao" placeholder="${placeholder}">
-        <input type="number" data-tipo="${tipo}" data-campo="valor" placeholder="Valor (R$)" step="0.01">
+function adicionarCampoVariavel(tipo) {
+    const placeholderId = tipo === 'adicional' ? 'adicionais-placeholder' : 'descontos-variaveis-placeholder';
+    const placeholder = document.getElementById(placeholderId);
+    
+    const newRow = document.createElement('tr');
+    newRow.className = 'campo-variavel';
+    newRow.innerHTML = `
+        <td><input type="text" data-tipo="${tipo}" data-campo="descricao" placeholder="Descrição do ${tipo}" style="width: 95%;"></td>
+        <td class="valor-coluna ${tipo === 'adicional' ? 'valor-positivo' : ''}"><input type="number" data-tipo="${tipo}" data-campo="valor" placeholder="Valor" step="0.01" style="width: 80px; text-align: right;"></td>
+        <td class="valor-coluna ${tipo === 'desconto-variavel' ? 'valor-negativo' : ''}"></td>
     `;
-    container.appendChild(item);
+    
+    // Insere a nova linha antes do placeholder
+    placeholder.parentNode.insertBefore(newRow, placeholder);
 }
 
 function calcularResumo(salarioBase, descontosFixos) {
     const resumoContainer = document.getElementById('resumo-pagamento');
     
-    const adicionais = Array.from(document.querySelectorAll('[data-tipo="adicional"]'))
-        .reduce((acc, input) => {
-            const valor = parseFloat(input.closest('.campo-variavel').querySelector('[data-campo="valor"]').value) || 0;
-            if (input.dataset.campo === 'valor') acc += valor;
-            return acc;
-        }, 0);
+    const getSomaVariaveis = (tipo) => {
+        return Array.from(document.querySelectorAll(`tr.campo-variavel input[data-tipo="${tipo}"][data-campo="valor"]`))
+            .reduce((acc, input) => acc + (parseFloat(input.value) || 0), 0);
+    };
+
+    const totalAdicionais = getSomaVariaveis('adicional');
+    const totalDescontosVariaveis = getSomaVariaveis('desconto-variavel');
 
     const totalDescontosFixos = descontosFixos.reduce((acc, d) => acc + d.valor, 0);
 
-    const descontosVariaveis = Array.from(document.querySelectorAll('[data-tipo="desconto-variavel"]'))
-        .reduce((acc, input) => {
-            const valor = parseFloat(input.closest('.campo-variavel').querySelector('[data-campo="valor"]').value) || 0;
-            if (input.dataset.campo === 'valor') acc += valor;
-            return acc;
-        }, 0);
-
     const totalProventos = salarioBase + adicionais;
-    const totalDescontos = totalDescontosFixos + descontosVariaveis;
+    const totalDescontos = totalDescontosFixos + totalDescontosVariaveis;
     const salarioLiquido = totalProventos - totalDescontos;
 
     resumoContainer.innerHTML = `
-        <div class="demonstrativo-tabela" style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-            <div class="item-calculo total"><span>Total Proventos</span><span class="valor-positivo">${totalProventos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
-            <div class="item-calculo total"><span>Total Descontos</span><span class="valor-negativo">- ${totalDescontos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
-        </div>
-        <div class="item-calculo liquido" style="justify-content: flex-end;"><span>Salário Líquido: ${salarioLiquido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>
+        <table style="width: 100%;">
+            <tr>
+                <td>Total Proventos:</td>
+                <td class="valor-coluna valor-positivo">${totalProventos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            </tr>
+            <tr>
+                <td>Total Descontos:</td>
+                <td class="valor-coluna valor-negativo">${totalDescontos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            </tr>
+            <tr style="font-size: 1.2rem; font-weight: bold;">
+                <td>Salário Líquido:</td>
+                <td class="valor-coluna">${salarioLiquido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            </tr>
+        </table>
     `;
 }
 
