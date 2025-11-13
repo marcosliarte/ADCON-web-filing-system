@@ -494,8 +494,8 @@
                     if (['admin', 'gerente'].includes(usuario.role)) {
                         document.getElementById('admin-links').style.display = 'block';
                         document.getElementById('card-ver-relatorios').style.display = 'flex';
-                        // CORREÇÃO: Agora o card existe e será exibido para admin e gerente.
                         document.getElementById('card-gerenciar-funcionarios').style.display = 'flex';
+                        document.getElementById('card-config-empresa').style.display = 'flex'; // Apenas admin e gerente veem este card.
                     }
                     // Funcionalidades exclusivas para Admin
                     if (usuario.role === 'admin') {
@@ -504,10 +504,8 @@
                     // Funcionalidades para Admin, Gerente e Funcionário
                     if (['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
                         document.getElementById('card-gerenciar-mensalidades').style.display = 'flex';
+                        document.getElementById('card-cadastrar-empresa').style.display = 'flex';
                     }
-                    // Os cards de cadastro e configuração agora aparecem para TODOS os perfis.
-                    document.getElementById('card-cadastrar-empresa').style.display = 'flex';
-                    document.getElementById('card-config-empresa').style.display = 'flex';
                 }
             } catch (error) {
                 console.error('Erro ao carregar dados do usuário:', error);
