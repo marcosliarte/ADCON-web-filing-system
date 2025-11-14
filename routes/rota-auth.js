@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { check, validationResult } = require('express-validator');
 // Importe o modelo de usuário
 const Usuario = require('../models/model-usuario');
+const Funcionario = require('../models/model-funcionario'); // Adicionado para buscar funcionários
 const auth = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
 const adminAuth = require('../middleware/adminAuth'); // Novo middleware
@@ -598,4 +599,26 @@ router.post('/admin/users/:id/reset-password', [auth, adminAuth], async (req, re
     }
 });
 
+
+// @route   GET api/auth/admin/unlinked-users
+// @desc    Listar usuários que ainda não foram vinculados a um funcionário
+// @access  Private (Admin/Gerente)
+router.get('/admin/unlinked-users', [auth, adminAuth], async (req, res) => {
+  try {
+    // 1. Encontra todos os IDs de usuários que já estão na coleção de funcionários
+    const linkedUsers = await Funcionario.find({ usuario: { $exists: true } }).select('usuario');
+    const linkedUserIds = linkedUsers.map(func => func.usuario);
+
+    // 2. Busca todos os usuários cujo ID não está na lista de IDs vinculados
+    const unlinkedUsers = await Usuario.find({
+      _id: { $nin: linkedUserIds }
+    }).select('-senha').sort({ nome: 1 });
+
+    res.json(unlinkedUsers);
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro no servidor ao buscar usuários não vinculados.' });
+  }
+});
 module.exports = router;

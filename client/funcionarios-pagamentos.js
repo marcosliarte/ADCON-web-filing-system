@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Referências aos elementos do DOM
+    const usuarioSelect = document.getElementById('usuario-vinculado');
     const formNovoFuncionario = document.getElementById('form-novo-funcionario');
     const tabelaFuncionariosBody = document.querySelector('#tabela-funcionarios tbody');
     const modal = document.getElementById('modal-pagamento');
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Carregar funcionários na tabela
     await carregarFuncionarios();
+    await carregarUsuariosDisponiveis();
 
     // Listener para o formulário de cadastro/edição
     formNovoFuncionario.addEventListener('submit', handleFuncionarioSubmit);
@@ -61,10 +63,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnGerarDemonstrativo.addEventListener('click', gerarDemonstrativo);
 });
 
+async function carregarUsuariosDisponiveis() {
+    const usuarioSelect = document.getElementById('usuario-vinculado');
+    try {
+        const response = await fetchWithAuth('/api/auth/admin/unlinked-users');
+        if (!response.ok) throw new Error('Falha ao carregar usuários.');
+
+        const usuarios = await response.json();
+        usuarioSelect.innerHTML = '<option value="">Selecione um usuário</option>'; // Limpa e adiciona a opção padrão
+
+        if (usuarios.length === 0) {
+            usuarioSelect.innerHTML = '<option value="">Nenhum usuário disponível para vínculo</option>';
+            usuarioSelect.disabled = true;
+            return;
+        }
+
+        usuarios.forEach(user => {
+            const option = new Option(`${user.nome} (${user.email})`, user._id);
+            usuarioSelect.appendChild(option);
+        });
+        usuarioSelect.disabled = false;
+    } catch (error) {
+        usuarioSelect.innerHTML = `<option value="">Erro ao carregar usuários</option>`;
+        console.error(error);
+    }
+}
+
 async function carregarFuncionarios() {
     const tabelaFuncionariosBody = document.querySelector('#tabela-funcionarios tbody');
     try {
-        const response = await fetchWithAuth('/api/configuracao/funcionarios');
+        const response = await fetchWithAuth('/api/funcionarios');
         if (!response.ok) throw new Error('Falha ao carregar funcionários.');
         const funcionarios = await response.json();
 
@@ -78,10 +106,10 @@ async function carregarFuncionarios() {
             const tr = document.createElement('tr');
             tr.dataset.funcionarioId = func._id;
             tr.innerHTML = `
-                <td>${func.nome}</td>
+                <td>${func.nome}<br><small style="color: #6c757d;">Usuário: ${func.usuario ? func.usuario.email : 'Não vinculado'}</small></td>
                 <td>${func.cargo}</td>
                 <td>${func.salarioBruto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                <td>${func.chavePix || 'Não cadastrada'}</td>
+                <td>${func.chavePix || 'Não cadastrada'}</td> <!-- CORREÇÃO: Garante que o campo seja exibido -->
                 <td><span class="status-badge status-${func.statusPagamentoMesAtual.toLowerCase().replace(' ', '-')}">${func.statusPagamentoMesAtual}</span></td>
                 <td class="actions-cell">
                     <button class="btn-sm btn-ver-pagamento" title="Ver Pagamento">📄</button>
@@ -110,6 +138,8 @@ async function handleFuncionarioSubmit(e) {
     const cargo = document.getElementById('cargo').value;
     const salarioBruto = parseFloat(document.getElementById('salarioBruto').value);
     const chavePix = document.getElementById('chavePix').value;
+    const usuarioId = document.getElementById('usuario-vinculado').value;
+    const usuarioOriginalId = document.getElementById('usuario-vinculado').dataset.originalValue;
 
     const descontos = Array.from(document.querySelectorAll('#descontos-container .desconto-item')).map(item => {
         const descricao = item.querySelector('[name="desconto-descricao"]').value;
@@ -122,13 +152,19 @@ async function handleFuncionarioSubmit(e) {
         return { descricao, valor, mesInicio, anoInicio, mesesDuracao };
     }).filter(d => d.descricao && d.valor > 0);
 
-    const url = funcionarioId ? `/api/configuracao/funcionarios/${funcionarioId}` : '/api/configuracao/funcionarios';
+    const url = funcionarioId ? `/api/funcionarios/${funcionarioId}` : '/api/funcionarios';
     const method = funcionarioId ? 'PUT' : 'POST';
+
+    const payload = { nome, cargo, salarioBruto, chavePix, descontos };
+    // Adiciona o ID do usuário ao payload apenas se for um novo cadastro
+    if (!funcionarioId) {
+        payload.usuario = usuarioId;
+    }
 
     try {
         const response = await fetchWithAuth(url, {
             method: method,
-            body: JSON.stringify({ nome, cargo, salarioBruto, chavePix, descontos })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -136,9 +172,23 @@ async function handleFuncionarioSubmit(e) {
             throw new Error(err.msg || 'Erro ao salvar funcionário.');
         }
 
+        // --- CORREÇÃO: Lógica para atualizar o vínculo do usuário ---
+        // Se estiver editando E o ID do usuário mudou, chama a rota específica.
+        if (funcionarioId && usuarioId !== usuarioOriginalId) {
+            const vincularResponse = await fetchWithAuth(`/api/funcionarios/${funcionarioId}/vincular-usuario`, {
+                method: 'PUT',
+                body: JSON.stringify({ novoUsuarioId: usuarioId })
+            });
+            if (!vincularResponse.ok) {
+                const err = await vincularResponse.json();
+                throw new Error(err.msg || 'Erro ao atualizar o vínculo do usuário.');
+            }
+        }
+
         alert(`Funcionário ${funcionarioId ? 'atualizado' : 'cadastrado'} com sucesso!`);
         resetarFormulario();
         await carregarFuncionarios();
+        await carregarUsuariosDisponiveis(); // Recarrega a lista de usuários após o cadastro
     } catch (error) {
         alert(`Erro: ${error.message}`);
     }
@@ -163,7 +213,7 @@ function adicionarCampoDescontoFixo(desconto = {}) {
 
 async function preencherFormularioParaEdicao(id) {
     try {
-        const response = await fetchWithAuth(`/api/configuracao/funcionarios/${id}`);
+        const response = await fetchWithAuth(`/api/funcionarios/${id}`);
         if (!response.ok) throw new Error('Não foi possível carregar os dados do funcionário.');
 
         const funcionario = await response.json();
@@ -179,6 +229,27 @@ async function preencherFormularioParaEdicao(id) {
             funcionario.descontos.forEach(desconto => adicionarCampoDescontoFixo(desconto));
         }
 
+        // Habilita a edição do usuário vinculado
+        const usuarioSelect = document.getElementById('usuario-vinculado');
+        usuarioSelect.disabled = false; // Habilita o select
+
+        // Carrega os usuários não vinculados
+        const responseUsuarios = await fetchWithAuth('/api/auth/admin/unlinked-users');
+        const usuariosDisponiveis = await responseUsuarios.json();
+
+        usuarioSelect.innerHTML = ''; // Limpa as opções
+
+        // Adiciona o usuário atual do funcionário como a primeira opção selecionada
+        const currentUserOption = new Option(`${funcionario.usuario.nome} (Atual)`, funcionario.usuario._id, true, true);
+        usuarioSelect.dataset.originalValue = funcionario.usuario._id; // Armazena o valor original
+        usuarioSelect.appendChild(currentUserOption);
+
+        // Adiciona os outros usuários disponíveis
+        usuariosDisponiveis.forEach(user => {
+            const option = new Option(`${user.nome} (${user.email})`, user._id);
+            usuarioSelect.appendChild(option);
+        });
+
         document.getElementById('btn-salvar-funcionario').textContent = 'Salvar Alterações';
         document.getElementById('btn-cancelar-edicao').style.display = 'inline-block';
         window.scrollTo(0, 0);
@@ -193,7 +264,11 @@ function resetarFormulario() {
     document.getElementById('funcionarioId').value = '';
     document.getElementById('descontos-container').innerHTML = '';
     document.getElementById('btn-salvar-funcionario').textContent = 'Cadastrar';
+    delete document.getElementById('usuario-vinculado').dataset.originalValue; // Limpa o valor original
+    document.getElementById('usuario-vinculado').disabled = false; // Garante que o select esteja habilitado
     document.getElementById('btn-cancelar-edicao').style.display = 'none';
+    document.getElementById('usuario-vinculado').disabled = false; // Reabilita o select
+    carregarUsuariosDisponiveis(); // Recarrega a lista de usuários
 }
 
 async function excluirFuncionario(id) {
@@ -202,7 +277,7 @@ async function excluirFuncionario(id) {
     // Por simplicidade, esta parte foi omitida, mas seguiria o padrão de outras funções de exclusão.
     // alert('Funcionalidade de exclusão a ser implementada.');
      try {
-         const response = await fetchWithAuth(`/api/configuracao/funcionarios/${id}`, {
+         const response = await fetchWithAuth(`/api/funcionarios/${id}`, {
              method: 'DELETE'
          });
          if (!response.ok) {
@@ -211,6 +286,7 @@ async function excluirFuncionario(id) {
          }
          alert('Funcionário excluído com sucesso!');
          await carregarFuncionarios();
+         await carregarUsuariosDisponiveis(); // Recarrega a lista de usuários
      } catch (error) {
          alert(`Erro: ${error.message}`);
      }
@@ -219,7 +295,7 @@ async function excluirFuncionario(id) {
 async function abrirModalPagamento(funcionarioId) {
     const modal = document.getElementById('modal-pagamento');
     try {
-        const response = await fetchWithAuth(`/api/configuracao/funcionarios/${funcionarioId}`);
+        const response = await fetchWithAuth(`/api/funcionarios/${funcionarioId}`);
         if (!response.ok) throw new Error('Funcionário não encontrado.');
         const funcionario = await response.json();
 
@@ -257,7 +333,7 @@ async function gerarDemonstrativo() {
 
     document.getElementById('modal-titulo-pagamento').textContent = `Demonstrativo - ${document.getElementById('mes-pagamento').options[document.getElementById('mes-pagamento').selectedIndex].text}/${ano}`;
 
-    const response = await fetchWithAuth(`/api/configuracao/funcionarios/${funcionarioId}`);
+    const response = await fetchWithAuth(`/api/funcionarios/${funcionarioId}`);
     const funcionario = await response.json();
 
     const pagamentoExistente = (funcionario.historicoPagamentos || []).find(p => p.mes === mes && p.ano === ano);
@@ -474,7 +550,7 @@ async function registrarPagamento(funcionario, mes, ano) {
     };
 
     try {
-        const response = await fetchWithAuth(`/api/configuracao/funcionarios/${funcionario._id}/pagamentos`, {
+        const response = await fetchWithAuth(`/api/funcionarios/${funcionario._id}/pagamentos`, {
             method: 'POST',
             body: JSON.stringify(payload)
         });

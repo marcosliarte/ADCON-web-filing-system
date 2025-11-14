@@ -52,6 +52,13 @@
                         <label for="chavePix">Chave Pix:</label>
                         <input type="text" id="chavePix" placeholder="CPF, e-mail, telefone, etc.">
                     </div>
+                    <!-- CAMPO ADICIONADO PARA VINCULAR USUÁRIO -->
+                    <div class="form-group" id="group-vincular-usuario">
+                        <label for="usuario-vinculado">Vincular ao Usuário do Sistema</label>
+                        <select id="usuario-vinculado" required>
+                            <option value="">Carregando usuários...</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group-full" style="margin-top: 1.5rem;">
                     <label>Descontos Fixos Recorrentes:</label>
@@ -74,7 +81,7 @@
                         <th>Nome</th>
                         <th>Cargo</th>
                         <th>Salário Bruto</th>
-                        <th>Chave Pix</th>
+                        <th>Chave Pix</th> <!-- Coluna já existe, apenas confirmando -->
                         <th>Status (Mês Atual)</th>
                         <th>Ações</th>
                     </tr>

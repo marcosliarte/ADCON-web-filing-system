@@ -11,6 +11,8 @@ const PagamentoSchema = new mongoose.Schema({
     totalProventos: { type: Number, required: true },
     totalDescontos: { type: Number, required: true },
     salarioLiquido: { type: Number, required: true },
+    formaPagamento: { type: String }, // CAMPO ADICIONADO
+    chavePix: { type: String }, // CAMPO ADICIONADO
     dataPagamento: { type: Date, default: Date.now },
     status: { type: String, enum: ['Pago', 'Pendente'], default: 'Pago' }
 });
@@ -47,8 +49,18 @@ const FuncionarioSchema = new mongoose.Schema({
         type: Number,
         required: [true, 'O salário bruto é obrigatório.']
     },
+    chavePix: { type: String, trim: true }, // CAMPO ADICIONADO
     descontos: [DescontoSchema],
-    historicoPagamentos: [PagamentoSchema]
+    historicoPagamentos: [PagamentoSchema],
+    // --- CAMPO ADICIONADO PARA VINCULAR AO USUÁRIO ---
+    usuario: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Usuario', // Referencia o model 'Usuario'
+        required: [true, 'É obrigatório vincular o funcionário a um usuário.'],
+        unique: true // Garante que um usuário só pode ser vinculado a um único funcionário
+    }
+}, {
+    timestamps: true // Adiciona os campos createdAt e updatedAt automaticamente
 });
 
 module.exports = mongoose.model('Funcionario', FuncionarioSchema);
