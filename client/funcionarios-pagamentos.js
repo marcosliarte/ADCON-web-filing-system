@@ -70,7 +70,7 @@ async function carregarFuncionarios() {
 
         tabelaFuncionariosBody.innerHTML = '';
         if (funcionarios.length === 0) {
-            tabelaFuncionariosBody.innerHTML = '<tr><td colspan="5">Nenhum funcionário cadastrado.</td></tr>';
+            tabelaFuncionariosBody.innerHTML = '<tr><td colspan="6">Nenhum funcionário cadastrado.</td></tr>';
             return;
         }
 
@@ -81,6 +81,7 @@ async function carregarFuncionarios() {
                 <td>${func.nome}</td>
                 <td>${func.cargo}</td>
                 <td>${func.salarioBruto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                <td>${func.chavePix || 'Não cadastrada'}</td>
                 <td><span class="status-badge status-${func.statusPagamentoMesAtual.toLowerCase().replace(' ', '-')}">${func.statusPagamentoMesAtual}</span></td>
                 <td class="actions-cell">
                     <button class="btn-sm btn-ver-pagamento" title="Ver Pagamento">📄</button>
@@ -98,7 +99,7 @@ async function carregarFuncionarios() {
 
     } catch (error) {
         console.error(error);
-        tabelaFuncionariosBody.innerHTML = '<tr><td colspan="5" style="color: red;">Erro ao carregar funcionários.</td></tr>';
+        tabelaFuncionariosBody.innerHTML = '<tr><td colspan="6" style="color: red;">Erro ao carregar funcionários.</td></tr>';
     }
 }
 
@@ -108,6 +109,7 @@ async function handleFuncionarioSubmit(e) {
     const nome = document.getElementById('nome').value;
     const cargo = document.getElementById('cargo').value;
     const salarioBruto = parseFloat(document.getElementById('salarioBruto').value);
+    const chavePix = document.getElementById('chavePix').value;
 
     const descontos = Array.from(document.querySelectorAll('#descontos-container .desconto-item')).map(item => {
         const descricao = item.querySelector('[name="desconto-descricao"]').value;
@@ -126,7 +128,7 @@ async function handleFuncionarioSubmit(e) {
     try {
         const response = await fetchWithAuth(url, {
             method: method,
-            body: JSON.stringify({ nome, cargo, salarioBruto, descontos })
+            body: JSON.stringify({ nome, cargo, salarioBruto, chavePix, descontos })
         });
 
         if (!response.ok) {
@@ -170,6 +172,7 @@ async function preencherFormularioParaEdicao(id) {
         document.getElementById('nome').value = funcionario.nome;
         document.getElementById('cargo').value = funcionario.cargo;
         document.getElementById('salarioBruto').value = funcionario.salarioBruto;
+        document.getElementById('chavePix').value = funcionario.chavePix || '';
 
         document.getElementById('descontos-container').innerHTML = '';
         if (funcionario.descontos && funcionario.descontos.length > 0) {
@@ -241,7 +244,7 @@ async function abrirModalPagamento(funcionarioId) {
 
         document.getElementById('demonstrativo-corpo').innerHTML = '<p>Selecione o período e clique em "Gerar Demonstrativo".</p>';
         exibirHistoricoPagamentos(funcionario.historicoPagamentos || []);
-        modal.style.display = 'block';
+        modal.style.display = 'flex'; // CORREÇÃO: Usa 'flex' para centralizar o modal.
     } catch (error) {
         alert(error.message);
     }
@@ -260,9 +263,9 @@ async function gerarDemonstrativo() {
     const pagamentoExistente = (funcionario.historicoPagamentos || []).find(p => p.mes === mes && p.ano === ano);
 
     if (pagamentoExistente) {
-        renderizarDemonstrativo(pagamentoExistente, true);
+        renderizarDemonstrativo(pagamentoExistente, true, mes, ano, funcionario);
     } else {
-        renderizarDemonstrativo(funcionario, false, mes, ano);
+        renderizarDemonstrativo(funcionario, false, mes, ano, funcionario);
     }
 }
 
@@ -281,12 +284,32 @@ function getDescontosFixosAtivos(funcionario, mes, ano) {
     });
 }
 
-function renderizarDemonstrativo(dados, isPago, mes, ano) {
+function renderizarDemonstrativo(dados, isPago, mes, ano, dadosFuncionario) {
     const corpo = document.getElementById('demonstrativo-corpo');
     corpo.innerHTML = '';
 
     const salarioBase = isPago ? dados.salarioBase : dados.salarioBruto;
-    const descontosFixosAtivos = isPago ? dados.descontosFixos : getDescontosFixosAtivos(dados, mes, ano);
+    const descontosFixosAtivos = isPago ? dados.descontosFixos : getDescontosFixosAtivos(dadosFuncionario, mes, ano);
+    // Busca os adicionais e descontos variáveis se o pagamento já foi feito
+    const adicionaisPagos = isPago ? (dados.adicionais || []) : [];
+    const descontosVariaveisPagos = isPago ? (dados.descontosVariaveis || []) : [];
+
+    // --- MELHORIA: Adiciona os detalhes do pagamento ---
+    let detalhesPagamentoHtml = '';
+    if (isPago) {
+        detalhesPagamentoHtml = `<p><strong>Forma de Pagamento:</strong> ${dados.formaPagamento || 'Não informado'}</p>`;
+        if (dados.formaPagamento === 'pix' && dados.chavePix) {
+            detalhesPagamentoHtml += `<p><strong>Chave PIX:</strong> ${dados.chavePix}</p>`;
+        }
+    } else {
+        // Se o pagamento não foi feito, mostra o seletor
+        detalhesPagamentoHtml = `
+            <label for="formaPagamentoDemonstrativo">Forma de Pagamento:</label>
+            <select id="formaPagamentoDemonstrativo">
+                <option value="pix" selected>PIX</option><option value="dinheiro">Dinheiro Físico</option><option value="outro">Outro</option>
+            </select>
+            <p style="margin-top: 5px;"><strong>Chave PIX (se aplicável):</strong> ${dadosFuncionario.chavePix || 'Não cadastrada'}</p>`;
+    }
 
     // --- MELHORIA DE DESIGN: Gera uma tabela em vez de divs ---
     let html = `
@@ -304,8 +327,15 @@ function renderizarDemonstrativo(dados, isPago, mes, ano) {
                     <td class="valor-coluna valor-positivo">${salarioBase.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                     <td class="valor-coluna"></td>
                 </tr>
-                <!-- Adicionais serão inseridos aqui -->
-                <tr id="adicionais-placeholder"></tr>
+                ${adicionaisPagos.map(a => `
+                    <tr>
+                        <td>${a.descricao}</td>
+                        <td class="valor-coluna valor-positivo">${a.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                        <td class="valor-coluna"></td>
+                    </tr>
+                `).join('')}
+                <!-- Placeholder para novos adicionais (só aparece se não for pago) -->
+                ${!isPago ? '<tr id="adicionais-placeholder"></tr>' : ''}
                 ${descontosFixosAtivos.map(d => `
                     <tr>
                         <td>${d.descricao}</td>
@@ -313,16 +343,35 @@ function renderizarDemonstrativo(dados, isPago, mes, ano) {
                         <td class="valor-coluna valor-negativo">${d.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                     </tr>
                 `).join('')}
-                <!-- Descontos variáveis serão inseridos aqui -->
-                <tr id="descontos-variaveis-placeholder"></tr>
+                ${descontosVariaveisPagos.map(d => `
+                    <tr>
+                        <td>${d.descricao}</td>
+                        <td class="valor-coluna"></td>
+                        <td class="valor-coluna valor-negativo">${d.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+                    </tr>
+                `).join('')}
+                <!-- Placeholder para novos descontos (só aparece se não for pago) -->
+                ${!isPago ? '<tr id="descontos-variaveis-placeholder"></tr>' : ''}
             </tbody>
         </table>
         <div class="resumo-pagamento" id="resumo-pagamento">
             <!-- O resumo será calculado e inserido aqui -->
         </div>
+        <div class="detalhes-pagamento" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
+            <h4>Detalhes para Pagamento</h4>
+            ${detalhesPagamentoHtml}
+        </div>
         <div class="action-buttons demonstrativo-actions">
             ${isPago ? `<p><strong>Pagamento realizado em: ${new Date(dados.dataPagamento).toLocaleDateString('pt-BR')}</strong></p>` : `<button id="btn-registrar-pagamento" class="btn btn-success">Registrar Pagamento</button>`}
             <button id="btn-imprimir-demonstrativo" class="btn btn-secondary">Imprimir</button>
+            ${!isPago ? `
+                <div class="variaveis-container" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #eee;">
+                    <h4>Adicionais e Descontos do Mês</h4>
+                    <p>Use os botões abaixo para adicionar valores que se aplicam apenas a este mês.</p>
+                    <button type="button" id="btn-add-adicional" class="btn-sm" style="background-color: #28a745;">+ Adicional</button>
+                    <button type="button" id="btn-add-desconto-variavel" class="btn-sm" style="background-color: #ffc107; color: #212529;">+ Desconto</button>
+                </div>
+            ` : ''}
         </div>
     `;
     corpo.innerHTML = html;
@@ -330,10 +379,6 @@ function renderizarDemonstrativo(dados, isPago, mes, ano) {
     document.getElementById('btn-imprimir-demonstrativo').addEventListener('click', () => window.print());
     
     if (!isPago) {
-        // Adiciona botões para adicionar campos dinamicamente
-        document.getElementById('adicionais-placeholder').innerHTML = `<td><button type="button" id="btn-add-adicional" class="btn-sm">+ Adicional</button></td><td></td><td></td>`;
-        document.getElementById('descontos-variaveis-placeholder').innerHTML = `<td><button type="button" id="btn-add-desconto-variavel" class="btn-sm">+ Desconto</button></td><td></td><td></td>`;
-
         document.getElementById('btn-add-adicional').addEventListener('click', () => adicionarCampoVariavel('adicional'));
         document.getElementById('btn-add-desconto-variavel').addEventListener('click', () => adicionarCampoVariavel('desconto-variavel'));
         document.getElementById('btn-registrar-pagamento').addEventListener('click', () => registrarPagamento(dados, mes, ano));
@@ -410,6 +455,8 @@ async function registrarPagamento(funcionario, mes, ano) {
     const descontosVariaveis = getVariaveis('desconto-variavel');
     const descontosFixosAtivos = getDescontosFixosAtivos(funcionario, mes, ano);
 
+    const formaPagamento = document.getElementById('formaPagamentoDemonstrativo').value;
+
     const totalProventos = funcionario.salarioBruto + adicionais.reduce((acc, item) => acc + item.valor, 0);
     const totalDescontos = descontosFixosAtivos.reduce((acc, item) => acc + item.valor, 0) + descontosVariaveis.reduce((acc, item) => acc + item.valor, 0);
 
@@ -421,7 +468,9 @@ async function registrarPagamento(funcionario, mes, ano) {
         descontosVariaveis,
         totalProventos,
         totalDescontos,
-        salarioLiquido: totalProventos - totalDescontos
+        salarioLiquido: totalProventos - totalDescontos,
+        formaPagamento: formaPagamento,
+        chavePix: funcionario.chavePix // Envia a chave PIX do cadastro do funcionário
     };
 
     try {

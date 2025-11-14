@@ -17,7 +17,9 @@
             height: 100%;
             overflow: auto; /* Permite rolagem se o conteúdo for grande */
             background-color: rgba(0,0,0,0.6); /* Fundo escurecido */
-            padding-top: 60px; /* Espaço no topo */
+            /* --- MELHORIA: Centraliza o conteúdo do modal --- */
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
@@ -46,6 +48,10 @@
                         <label for="salarioBruto">Salário Bruto (R$):</label>
                         <input type="number" id="salarioBruto" step="0.01" required>
                     </div>
+                    <div class="form-group" id="group-chave-pix">
+                        <label for="chavePix">Chave Pix:</label>
+                        <input type="text" id="chavePix" placeholder="CPF, e-mail, telefone, etc.">
+                    </div>
                 </div>
                 <div class="form-group-full" style="margin-top: 1.5rem;">
                     <label>Descontos Fixos Recorrentes:</label>
@@ -68,6 +74,7 @@
                         <th>Nome</th>
                         <th>Cargo</th>
                         <th>Salário Bruto</th>
+                        <th>Chave Pix</th>
                         <th>Status (Mês Atual)</th>
                         <th>Ações</th>
                     </tr>

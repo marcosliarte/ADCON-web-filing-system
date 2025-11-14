@@ -431,7 +431,7 @@
 
                 <a href="funcionarios-pagamentos.html" class="dashboard-card" id="card-gerenciar-funcionarios" style="display: none;">
                     <div class="card-icon">💵</div>
-                    <h3>Folha de Pagamento</h3>
+                    <h3>Minha Folha de Pagamento</h3>
                     <p>Gerencie funcionários, descontos e realize pagamentos mensais.</p>
                 </a>
 
@@ -439,6 +439,12 @@
                     <div class="card-icon">👑</div>
                     <h3>Central do Admin</h3>
                     <p>Acesse o dashboard de saúde do sistema, logs e gerenciamento de usuários.</p>
+                </a>
+
+                <a href="meus-pagamentos.html" class="dashboard-card" id="card-meus-pagamentos" style="display: none;">
+                    <div class="card-icon">💳</div>
+                    <h3>Meus Pagamentos</h3>
+                    <p>Acompanhe seu histórico de pagamentos e gere recibos.</p>
                 </a>
             </div>
         </div>
@@ -505,6 +511,8 @@
                     if (['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
                         document.getElementById('card-gerenciar-mensalidades').style.display = 'flex';
                         document.getElementById('card-cadastrar-empresa').style.display = 'flex';
+                        // Exibe o card "Meus Pagamentos" para admin, gerente e funcionário.
+                        document.getElementById('card-meus-pagamentos').style.display = 'flex';
                     }
                 }
             } catch (error) {

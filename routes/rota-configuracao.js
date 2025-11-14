@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
+const { check, validationResult } = require('express-validator');
 const ConfiguracaoEmpresa = require('../models/model-configuracao');
 const multer = require('multer');
 const path = require('path');
@@ -130,16 +131,20 @@ router.get('/funcionarios', [auth, adminAuth], async (req, res) => {
 // @route   POST api/configuracao/funcionarios
 // @desc    Adicionar um novo funcionário
 // @access  Private (Admin, Gerente)
-router.post('/funcionarios', [auth, adminAuth], async (req, res) => {
-    const { nome, cargo, salarioBruto, descontos } = req.body;
-    if (!nome || !cargo || !salarioBruto) {
-        return res.status(400).json({ msg: 'Nome, cargo e salário bruto são obrigatórios.' });
-    }
+router.post('/funcionarios', [auth, adminAuth], [
+    check('nome', 'O nome é obrigatório').not().isEmpty(),
+    check('cargo', 'O cargo é obrigatório').not().isEmpty(),
+    check('salarioBruto', 'O salário bruto é obrigatório e deve ser um número').isFloat({ gt: 0 })
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { nome, cargo, salarioBruto, chavePix, descontos } = req.body;
     try {
         const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
         if (!config) return res.status(404).json({ msg: 'Configuração da empresa não encontrada.' });
 
-        config.funcionarios.push({ nome, cargo, salarioBruto, descontos });
+        config.funcionarios.push({ nome, cargo, salarioBruto, chavePix, descontos: descontos || [] });
         await config.save();
         res.status(201).json(config.funcionarios);
     } catch (err) {
@@ -151,17 +156,26 @@ router.post('/funcionarios', [auth, adminAuth], async (req, res) => {
 // @route   PUT api/configuracao/funcionarios/:id
 // @desc    Atualizar um funcionário
 // @access  Private (Admin, Gerente)
-router.put('/funcionarios/:id', [auth, adminAuth], async (req, res) => {
-    const { nome, cargo, salarioBruto, descontos } = req.body;
+router.put('/funcionarios/:id', [auth, adminAuth], [
+    check('nome', 'O nome é obrigatório').not().isEmpty(),
+    check('cargo', 'O cargo é obrigatório').not().isEmpty(),
+    check('salarioBruto', 'O salário bruto é obrigatório e deve ser um número').isFloat({ gt: 0 })
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { nome, cargo, salarioBruto, chavePix, descontos } = req.body;
     try {
         const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
+        if (!config) return res.status(404).json({ msg: 'Configuração da empresa não encontrada.' });
         const funcionario = config.funcionarios.id(req.params.id);
         if (!funcionario) return res.status(404).json({ msg: 'Funcionário não encontrado.' });
 
         funcionario.nome = nome;
         funcionario.cargo = cargo;
         funcionario.salarioBruto = salarioBruto;
-        funcionario.descontos = descontos;
+        funcionario.chavePix = chavePix;
+        funcionario.descontos = descontos || [];
 
         await config.save();
         res.json(funcionario);
@@ -192,22 +206,24 @@ router.get('/funcionarios/:id', [auth, adminAuth], async (req, res) => {
 // @route   POST api/configuracao/funcionarios/:id/pagamentos
 // @desc    Registrar um novo pagamento para um funcionário
 // @access  Private (Admin, Gerente)
-router.post('/funcionarios/:id/pagamentos', [auth, adminAuth], async (req, res) => {
-    const { mes, ano, salarioBase, adicionais, descontosFixos, descontosVariaveis, totalProventos, totalDescontos, salarioLiquido } = req.body;
-    if (!mes || !ano || !salarioBase) {
-        return res.status(400).json({ message: 'Mês, ano e salário base são obrigatórios.' });
-    }
+router.post('/funcionarios/:id/pagamentos', [auth, adminAuth], [
+    check('mes', 'Mês é obrigatório').isInt({ min: 1, max: 12 }),
+    check('ano', 'Ano é obrigatório').isInt(),
+    check('formaPagamento', 'Forma de pagamento é obrigatória').not().isEmpty()
+], async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { mes, ano, salarioBase, adicionais, descontosFixos, descontosVariaveis, totalProventos, totalDescontos, salarioLiquido, formaPagamento, chavePix } = req.body;
     try {
         const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
         const funcionario = config.funcionarios.id(req.params.id);
         if (!funcionario) return res.status(404).json({ message: 'Funcionário não encontrado.' });
 
-        const pagamentoExistente = funcionario.historicoPagamentos.find(p => p.mes === mes && p.ano === ano);
-        if (pagamentoExistente) {
-            return res.status(400).json({ message: `Pagamento para ${mes}/${ano} já foi registrado.` });
-        }
+        // Remove pagamento antigo para o mesmo período para evitar duplicatas
+        funcionario.historicoPagamentos = funcionario.historicoPagamentos.filter(p => !(p.mes === mes && p.ano === ano));
 
-        funcionario.historicoPagamentos.push({ mes, ano, salarioBase, adicionais, descontosFixos, descontosVariaveis, totalProventos, totalDescontos, salarioLiquido });
+        funcionario.historicoPagamentos.push({ mes, ano, salarioBase, adicionais, descontosFixos, descontosVariaveis, totalProventos, totalDescontos, salarioLiquido, formaPagamento, chavePix });
         await config.save();
 
         res.status(201).json({ message: 'Pagamento registrado com sucesso!', funcionario });
