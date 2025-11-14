@@ -295,8 +295,9 @@ async function excluirFuncionario(id) {
 async function abrirModalPagamento(funcionarioId) {
     const modal = document.getElementById('modal-pagamento');
     try {
+        // CORREÇÃO: A rota para buscar um único funcionário é /api/funcionarios/:id
         const response = await fetchWithAuth(`/api/funcionarios/${funcionarioId}`);
-        if (!response.ok) throw new Error('Funcionário não encontrado.');
+        if (!response || !response.ok) throw new Error('Funcionário não encontrado.');
         const funcionario = await response.json();
 
         document.getElementById('modal-nome-funcionario').textContent = funcionario.nome;

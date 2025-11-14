@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Meus Pagamentos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Estilos reutilizados de outros arquivos para consistência */
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
+        .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-toggle { background-color: transparent; border: none; color: white; padding: 0.5rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; }
+        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; border-radius: 5px; overflow: hidden; }
+        .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .dropdown-content a:hover { background-color: #f1f1f1; }
+        .show { display: block; }
+        .container { max-width: 900px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+        .loading, .error, .no-data { text-align: center; padding: 2rem; font-size: 1.2rem; font-style: italic; color: #6c757d; }
+        .error { color: #dc3545; }
+
+        /* Estilos específicos para o Holerite */
+        .payslip-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            page-break-inside: avoid;
+        }
+        .payslip-header {
+            background-color: #e9ecef;
+            padding: 1rem 1.5rem;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .payslip-body {
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Duas colunas: Proventos e Descontos */
+            gap: 1.5rem;
+        }
+        .payslip-section h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            color: #495057;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .payslip-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+        .payslip-item .description {
+            color: #6c757d;
+        }
+        .payslip-item .description.sub-item {
+            padding-left: 1rem;
+        }
+        .payslip-item .value {
+            font-weight: 500;
+        }
+        .payslip-footer {
+            background-color: #f8f9fa;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .value.positive { color: #28a745; }
+        .value.negative { color: #dc3545; }
+
+        .print-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #6c757d;
+        }
+        .print-button:hover {
+            color: #007bff;
+        }
+
+        @media print {
+            body { background-color: white; }
+            .header, .print-button, h1 { display: none !important; }
+            .container { box-shadow: none; margin: 0; padding: 0; max-width: 100%; }
+            .payslip-card { border: 1px solid #ccc; margin-top: 2rem; }
+        }
+    </style>
+</head>
+<body style="display: none;">
+    <!-- Script de bloqueio de acesso -->
+    <script>
+        if (!localStorage.getItem('token')) {
+            window.location.replace('login.html');
+        }
+    </script>
+
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1>Meus Pagamentos</h1>
+        <div id="payment-history">
+            <div class="loading">Carregando histórico de pagamentos...</div>
+        </div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userResponse = await fetchWithAuth('/api/auth');
+            if (!userResponse) return;
+
+            const currentUser = await userResponse.json();
+            createHeader('header-placeholder', currentUser);
+            document.body.style.display = 'block';
+
+            loadPaymentHistory();
+        });
+
+        async function loadPaymentHistory() {
+            const container = document.getElementById('payment-history');
+            try {
+                const response = await fetchWithAuth('/api/pagamentos/meus-pagamentos');
+                if (!response.ok) {
+                    throw new Error('Não foi possível carregar seu histórico de pagamentos.');
+                }
+                const payments = await response.json();
+
+                if (!payments || payments.length === 0) {
+                    container.innerHTML = `<div class="no-data">Nenhum registro de pagamento encontrado.</div>`;
+                    return;
+                }
+
+                container.innerHTML = ''; // Limpa o container
+                payments.forEach(payment => {
+                    const card = createPayslipCard(payment);
+                    container.appendChild(card);
+                });
+
+            } catch (error) {
+                container.innerHTML = `<div class="error">${error.message}</div>`;
+            }
+        }
+
+        function createPayslipCard(payment) {
+            const card = document.createElement('div');
+            card.className = 'payslip-card';
+            card.id = `payment-${payment._id}`; // Adiciona um ID único para cada card
+
+            const proventosHtml = `
+                <div class="payslip-item">
+                    <span class="description">Salário Base</span>
+                    <span class="value">${formatarMoeda(payment.salarioBase)}</span>
+                </div>
+                ${(payment.adicionais || []).map(item => `
+                    <div class="payslip-item">
+                        <span class="description sub-item">${item.descricao}</span>
+                        <span class="value">${formatarMoeda(item.valor)}</span>
+                    </div>
+                `).join('')}
+            `;
+
+            const descontosHtml = `
+                ${(payment.descontosFixos || []).map(item => `
+                    <div class="payslip-item">
+                        <span class="description sub-item">${item.descricao}</span>
+                        <span class="value negative">${formatarMoeda(item.valor)}</span>
+                    </div>
+                `).join('')}
+                ${(payment.descontosVariaveis || []).map(item => `
+                    <div class="payslip-item">
+                        <span class="description sub-item">${item.descricao}</span>
+                        <span class="value negative">${formatarMoeda(item.valor)}</span>
+                    </div>
+                `).join('')}
+            `;
+
+            card.innerHTML = `
+                <div class="payslip-header">
+                    <span>${new Date(payment.mesReferencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^\w/, c => c.toUpperCase())}</span>
+                    <span style="font-size: 0.9rem; font-weight: normal;">Pago em: ${new Date(payment.dataPagamento).toLocaleDateString('pt-BR')} via ${payment.formaPagamento || 'N/I'}</span>
+                </div>
+                <div class="payslip-body">
+                    <div class="payslip-section">
+                        <h3>Proventos</h3>
+                        ${proventosHtml}
+                    </div>
+                    <div class="payslip-section">
+                        <h3>Descontos</h3>
+                        ${descontosHtml.trim() === '' ? '<div class="payslip-item"><span class="description">Nenhum desconto neste mês.</span></div>' : descontosHtml}
+                    </div>
+                </div>
+                <div class="payslip-footer">
+                    <span>Valor Líquido a Receber</span>
+                    <span class="value positive">${formatarMoeda(payment.salarioLiquido)}</span>
+                </div>
+            `;
+            return card;
+        }
+
+        // A função formatarMoeda já existe em relatorios.html, idealmente ela estaria em shared.js
+        function formatarMoeda(valor) {
+            return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+    </script>
+</body>
+</html>
