@@ -37,13 +37,19 @@ async function loadUsers() {
                     // 1. Não pode excluir a si mesmo.
                     user._id !== currentUser._id && 
                     // 2. Um gerente não pode excluir um administrador.
-                    !(currentUser.role === 'gerente' && user.role === 'admin');
+                    !(currentUser.role === 'gerente' && user.role === 'admin'); 
+                
+                // Um admin não pode personificar a si mesmo.
+                const podePersonificar = user._id !== currentUser._id;
 
-                if (podeExcluir) {
-                    actionsCell.innerHTML = `<button class="delete-btn">Excluir</button>`;
-                } else {
-                    actionsCell.textContent = (user._id === currentUser._id) ? 'Você' : 'Ação não permitida';
+                let buttonsHtml = '';
+                if (podePersonificar) {
+                    buttonsHtml += `<button class="impersonate-btn">Personificar</button>`;
                 }
+                if (podeExcluir) {
+                    buttonsHtml += `<button class="delete-btn">Excluir</button>`;
+                }
+                actionsCell.innerHTML = buttonsHtml || ((user._id === currentUser._id) ? 'Você' : 'Ação não permitida');
             });
         }
     } catch (error) {
@@ -69,6 +75,29 @@ async function deleteUser(userId) {
         alert(`Erro: ${error.message}`);
     }
 }
+
+async function impersonateUser(userId) {
+    if (!confirm('Tem certeza que deseja personificar este usuário? Você será redirecionado para a página inicial como se fosse ele.')) return;
+
+    try {
+        const response = await fetchWithAuth(`/api/auth/admin/impersonate/${userId}`, {
+            method: 'POST'
+        });
+
+        if (response && response.ok) {
+            const { token } = await response.json();
+            localStorage.setItem('token', token); // Substitui o token atual pelo token de personificação
+            window.location.href = 'home.html'; // Redireciona para a home
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.msg || 'Falha ao tentar personificar o usuário.');
+        }
+    } catch (error) {
+        console.error('Erro ao personificar usuário:', error);
+        alert(`Erro: ${error.message}`);
+    }
+}
+
 
 document.getElementById('createUserForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -103,6 +132,9 @@ document.querySelector('#usersTable tbody').addEventListener('click', function(e
     if (e.target.classList.contains('delete-btn')) {
         const userId = e.target.closest('tr').dataset.userId;
         deleteUser(userId);
+    } else if (e.target.classList.contains('impersonate-btn')) {
+        const userId = e.target.closest('tr').dataset.userId;
+        impersonateUser(userId);
     }
 });
 

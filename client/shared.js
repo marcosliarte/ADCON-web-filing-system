@@ -68,6 +68,7 @@ async function createHeader(placeholderId, usuario) {
     // --- LÓGICA DE PERSONIFICAÇÃO ---
     // Decodifica o token para verificar se é uma sessão de personificação
     let impersonatorId = null;
+    const token = localStorage.getItem('token'); // CORREÇÃO: Busca o token do localStorage
     try {
         const payloadBase64 = token.split('.')[1];
         const decodedPayload = JSON.parse(atob(payloadBase64));
