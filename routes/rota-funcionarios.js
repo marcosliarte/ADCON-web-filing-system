@@ -155,6 +155,28 @@ router.post('/:id/pagamentos', [auth, checkAdminGerente], async (req, res) => {
     }
 });
 
+// @route   DELETE api/funcionarios/:id/pagamentos/:pagamentoId
+// @desc    Excluir um pagamento específico do histórico de um funcionário
+// @access  Private (Admin, Gerente)
+router.delete('/:id/pagamentos/:pagamentoId', [auth, checkAdminGerente], async (req, res) => {
+    try {
+        const funcionario = await Funcionario.findById(req.params.id);
+        if (!funcionario) return res.status(404).json({ message: 'Funcionário não encontrado.' });
+
+        // Usa o método 'pull' do Mongoose para remover um subdocumento de um array
+        funcionario.historicoPagamentos.pull({ _id: req.params.pagamentoId });
+
+        await funcionario.save();
+
+        res.json({ message: 'Registro de pagamento removido com sucesso.' });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor ao excluir o pagamento.' });
+    }
+});
+
+
 // @route   PUT api/funcionarios/:id/vincular-usuario
 // @desc    Alterar o vínculo de usuário de um funcionário
 // @access  Private (Admin)

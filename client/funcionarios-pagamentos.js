@@ -322,7 +322,7 @@ async function abrirModalPagamento(funcionarioId) {
         document.getElementById('demonstrativo-corpo').innerHTML = '<p>Selecione o período e clique em "Gerar Demonstrativo".</p>';
         exibirHistoricoPagamentos(funcionario.historicoPagamentos || []);
         modal.style.display = 'flex'; // CORREÇÃO: Usa 'flex' para centralizar o modal.
-    } catch (error) {
+    } catch (error) { 
         alert(error.message);
     }
 }
@@ -567,6 +567,28 @@ async function registrarPagamento(funcionario, mes, ano) {
     }
 }
 
+async function excluirPagamento(funcionarioId, pagamentoId) {
+    if (!confirm('Tem certeza que deseja excluir este registro de pagamento? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth(`/api/funcionarios/${funcionarioId}/pagamentos/${pagamentoId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response || !response.ok) {
+            const err = await response.json();
+            throw new Error(err.msg || 'Erro ao excluir o pagamento.');
+        }
+
+        alert('Registro de pagamento excluído com sucesso!');
+        fecharModal(); // Fecha e força a reabertura para ver o histórico atualizado
+    } catch (error) {
+        alert(`Erro: ${error.message}`);
+    }
+}
+
 function exibirHistoricoPagamentos(historico) {
     const lista = document.getElementById('lista-historico-pagamentos');
     lista.innerHTML = '';
@@ -575,11 +597,13 @@ function exibirHistoricoPagamentos(historico) {
         return;
     }
     historico.sort((a, b) => new Date(b.ano, b.mes - 1) - new Date(a.ano, a.mes - 1)).forEach(p => {
+        const funcionarioId = document.getElementById('btn-gerar-demonstrativo').dataset.funcionarioId;
         const li = document.createElement('li');
         li.innerHTML = `
             <span>${String(p.mes).padStart(2, '0')}/${p.ano}</span>
             <span>${p.salarioLiquido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
             <span>Pago em: ${new Date(p.dataPagamento).toLocaleDateString('pt-BR')}</span>
+            <button class="btn-remover btn-sm" onclick="excluirPagamento('${funcionarioId}', '${p._id}')" title="Excluir este pagamento">Excluir</button>
         `;
         lista.appendChild(li);
     });
