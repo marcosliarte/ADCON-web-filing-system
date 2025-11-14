@@ -7,6 +7,7 @@ const adminAuth = require('../middleware/adminAuth');
 const Empresa = require('../models/model-empresa');
 const Mensalidade = require('../models/model-mensalidade'); // CORREÇÃO: Aponta para o arquivo correto na pasta models
 const ConfiguracaoEmpresa = require('../models/model-configuracao'); // Importa o modelo de configuração
+const Funcionario = require('../models/model-funcionario'); // NOVO: Importa o modelo de funcionário
 
 // --- DEFINIÇÃO DOS SCHEMAS E MODELOS DIRETAMENTE NO ARQUIVO ---
 const DespesaSchema = new mongoose.Schema({
@@ -18,7 +19,8 @@ const DespesaSchema = new mongoose.Schema({
         enum: ['unica', 'fixa', 'parcelada'],
         default: 'unica'
     },
-    data: { type: Date }, // Usado para despesa 'unica'
+    data: { type: Date }, // Para despesa 'unica', representa o vencimento ou referência
+    dataPagamento: { type: Date }, // Data em que a despesa foi efetivamente paga
     dataInicio: { type: Date }, // Usado para despesa 'fixa' e 'parcelada'
     diaVencimento: { type: Number, min: 1, max: 31 }, // Dia do mês para recorrência
     totalParcelas: { type: Number }, // Apenas para tipo 'parcelada'
@@ -141,6 +143,22 @@ router.put('/despesas/:id', [auth, adminAuth], async (req, res) => {
     } catch (err) { res.status(500).json({ msg: 'Erro no servidor.' }); }
 });
 
+// @route   PUT api/relatorios/despesas/:id/pagar
+// @desc    Marca uma despesa como paga na data atual
+router.put('/despesas/:id/pagar', [auth, adminAuth], async (req, res) => {
+    try {
+        const despesa = await Despesa.findById(req.params.id);
+        if (!despesa) {
+            return res.status(404).json({ msg: 'Despesa não encontrada.' });
+        }
+        // Define a data de pagamento para agora. Se precisar editar, será pela rota de update normal.
+        despesa.dataPagamento = new Date();
+        await despesa.save();
+        res.json({ msg: 'Despesa marcada como paga.', despesa });
+    } catch (err) {
+        res.status(500).json({ msg: 'Erro no servidor ao marcar despesa como paga.' });
+    }
+});
 // @route   PUT api/relatorios/receitas/:id
 // @desc    Atualizar uma receita
 router.put('/receitas/:id', [auth, adminAuth], async (req, res) => {
@@ -269,19 +287,28 @@ router.get('/mensal', [auth, adminAuth], async (req, res) => {
         const totalDespesasManuais = despesasManuais.reduce((acc, d) => acc + d.valor, 0);
 
         // --- CÁLCULO DE DESPESAS (FOLHA DE PAGAMENTO) ---
-        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' }).lean();
+        // ATUALIZADO: Busca os pagamentos reais do mês no histórico de cada funcionário.
+        const funcionariosComPagamentoNoMes = await Funcionario.find({
+            'historicoPagamentos.ano': anoInt,
+            'historicoPagamentos.mes': mesInt
+        }).lean();
+
         let despesasFolha = 0;
         let detalheDespesasFolha = []; // Array para guardar a descrição das despesas
 
-        // Lógica simplificada para somar o salário bruto de todos os funcionários cadastrados.
-        if (config && config.funcionarios) {
-            despesasFolha = config.funcionarios.reduce((total, func) => total + (func.salarioBruto || 0), 0);
-            // Cria a lista detalhada para o frontend
-            detalheDespesasFolha = config.funcionarios.map(func => ({
-                descricao: `Salário: ${func.nome}`,
-                valor: func.salarioBruto || 0
-            }));
-        }
+        funcionariosComPagamentoNoMes.forEach(func => {
+            const pagamentoDoMes = func.historicoPagamentos.find(p => p.ano === anoInt && p.mes === mesInt);
+            if (pagamentoDoMes) {
+                despesasFolha += pagamentoDoMes.salarioLiquido;
+                detalheDespesasFolha.push({ 
+                    _id: `salario_${func._id}_${pagamentoDoMes.mes}_${pagamentoDoMes.ano}`, // ID único e falso
+                    descricao: `Pagamento: ${func.nome}`, 
+                    valor: pagamentoDoMes.salarioLiquido,
+                    data: pagamentoDoMes.dataPagamento, // Adiciona a data do pagamento
+                    isSalario: true 
+                });
+            }
+        });
 
         const receitaTotal = receitaMensalidades + totalOutrasReceitas;
         const totalDespesas = despesasFolha + totalDespesasManuais;
@@ -343,14 +370,13 @@ router.get('/anual', [auth, adminAuth], async (req, res) => {
         ]);
 
         // Agrega as despesas anuais da folha de pagamento
-        const despesasAnuais = await ConfiguracaoEmpresa.aggregate([
-            { $match: { identificador: 'adcon_config' } },
-            { $unwind: '$funcionarios' },
-            { $unwind: '$funcionarios.historicoPagamentos' },
-            { $match: { 'funcionarios.historicoPagamentos.ano': parseInt(ano) } },
+        // ATUALIZADO: Usa o modelo Funcionario
+        const despesasAnuais = await Funcionario.aggregate([
+            { $unwind: '$historicoPagamentos' },
+            { $match: { 'historicoPagamentos.ano': parseInt(ano) } },
             { $group: {
-                _id: '$funcionarios.historicoPagamentos.mes',
-                despesaTotal: { $sum: '$funcionarios.historicoPagamentos.salarioLiquido' }
+                _id: '$historicoPagamentos.mes',
+                despesaTotal: { $sum: '$historicoPagamentos.salarioLiquido' }
             }},
             { $sort: { _id: 1 } }
         ]);
@@ -379,32 +405,26 @@ router.get('/folha-pagamento', [auth, adminAuth], async (req, res) => {
     }
 
     try {
-        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' }).lean();
-        if (!config || !config.funcionarios) {
-            return res.json({
-                periodo: { ano, mes },
-                totalFuncionariosPagos: 0,
-                totalSalarioBase: 0,
-                totalAdicionais: 0,
-                totalDescontos: 0,
-                totalLiquido: 0,
-                pagamentos: []
-            });
-        }
+        // ATUALIZADO: Busca os funcionários que têm pagamento no período especificado
+        const funcionariosComPagamento = await Funcionario.find({
+            'historicoPagamentos.ano': parseInt(ano),
+            'historicoPagamentos.mes': parseInt(mes)
+        }).lean();
 
-        const pagamentosDoMes = config.funcionarios
+        const pagamentosDoMes = funcionariosComPagamento
             .map(func => {
-                const pagamento = (func.historicoPagamentos || []).find(p => p.ano == ano && p.mes == mes);
-                return pagamento ? { ...pagamento, nomeFuncionario: func.nome } : null;
+                const pagamento = func.historicoPagamentos.find(p => p.ano == ano && p.mes == mes);
+                // Adiciona o nome do funcionário ao objeto de pagamento para o relatório
+                return { ...pagamento, nomeFuncionario: func.nome };
             })
-            .filter(p => p !== null);
+            .filter(p => p); // Garante que não há nulos
 
         const relatorio = {
             periodo: { ano, mes },
             totalFuncionariosPagos: pagamentosDoMes.length,
             totalSalarioBase: pagamentosDoMes.reduce((acc, p) => acc + p.salarioBase, 0),
-            totalAdicionais: pagamentosDoMes.reduce((acc, p) => acc + p.adicionais.reduce((subAcc, item) => subAcc + item.valor, 0), 0),
-            totalDescontos: pagamentosDoMes.reduce((acc, p) => acc + p.totalDescontos, 0),
+            totalAdicionais: pagamentosDoMes.reduce((acc, p) => acc + (p.adicionais || []).reduce((subAcc, item) => subAcc + item.valor, 0), 0),
+            totalDescontos: pagamentosDoMes.reduce((acc, p) => acc + (p.totalDescontos || 0), 0),
             totalLiquido: pagamentosDoMes.reduce((acc, p) => acc + p.salarioLiquido, 0),
             pagamentos: pagamentosDoMes
         };

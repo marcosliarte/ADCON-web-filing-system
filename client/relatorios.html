@@ -227,7 +227,7 @@
             <div id="expensesSection" style="margin-top: 2rem;">
                 <h3>📉 Despesas Lançadas</h3>
                 <table id="expensesTable">
-                    <thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+                    <thead><tr><th>Descrição</th><th>Valor</th><th>Referência/Venc.</th><th>Data Pagamento</th><th>Ações</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -251,7 +251,7 @@
             <h2 id="modal-edit-titulo">Editar Lançamento</h2>
             <form id="modal-edit-form" class="modal-form">
                 <input type="hidden" id="modal-edit-id">
-                <input type="hidden" id="modal-edit-tipo">
+                <input type="hidden" id="modal-edit-tipo-original">
                 <div class="form-group">
                     <label for="modal-edit-descricao">Descrição</label>
                     <input type="text" id="modal-edit-descricao" required>
@@ -260,6 +260,31 @@
                     <label for="modal-edit-valor">Valor (R$)</label>
                     <input type="number" id="modal-edit-valor" step="0.01" required>
                 </div>
+
+                <!-- Campos Condicionais para Edição de Despesa -->
+                <div id="modal-edit-campos-despesa" style="display: none;"> 
+                    <div class="form-group" id="modal-edit-campo-data-pagamento">
+                        <label for="modal-edit-data-pagamento">Data de Pagamento</label>
+                        <input type="date" id="modal-edit-data-pagamento">
+                    </div>
+                    <div class="form-group" id="modal-edit-campo-data-referencia">
+                        <label for="modal-edit-data">Data da Despesa</label>
+                        <input type="date" id="modal-edit-data">
+                    </div>
+                    <div class="form-group" id="modal-edit-campo-data-inicio">
+                        <label for="modal-edit-data-inicio">Data de Início</label>
+                        <input type="date" id="modal-edit-data-inicio">
+                    </div>
+                    <div class="form-group" id="modal-edit-campo-dia-vencimento">
+                        <label for="modal-edit-dia-vencimento">Dia do Vencimento</label>
+                        <input type="number" id="modal-edit-dia-vencimento" min="1" max="31">
+                    </div>
+                    <div class="form-group" id="modal-edit-campo-total-parcelas">
+                        <label for="modal-edit-total-parcelas">Nº de Parcelas</label>
+                        <input type="number" id="modal-edit-total-parcelas" min="2">
+                    </div>
+                </div>
+
                 <button type="submit">Salvar Alterações</button>
             </form>
         </div>
@@ -457,21 +482,50 @@
 
         const modal = document.getElementById('edit-modal');
 
-        async function abrirModalEdicao(tipo, id) {
+        async function abrirModalEdicao(tipoLancamento, id) {
             const form = document.getElementById('modal-edit-form');
             form.reset();
 
+            // Esconde todos os campos condicionais por padrão
+            document.getElementById('modal-edit-campos-despesa').style.display = 'none';
+            document.getElementById('modal-edit-campo-data-pagamento').style.display = 'none';
+            document.getElementById('modal-edit-campo-data-referencia').style.display = 'none';
+            document.getElementById('modal-edit-campo-data-inicio').style.display = 'none';
+            document.getElementById('modal-edit-campo-dia-vencimento').style.display = 'none';
+            document.getElementById('modal-edit-campo-total-parcelas').style.display = 'none';
+
             document.getElementById('modal-edit-id').value = id;
-            document.getElementById('modal-edit-tipo').value = tipo;
+            document.getElementById('modal-edit-tipo-original').value = tipoLancamento;
 
             try {
-                const url = tipo === 'despesa' ? `/api/relatorios/despesas/${id}` : `/api/relatorios/receitas/${id}`;
+                const url = tipoLancamento === 'despesa' ? `/api/relatorios/despesas/${id}` : `/api/relatorios/receitas/${id}`;
                 const response = await fetchWithAuth(url);
                 if (!response || !response.ok) throw new Error('Falha ao buscar dados do lançamento.');
                 
                 const data = await response.json();
                 document.getElementById('modal-edit-descricao').value = data.descricao;
                 document.getElementById('modal-edit-valor').value = data.valor;
+
+                // Se for uma despesa, mostra e preenche os campos adicionais
+                if (tipoLancamento === 'despesa') {
+                    document.getElementById('modal-edit-campos-despesa').style.display = 'block'; // Mostra o container de campos de despesa
+                    document.getElementById('modal-edit-campo-data-pagamento').style.display = 'block'; // Sempre mostra a data de pagamento
+                    document.getElementById('modal-edit-data-pagamento').value = data.dataPagamento ? new Date(data.dataPagamento).toISOString().split('T')[0] : '';
+                    
+                    if (data.tipo === 'unica') {
+                        document.getElementById('modal-edit-campo-data-referencia').style.display = 'block';
+                        document.getElementById('modal-edit-data').value = data.data ? new Date(data.data).toISOString().split('T')[0] : '';
+                    } else { // Fixa ou Parcelada
+                        document.getElementById('modal-edit-campo-data-inicio').style.display = 'block';
+                        document.getElementById('modal-edit-campo-dia-vencimento').style.display = 'block';
+                        document.getElementById('modal-edit-data-inicio').value = data.dataInicio ? new Date(data.dataInicio).toISOString().split('T')[0] : '';
+                        document.getElementById('modal-edit-dia-vencimento').value = data.diaVencimento || '';
+                        if (data.tipo === 'parcelada') {
+                            document.getElementById('modal-edit-campo-total-parcelas').style.display = 'block';
+                            document.getElementById('modal-edit-total-parcelas').value = data.totalParcelas || '';
+                        }
+                    }
+                }
 
                 modal.style.display = 'block';
             } catch (err) {
@@ -486,14 +540,29 @@
         document.getElementById('modal-edit-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('modal-edit-id').value;
-            const tipo = document.getElementById('modal-edit-tipo').value;
+            const tipoLancamento = document.getElementById('modal-edit-tipo-original').value;
             
             const payload = {
                 descricao: document.getElementById('modal-edit-descricao').value,
                 valor: parseFloat(document.getElementById('modal-edit-valor').value)
             };
 
-            const url = tipo === 'despesa' ? `/api/relatorios/despesas/${id}` : `/api/relatorios/receitas/${id}`;
+            // Adiciona os campos de despesa ao payload, se aplicável
+            if (tipoLancamento === 'despesa') {
+                const dataPagamento = document.getElementById('modal-edit-data-pagamento').value;
+                const dataReferencia = document.getElementById('modal-edit-data').value;
+                const dataInicio = document.getElementById('modal-edit-data-inicio').value;
+                const diaVencimento = document.getElementById('modal-edit-dia-vencimento').value;
+                const totalParcelas = document.getElementById('modal-edit-total-parcelas').value;
+
+                if (dataPagamento) payload.dataPagamento = dataPagamento;
+                if (dataReferencia) payload.data = dataReferencia;
+                if (dataInicio) payload.dataInicio = dataInicio;
+                if (diaVencimento) payload.diaVencimento = parseInt(diaVencimento);
+                if (totalParcelas) payload.totalParcelas = parseInt(totalParcelas);
+            }
+
+            const url = tipoLancamento === 'despesa' ? `/api/relatorios/despesas/${id}` : `/api/relatorios/receitas/${id}`;
 
             try {
                 const response = await fetchWithAuth(url, {
@@ -596,7 +665,8 @@
             
             // Popula as novas tabelas
             populateTable('otherRevenuesTable', data.outrasReceitas || [], ['descricao', 'valor', 'data'], 'receita');
-            populateTable('expensesTable', data.despesasManuais || [], ['descricao', 'valor', 'data'], 'despesa');
+            // ATUALIZADO: Passa as colunas novas para a tabela de despesas e remove colunas antigas
+            populateTable('expensesTable', data.despesasManuais || [], ['descricao', 'valor', 'vencimento', 'pagamento'], 'despesa');
         }
 
         function renderAnnualReport(data, ano) {
@@ -653,12 +723,30 @@
             data.forEach(item => {
                 const row = tbody.insertRow();
                 columns.forEach(col => {
-                    let cellValue = col.split('.').reduce((o, i) => o ? o[i] : '', item);
-                    if (col.includes('data')) {
-                        cellValue = cellValue ? formatarData(cellValue) : 'N/A';
+                    let cellValue = '';
+                    // Lógica para preencher as novas colunas de data
+                    if (col === 'vencimento') {
+                        if (item.diaVencimento) {
+                            const mesAtual = document.getElementById('mes').value;
+                            const anoAtual = document.getElementById('ano').value;
+                            cellValue = `${String(item.diaVencimento).padStart(2, '0')}/${String(mesAtual).padStart(2, '0')}/${anoAtual}`;
+                        } else {
+                            // Para salários, não há vencimento, apenas data de pagamento.
+                            // Para outras despesas, a data de referência é usada como vencimento.
+                            cellValue = item.isSalario ? 'N/A' : (item.data ? formatarData(item.data) : 'N/A');
+                        }
+                    } else if (col === 'pagamento') {
+                        cellValue = item.dataPagamento ? formatarData(item.dataPagamento) : (item.isSalario ? formatarData(item.data) : 'Pendente');
+                    } else {
+                        // Lógica antiga para outras colunas
+                        cellValue = col.split('.').reduce((o, i) => o ? o[i] : '', item);
+                        if (col.toLowerCase().includes('data')) {
+                            cellValue = cellValue ? formatarData(cellValue) : 'N/A';
+                        }
                     }
+
                     if (typeof cellValue === 'number') {
-                        cellValue = formatarMoeda(cellValue);
+                        cellValue = formatarMoeda(cellValue); // Formata como moeda se for número
                     }
                     row.insertCell().textContent = cellValue || 'N/A';
                 });
@@ -666,13 +754,23 @@
                 if (tipoLancamento) {
                     const actionsCell = row.insertCell();
                     actionsCell.className = 'actions';
+                    
+                    // CORREÇÃO: Verifica se a despesa é um salário antes de adicionar os botões
+                    if (item.isSalario) {
+                        actionsCell.innerHTML = `<span>(Automático)</span>`;
+                    } else {
+                        let btnPagar = '';
+                        // O botão "Pagar" só deve aparecer para DESPESAS não pagas
+                        if (tipoLancamento === 'despesa' && !item.dataPagamento) {
+                            btnPagar = `<button class="btn-edit" style="background-color: #28a745;" onclick="marcarComoPaga('${item._id}')">Pagar</button>`;
+                        }
 
-                    const buttonsHtml = `
-                        <button class="btn-edit" onclick="abrirModalEdicao('${tipoLancamento}', '${item._id}')">Editar</button>
-                        <button class="btn-delete" onclick="excluirLancamento('${tipoLancamento}', '${item._id}')">Excluir</button>
-                    `;
-
-                    actionsCell.innerHTML = buttonsHtml;
+                        actionsCell.innerHTML = `
+                            <button class="btn-edit" onclick="abrirModalEdicao('${tipoLancamento}', '${item._id}')">Editar</button>
+                            <button class="btn-delete" onclick="excluirLancamento('${tipoLancamento}', '${item._id}')">Excluir</button>
+                            ${btnPagar} 
+                        `;
+                    }
                 }
 
                 if (item.tipo === 'fixa' && item.status === 'cancelada') {
@@ -680,6 +778,29 @@
                     row.style.color = '#888';
                 }
             });
+        }
+
+        // NOVA FUNÇÃO para marcar uma despesa como paga
+        async function marcarComoPaga(id) {
+            if (!confirm('Deseja marcar esta despesa como paga na data de hoje?')) return;
+
+            const url = `/api/relatorios/despesas/${id}/pagar`;
+
+            try {
+                const response = await fetchWithAuth(url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!response || !response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Falha ao marcar como paga.');
+                }
+                showStatus('Despesa marcada como paga com sucesso!');
+                gerarRelatorio(); // Atualiza a visualização
+            } catch (err) {
+                showStatus(err.message, true);
+            }
         }
 
         // Funções de formatação (adicione ao seu shared.js se preferir)
@@ -695,5 +816,4 @@
             return dataISO ? new Date(dataISO).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '';
         }
     </script>
-</body>
 </html>
