@@ -79,8 +79,8 @@
             tbody.innerHTML = '<tr><td colspan="4">Carregando documentos...</td></tr>';
 
             try {
-                // Reutilizando o endpoint do dashboard de admin que já busca documentos a vencer
-                const response = await fetchWithAuth(`/api/admin/dashboard/expiring-docs`);
+                // CORREÇÃO: Usando o novo endpoint com a permissão correta
+                const response = await fetchWithAuth(`/api/empresas/documentos/vencendo`);
                 if (!response.ok) throw new Error('Falha ao carregar os documentos.');
 
                 const documentos = await response.json();

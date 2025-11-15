@@ -633,4 +633,59 @@ router.get('/cnpj/:cnpj', auth, async (req, res) => {
   }
 });
 
+// @route   GET api/empresas/documentos/vencendo
+// @desc    Listar todos os documentos a vencer nos próximos 30 dias ou já vencidos
+// @access  Private (Admin, Gerente, Funcionário)
+router.get('/documentos/vencendo', auth, async (req, res) => {
+  try {
+    const usuarioLogado = await Usuario.findById(req.usuario.id).select('role');
+    if (!['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
+      return res.status(403).json({ msg: 'Acesso negado.' });
+    }
+
+    const hoje = new Date();
+    const dataLimite = new Date();
+    dataLimite.setDate(hoje.getDate() + 30);
+
+    const empresas = await Empresa.find({
+      $or: [
+        { 'documentos.certificadoDigital.dataValidade': { $lte: dataLimite } },
+        { 'documentos.certidaoPrefeitura.dataValidade': { $lte: dataLimite } },
+        { 'documentos.certidaoReceita.dataValidade': { $lte: dataLimite } },
+        { 'documentos.certidaoFGTS.dataValidade': { $lte: dataLimite } },
+        { 'documentos.certidaoTrabalhista.dataValidade': { $lte: dataLimite } },
+        { 'documentos.certidaoFalencia.dataValidade': { $lte: dataLimite } },
+        { 'documentos.inscricaoEstadual.dataValidade': { $lte: dataLimite } },
+        { 'documentos.certidaoSefaz.dataValidade': { $lte: dataLimite } },
+      ],
+    }).select('nome documentos');
+
+    const documentosVencendo = [];
+    const umDiaEmMs = 1000 * 60 * 60 * 24;
+
+    empresas.forEach(empresa => {
+      const checarDocumento = (doc, nomeDoc) => {
+        if (doc && doc.dataValidade && doc.dataValidade <= dataLimite) {
+          const diasRestantes = Math.ceil((doc.dataValidade - hoje) / umDiaEmMs);
+          documentosVencendo.push({
+            empresaId: empresa._id,
+            empresaNome: empresa.nome,
+            documento: nomeDoc,
+            dataValidade: doc.dataValidade,
+            diasRestantes: diasRestantes,
+          });
+        }
+      };
+
+      checarDocumento(empresa.documentos.certificadoDigital, 'Certificado Digital');
+      // Adicione chamadas para outros documentos aqui...
+    });
+
+    res.json(documentosVencendo.sort((a, b) => a.diasRestantes - b.diasRestantes));
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro no servidor' });
+  }
+});
+
 module.exports = router;
