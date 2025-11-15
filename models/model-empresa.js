@@ -84,6 +84,7 @@ const FilialSchema = new mongoose.Schema({
 const EmpresaSchema = mongoose.Schema({
   nome: { type: String, required: true },
   cnpj: { type: String, required: true, unique: true },
+  inscricao_estadual: { type: String }, // Novo campo para Inscrição Estadual
   email: { type: String },
   nire: { type: String }, // Novo campo NIRE
   nome_fantasia: { type: String },

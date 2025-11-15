@@ -114,12 +114,18 @@ router.post(
       const dadosEmpresa = {
         ...req.body,
         nome: req.body.nome_empresarial, // Mapeia o nome_empresarial do form para o campo 'nome' do schema
+        inscricao_estadual: req.body.inscricao_estadual,
         filiais: req.body.filiais || [], // Adiciona os dados das filiais
         atividade_principal_descricao: req.body.atividade_principal_descricao, // Adiciona a descrição do CNAE
         documentos: {
           contratos: [],
         },
       };
+
+      // CORREÇÃO: Se matriz_id for uma string vazia, remova-o para que o Mongoose use o valor padrão (null)
+      if (!dadosEmpresa.matriz_id) {
+        delete dadosEmpresa.matriz_id;
+      }
 
       // Processa os arquivos e associa aos dados
       if (req.files) {
@@ -382,6 +388,7 @@ router.put(
       // Atualiza os campos de texto simples
       empresa.nome = req.body.nome_empresarial;
       empresa.cnpj = req.body.cnpj;
+      empresa.inscricao_estadual = req.body.inscricao_estadual;
       empresa.filiais = req.body.filiais || []; // Atualiza os dados das filiais
       empresa.nire = req.body.nire;
       empresa.data_abertura = req.body.data_abertura;

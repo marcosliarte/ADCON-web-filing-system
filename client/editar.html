@@ -95,6 +95,10 @@
                         <input type="text" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required>
                     </div>
                     <div class="form-group">
+                        <label for="inscricao_estadual">Inscrição Estadual (Opcional)</label>
+                        <input type="text" id="inscricao_estadual" name="inscricao_estadual" placeholder="Número da Inscrição Estadual">
+                    </div>
+                    <div class="form-group">
                         <label for="data_abertura">Data de Abertura</label>
                         <input type="date" id="data_abertura" name="data_abertura" required>
                     </div>
@@ -369,6 +373,7 @@
 
                 // Preenche dados da empresa
                 document.getElementById('cnpj').value = data.cnpj || '';
+                document.getElementById('inscricao_estadual').value = data.inscricao_estadual || '';
                 document.getElementById('data_abertura').value = data.data_abertura ? data.data_abertura.split('T')[0] : '';
                 document.getElementById('nome_empresarial').value = data.nome || '';
                 document.getElementById('nome_fantasia').value = data.nome_fantasia || '';

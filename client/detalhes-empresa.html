@@ -142,6 +142,7 @@
 
         dadosEmpresaContainer.innerHTML = `
             ${createItem('CNPJ', formatarCNPJ(data.cnpj))}
+            ${createItem('Inscrição Estadual', data.inscricao_estadual || 'Não informada')}
             ${createItem('Nome Empresarial', data.nome)}
             ${createItem('NIRE', data.nire || 'Não informado')}
             ${createItem('Nome Fantasia', data.nome_fantasia || 'Não informado')}
