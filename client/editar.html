@@ -595,7 +595,7 @@
             const usuario = await userResponse.json();
             createHeader('header-placeholder', usuario);
 
-            if (usuario.role !== 'admin' && usuario.role !== 'funcionario') {
+            if (!['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
                 alert('Acesso negado.');
                 window.location.href = 'home.html';
                 return;

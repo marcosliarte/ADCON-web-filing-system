@@ -267,7 +267,7 @@
         }
 
         // Botão de Editar
-        if (usuario && (usuario.role === 'admin' || usuario.role === 'funcionario')) {
+        if (usuario && ['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
             const btnEditar = document.getElementById('btn-editar');
             btnEditar.style.display = 'inline-block';
             btnEditar.onclick = () => window.location.href = `editar.html?id=${data._id}`;
