@@ -336,10 +336,6 @@
                     <label>Data da Alteração</label>
                     <input type="date" name="contrato_social[INDEX][data]" required>
                 </div>
-                <div class="form-group">
-                    <label>Número da Alteração</label>
-                    <input type="text" name="contrato_social[INDEX][numero]" required>
-                </div>
             </div>
         </div>
     </template>
@@ -423,6 +419,21 @@
                     criarInfoArquivo(data.documentos.certidaoReceita, 'info_certidao_receita_arquivo', 'remover_certidao_receita_arquivo');
                     criarInfoArquivo(data.documentos.certidaoFGTS, 'info_certidao_fgts_arquivo', 'remover_certidao_fgts_arquivo');
 
+                    // --- CORREÇÃO: Preenche os campos de data dos documentos ---
+                    const preencherCampoData = (idCampo, valorData) => {
+                        if (valorData) document.getElementById(idCampo).value = new Date(valorData).toISOString().split('T')[0];
+                    };
+
+                    preencherCampoData('certificado_validade', data.documentos.certificadoDigital?.dataValidade);
+                    preencherCampoData('certidao_prefeitura_validade', data.documentos.certidaoPrefeitura?.dataValidade);
+                    preencherCampoData('certidao_receita_validade', data.documentos.certidaoReceita?.dataValidade);
+                    preencherCampoData('certidao_fgts_validade', data.documentos.certidaoFGTS?.dataValidade);
+                    
+                    // Preenche o ano do alvará
+                    if (data.documentos.alvara?.ano) document.getElementById('alvara_ano').value = data.documentos.alvara.ano;
+
+                    // Preenche a senha do certificado
+                    if (data.documentos.certificadoDigital?.senha) document.getElementById('certificado_senha').value = data.documentos.certificadoDigital.senha;
 
                     if (data.documentos.contratos && data.documentos.contratos.length > 0) {
                         data.documentos.contratos.forEach(contrato => adicionarAlteracaoContrato(contrato));
@@ -461,7 +472,6 @@
 
             if (contrato) {
                 newContratoDiv.querySelector(`input[name="contrato_social[${contratoIndex}][data]"]`).value = contrato.dataAlteracao ? contrato.dataAlteracao.split('T')[0] : '';
-                newContratoDiv.querySelector(`input[name="contrato_social[${contratoIndex}][numero]"]`).value = contrato.numeroAlteracao || '';
                 const fileInfo = newContratoDiv.querySelector('.file-info');
                 if (contrato.caminhoArquivo) {
                     fileInfo.innerHTML = `Arquivo atual: <a href="${contrato.caminhoArquivo}" target="_blank">${contrato.nomeArquivo}</a>`;

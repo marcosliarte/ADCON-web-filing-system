@@ -173,12 +173,16 @@ router.post(
 
           contratosInfo.forEach((info, index) => {
             const file = req.files[`contrato_social[${index}][arquivo]`]?.[0];
+            const newContrato = {
+              dataAlteracao: info.data,
+            };
+
             if (file) {
-              info.nomeArquivo = file.originalname;
-              info.caminhoArquivo = `/uploads/contratos/${file.filename}`;
-              info.dataAlteracao = info.data; // Renomeando para corresponder ao schema
-              dadosEmpresa.documentos.contratos.push(info);
+              newContrato.nomeArquivo = file.originalname;
+              newContrato.caminhoArquivo = `/uploads/contratos/${file.filename}`;
             }
+            // Adiciona o contrato se houver data, mesmo sem arquivo
+            if (newContrato.dataAlteracao) dadosEmpresa.documentos.contratos.push(newContrato);
           });
         }
       }
@@ -261,8 +265,8 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    // Usar .lean() para obter um objeto JS puro, o que facilita a manipulação
-    const empresa = await Empresa.findById(req.params.id).populate('matriz_id', 'nome _id cnpj').lean();
+    // CORREÇÃO: Adicionado .select('+documentos.certificadoDigital.senha') para incluir a senha na resposta
+    const empresa = await Empresa.findById(req.params.id).select('+documentos.certificadoDigital.senha').populate('matriz_id', 'nome _id cnpj').lean();
 
     if (!empresa) {
       return res.status(404).json({ msg: 'Empresa não encontrada' });
@@ -438,7 +442,28 @@ router.put(
       deletarArquivoSeMarcado('remover_certidao_trabalhista_arquivo', 'certidaoTrabalhista');
       deletarArquivoSeMarcado('remover_certidao_falencia_arquivo', 'certidaoFalencia');
 
-      // Lógica para remover contratos também seria necessária aqui, se aplicável.
+      // Lógica para atualizar/adicionar contratos - CORRIGIDA
+      if (req.body.contrato_social) {
+        // Garante que contrato_social seja sempre um array
+        const contratosInfo = Array.isArray(req.body.contrato_social) ? req.body.contrato_social : [req.body.contrato_social];
+
+        empresa.documentos.contratos = contratosInfo
+          .map((contratoInfo, index) => {
+            const file = req.files[`contrato_social[${index}][arquivo]`]?.[0];
+            // Pega o contrato existente pelo mesmo índice para manter o arquivo se não for alterado
+            const contratoExistente = empresa.documentos.contratos?.[index] || {};
+
+            return {
+              nomeArquivo: file ? file.originalname : contratoExistente.nomeArquivo,
+              caminhoArquivo: file ? `/uploads/contratos/${file.filename}` : contratoExistente.caminhoArquivo,
+              dataAlteracao: contratoInfo.data,
+            };
+          })
+          // Remove entradas vazias (sem data)
+          .filter(c => c.dataAlteracao);
+      } else {
+        empresa.documentos.contratos = []; // Limpa se nenhum contrato for enviado
+      }
 
 
       // A lógica de upload de novos arquivos e remoção de antigos na edição
@@ -489,7 +514,6 @@ router.put(
             const file = req.files.certidao_falencia_arquivo[0];
             empresa.documentos.certidaoFalencia = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_falencia_validade };
         }
-        // A lógica para atualizar contratos seria ainda mais complexa e foi omitida para esta correção.
       }
 
       const empresaAtualizada = await empresa.save();
