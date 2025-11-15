@@ -75,16 +75,17 @@ router.get('/dashboard/expiring-docs', async (req, res) => {
         const hoje = new Date();
         const limite = new Date();
         limite.setDate(hoje.getDate() + 30); // Alerta para documentos que vencem nos próximos 30 dias
-
+        
+        // CORREÇÃO: A query agora usa $lte (menor ou igual a) para incluir documentos já vencidos.
         const query = {
             $or: [
-                { 'documentos.certificadoDigital.dataValidade': { $gte: hoje, $lte: limite } },
-                { 'documentos.certidaoPrefeitura.dataValidade': { $gte: hoje, $lte: limite } },
-                { 'documentos.certidaoReceita.dataValidade': { $gte: hoje, $lte: limite } },
-                { 'documentos.certidaoFGTS.dataValidade': { $gte: hoje, $lte: limite } },
-                { 'documentos.certidaoSefaz.dataValidade': { $gte: hoje, $lte: limite } },
-                { 'documentos.certidaoTrabalhista.dataValidade': { $gte: hoje, $lte: limite } },
-                { 'documentos.certidaoFalencia.dataValidade': { $gte: hoje, $lte: limite } },
+                { 'documentos.certificadoDigital.dataValidade': { $lte: limite } },
+                { 'documentos.certidaoPrefeitura.dataValidade': { $lte: limite } },
+                { 'documentos.certidaoReceita.dataValidade': { $lte: limite } },
+                { 'documentos.certidaoFGTS.dataValidade': { $lte: limite } },
+                { 'documentos.certidaoSefaz.dataValidade': { $lte: limite } },
+                { 'documentos.certidaoTrabalhista.dataValidade': { $lte: limite } },
+                { 'documentos.certidaoFalencia.dataValidade': { $lte: limite } },
             ]
         };
 
@@ -96,7 +97,7 @@ router.get('/dashboard/expiring-docs', async (req, res) => {
                 const doc = empresa.documentos[docKey];
                 if (doc && doc.dataValidade) {
                     const dataValidade = new Date(doc.dataValidade);
-                    if (dataValidade >= hoje && dataValidade <= limite) {
+                    if (dataValidade <= limite) { // CORREÇÃO: A verificação também é simplificada aqui.
                         // Converte a chave do documento (ex: 'certificadoDigital') para um nome legível ('Certificado Digital')
                         const nomeDocumento = docKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
                         
