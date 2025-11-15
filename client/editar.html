@@ -346,6 +346,7 @@
     <!-- Template para alteração de contrato -->
     <template id="contrato-template">
         <div class="alteracao-card">
+            <button type="button" class="btn-remover" style="float: right;" onclick="this.closest('.alteracao-card').remove()">Remover</button>
             <h3>Alteração Contratual</h3>
             <!-- CORREÇÃO: Aplicado o mesmo grid dos outros documentos para garantir o alinhamento -->
             <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; align-items: end;">
