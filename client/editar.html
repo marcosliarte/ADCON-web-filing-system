@@ -55,6 +55,21 @@
         .error { background-color: #f8d7da; color: #721c24; }
         .file-info { font-size: 0.9rem; color: #555; margin-top: 0.5rem; }
 
+        /* --- CORREÇÃO: Estilo para agrupar campos de documento --- */
+        .document-card {
+            grid-column: 1 / -1; /* Ocupa a largura total do grid pai */
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem; /* Espaçamento entre os cards */
+        }
+        /* Grid interno para alinhar os campos de um mesmo documento */
+        .document-card .form-grid {
+            align-items: end; /* Alinha os itens na base */
+            gap: 1rem; /* Espaçamento interno do card */
+        }
+
         /* Estilos do Acordeão */
         .accordion-header {
             background-color: #e9ecef;
@@ -189,65 +204,93 @@
             <button type="button" class="accordion-header">Documentos</button>
             <div class="accordion-content">
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label for="arquivo_cnpj">Cartão CNPJ</label>
-                        <div id="info_arquivo_cnpj" class="file-info"></div>
-                        <input type="hidden" name="remover_arquivo_cnpj" value="false">
-                        <input type="file" id="arquivo_cnpj" name="arquivo_cnpj" accept=".pdf,.png,.jpg,.jpeg">
+                    <!-- Card para Cartão CNPJ -->
+                    <div class="document-card">
+                        <div class="form-group">
+                            <label for="arquivo_cnpj">Cartão CNPJ</label>
+                            <div id="info_arquivo_cnpj" class="file-info"></div>
+                            <input type="hidden" name="remover_arquivo_cnpj" value="false">
+                            <input type="file" id="arquivo_cnpj" name="arquivo_cnpj" accept=".pdf,.png,.jpg,.jpeg">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="certificado_digital">Certificado Digital</label>
-                        <div id="info_certificado_digital" class="file-info"></div>
-                        <input type="hidden" name="remover_certificado_digital" value="false">
-                        <input type="file" id="certificado_digital" name="certificado_digital" accept=".pfx,.p12">
+                    <!-- Card para Certificado Digital -->
+                    <div class="document-card">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="certificado_digital">Certificado Digital</label>
+                                <div id="info_certificado_digital" class="file-info"></div>
+                                <input type="hidden" name="remover_certificado_digital" value="false">
+                                <input type="file" id="certificado_digital" name="certificado_digital" accept=".pfx,.p12">
+                            </div>
+                            <div class="form-group">
+                                <label for="certificado_validade">Validade do Certificado</label>
+                                <input type="date" id="certificado_validade" name="certificado_validade">
+                            </div>
+                            <div class="form-group">
+                                <label for="certificado_senha">Senha do Certificado</label>
+                                <input type="password" id="certificado_senha" name="certificado_senha" placeholder="Preencha para alterar a senha">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="certificado_validade">Validade do Certificado</label>
-                        <input type="date" id="certificado_validade" name="certificado_validade">
+                    <!-- Card para Alvará -->
+                    <div class="document-card">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="alvara_arquivo">Alvará</label>
+                                <div id="info_alvara_arquivo" class="file-info"></div>
+                                <input type="hidden" name="remover_alvara_arquivo" value="false">
+                                <input type="file" id="alvara_arquivo" name="alvara_arquivo">
+                            </div>
+                            <div class="form-group">
+                                <label for="alvara_ano">Ano do Alvará</label>
+                                <input type="text" id="alvara_ano" name="alvara_ano" placeholder="Ex: 2025">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="certificado_senha">Senha do Certificado</label>
-                        <input type="password" id="certificado_senha" name="certificado_senha" placeholder="Preencha para alterar a senha">
+                    <!-- Card para Certidão Prefeitura -->
+                    <div class="document-card">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="certidao_prefeitura_arquivo">Certidão Prefeitura</label>
+                                <div id="info_certidao_prefeitura_arquivo" class="file-info"></div>
+                                <input type="hidden" name="remover_certidao_prefeitura_arquivo" value="false">
+                                <input type="file" id="certidao_prefeitura_arquivo" name="certidao_prefeitura_arquivo">
+                            </div>
+                            <div class="form-group">
+                                <label for="certidao_prefeitura_validade">Validade</label>
+                                <input type="date" id="certidao_prefeitura_validade" name="certidao_prefeitura_validade">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="alvara_arquivo">Alvará</label>
-                        <div id="info_alvara_arquivo" class="file-info"></div>
-                        <input type="hidden" name="remover_alvara_arquivo" value="false">
-                        <input type="file" id="alvara_arquivo" name="alvara_arquivo">
+                    <!-- Card para Certidão Receita Federal -->
+                    <div class="document-card">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="certidao_receita_arquivo">Certidão Receita Federal</label>
+                                <div id="info_certidao_receita_arquivo" class="file-info"></div>
+                                <input type="hidden" name="remover_certidao_receita_arquivo" value="false">
+                                <input type="file" id="certidao_receita_arquivo" name="certidao_receita_arquivo">
+                            </div>
+                            <div class="form-group">
+                                <label for="certidao_receita_validade">Validade</label>
+                                <input type="date" id="certidao_receita_validade" name="certidao_receita_validade">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="alvara_ano">Ano do Alvará</label>
-                        <input type="text" id="alvara_ano" name="alvara_ano" placeholder="Ex: 2025">
-                    </div>
-                    <div class="form-group">
-                        <label for="certidao_prefeitura_arquivo">Certidão Prefeitura</label>
-                        <div id="info_certidao_prefeitura_arquivo" class="file-info"></div>
-                        <input type="hidden" name="remover_certidao_prefeitura_arquivo" value="false">
-                        <input type="file" id="certidao_prefeitura_arquivo" name="certidao_prefeitura_arquivo">
-                    </div>
-                    <div class="form-group">
-                        <label for="certidao_prefeitura_validade">Validade</label>
-                        <input type="date" id="certidao_prefeitura_validade" name="certidao_prefeitura_validade">
-                    </div>
-                    <div class="form-group">
-                        <label for="certidao_receita_arquivo">Certidão Receita Federal</label>
-                        <div id="info_certidao_receita_arquivo" class="file-info"></div>
-                        <input type="hidden" name="remover_certidao_receita_arquivo" value="false">
-                        <input type="file" id="certidao_receita_arquivo" name="certidao_receita_arquivo">
-                    </div>
-                    <div class="form-group">
-                        <label for="certidao_receita_validade">Validade</label>
-                        <input type="date" id="certidao_receita_validade" name="certidao_receita_validade">
-                    </div>
-                    <div class="form-group">
-                        <label for="certidao_fgts_arquivo">Certidão FGTS</label>
-                        <div id="info_certidao_fgts_arquivo" class="file-info"></div>
-                        <input type="hidden" name="remover_certidao_fgts_arquivo" value="false">
-                        <input type="file" id="certidao_fgts_arquivo" name="certidao_fgts_arquivo">
-                    </div>
-                    <div class="form-group">
-                        <label for="certidao_fgts_validade">Validade</label>
-                        <input type="date" id="certidao_fgts_validade" name="certidao_fgts_validade">
+                    <!-- Card para Certidão FGTS -->
+                    <div class="document-card">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="certidao_fgts_arquivo">Certidão FGTS</label>
+                                <div id="info_certidao_fgts_arquivo" class="file-info"></div>
+                                <input type="hidden" name="remover_certidao_fgts_arquivo" value="false">
+                                <input type="file" id="certidao_fgts_arquivo" name="certidao_fgts_arquivo">
+                            </div>
+                            <div class="form-group">
+                                <label for="certidao_fgts_validade">Validade</label>
+                                <input type="date" id="certidao_fgts_validade" name="certidao_fgts_validade">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -304,7 +347,8 @@
     <template id="contrato-template">
         <div class="alteracao-card">
             <h3>Alteração Contratual</h3>
-            <div class="form-grid">
+            <!-- CORREÇÃO: Aplicado o mesmo grid dos outros documentos para garantir o alinhamento -->
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; align-items: end;">
                 <div class="form-group">
                     <label>Arquivo da Alteração</label>
                     <div class="file-info"></div>
