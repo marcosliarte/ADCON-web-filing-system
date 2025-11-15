@@ -66,6 +66,7 @@ const DocumentosEmpresaSchema = new mongoose.Schema({
   certidaoReceita: CertidaoSchema,
   certidaoFGTS: CertidaoSchema,
   certidaoSefaz: CertidaoSchema,
+  inscricaoEstadual: CertidaoSchema, // Novo campo de documento
   certidaoTrabalhista: CertidaoSchema,
   certidaoFalencia: CertidaoSchema,
 }, { _id: false });

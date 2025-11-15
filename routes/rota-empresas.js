@@ -91,6 +91,8 @@ router.post(
       { name: 'certidao_receita_arquivo', maxCount: 1 },
       { name: 'certidao_fgts_arquivo', maxCount: 1 },
       { name: 'certidao_sefaz_arquivo', maxCount: 1 },
+      { name: 'inscricao_estadual_arquivo', maxCount: 1 },
+      { name: 'certidao_sefaz_arquivo', maxCount: 1 },
       { name: 'certidao_trabalhista_arquivo', maxCount: 1 },
       { name: 'certidao_falencia_arquivo', maxCount: 1 },
     ]),
@@ -157,6 +159,14 @@ router.post(
         if (req.files.certidao_fgts_arquivo) {
           const file = req.files.certidao_fgts_arquivo[0];
           dadosEmpresa.documentos.certidaoFGTS = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_fgts_validade };
+        }
+        if (req.files.certidao_sefaz_arquivo) {
+          const file = req.files.certidao_sefaz_arquivo[0];
+          dadosEmpresa.documentos.certidaoSefaz = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_sefaz_validade };
+        }
+        if (req.files.inscricao_estadual_arquivo) {
+          const file = req.files.inscricao_estadual_arquivo[0];
+          dadosEmpresa.documentos.inscricaoEstadual = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.inscricao_estadual_validade };
         }
         if (req.files.certidao_sefaz_arquivo) {
           const file = req.files.certidao_sefaz_arquivo[0];
@@ -363,6 +373,8 @@ router.put(
       { name: 'certidao_receita_arquivo', maxCount: 1 },
       { name: 'certidao_fgts_arquivo', maxCount: 1 },
       { name: 'certidao_sefaz_arquivo', maxCount: 1 },
+      { name: 'inscricao_estadual_arquivo', maxCount: 1 },
+      { name: 'certidao_sefaz_arquivo', maxCount: 1 },
       { name: 'certidao_trabalhista_arquivo', maxCount: 1 },
       { name: 'certidao_falencia_arquivo', maxCount: 1 },
     ]),
@@ -445,6 +457,8 @@ router.put(
       deletarArquivoSeMarcado('remover_certidao_receita_arquivo', 'certidaoReceita');
       deletarArquivoSeMarcado('remover_certidao_fgts_arquivo', 'certidaoFGTS');
       // Adicionando os que faltavam
+      deletarArquivoSeMarcado('remover_inscricao_estadual_arquivo', 'inscricaoEstadual');
+      deletarArquivoSeMarcado('remover_certidao_sefaz_arquivo', 'certidaoSefaz');
       deletarArquivoSeMarcado('remover_certidao_sefaz_arquivo', 'certidaoSefaz');
       deletarArquivoSeMarcado('remover_certidao_trabalhista_arquivo', 'certidaoTrabalhista');
       deletarArquivoSeMarcado('remover_certidao_falencia_arquivo', 'certidaoFalencia');
@@ -508,6 +522,14 @@ router.put(
         if (req.files.certidao_fgts_arquivo) {
             const file = req.files.certidao_fgts_arquivo[0];
             empresa.documentos.certidaoFGTS = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_fgts_validade };
+        }
+        if (req.files.certidao_sefaz_arquivo) {
+            const file = req.files.certidao_sefaz_arquivo[0];
+            empresa.documentos.certidaoSefaz = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_sefaz_validade };
+        }
+        if (req.files.inscricao_estadual_arquivo) {
+            const file = req.files.inscricao_estadual_arquivo[0];
+            empresa.documentos.inscricaoEstadual = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.inscricao_estadual_validade };
         }
         if (req.files.certidao_sefaz_arquivo) {
             const file = req.files.certidao_sefaz_arquivo[0];

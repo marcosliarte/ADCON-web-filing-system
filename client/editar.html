@@ -262,7 +262,7 @@
                     </div>
 
                     <!-- Certidão FGTS -->
-                    <div class="form-grid" style="align-items: end;">
+                    <div class="form-grid" style="align-items: end; border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem;">
                         <div class="form-group">
                             <label for="certidao_fgts_arquivo">Certidão FGTS</label>
                             <div id="info_certidao_fgts_arquivo" class="file-info"></div>
@@ -272,6 +272,62 @@
                         <div class="form-group">
                             <label for="certidao_fgts_validade">Validade</label>
                             <input type="date" id="certidao_fgts_validade" name="certidao_fgts_validade">
+                        </div>
+                    </div>
+
+                    <!-- Certidão Trabalhista -->
+                    <div class="form-grid" style="align-items: end; border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label for="certidao_trabalhista_arquivo">Certidão Trabalhista</label>
+                            <div id="info_certidao_trabalhista_arquivo" class="file-info"></div>
+                            <input type="hidden" name="remover_certidao_trabalhista_arquivo" value="false">
+                            <input type="file" id="certidao_trabalhista_arquivo" name="certidao_trabalhista_arquivo">
+                        </div>
+                        <div class="form-group">
+                            <label for="certidao_trabalhista_validade">Validade</label>
+                            <input type="date" id="certidao_trabalhista_validade" name="certidao_trabalhista_validade">
+                        </div>
+                    </div>
+
+                    <!-- Certidão de Falência -->
+                    <div class="form-grid" style="align-items: end; border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label for="certidao_falencia_arquivo">Certidão de Falência</label>
+                            <div id="info_certidao_falencia_arquivo" class="file-info"></div>
+                            <input type="hidden" name="remover_certidao_falencia_arquivo" value="false">
+                            <input type="file" id="certidao_falencia_arquivo" name="certidao_falencia_arquivo">
+                        </div>
+                        <div class="form-group">
+                            <label for="certidao_falencia_validade">Validade</label>
+                            <input type="date" id="certidao_falencia_validade" name="certidao_falencia_validade">
+                        </div>
+                    </div>
+
+                    <!-- Inscrição Estadual -->
+                    <div class="form-grid" style="align-items: end; border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem;">
+                        <div class="form-group">
+                            <label for="inscricao_estadual_arquivo">Inscrição Estadual</label>
+                            <div id="info_inscricao_estadual_arquivo" class="file-info"></div>
+                            <input type="hidden" name="remover_inscricao_estadual_arquivo" value="false">
+                            <input type="file" id="inscricao_estadual_arquivo" name="inscricao_estadual_arquivo">
+                        </div>
+                        <div class="form-group">
+                            <label for="inscricao_estadual_validade">Validade</label>
+                            <input type="date" id="inscricao_estadual_validade" name="inscricao_estadual_validade">
+                        </div>
+                    </div>
+
+                    <!-- Certidão SEFAZ -->
+                    <div class="form-grid" style="align-items: end;">
+                        <div class="form-group">
+                            <label for="certidao_sefaz_arquivo">Certidão da SEFAZ</label>
+                            <div id="info_certidao_sefaz_arquivo" class="file-info"></div>
+                            <input type="hidden" name="remover_certidao_sefaz_arquivo" value="false">
+                            <input type="file" id="certidao_sefaz_arquivo" name="certidao_sefaz_arquivo">
+                        </div>
+                        <div class="form-group">
+                            <label for="certidao_sefaz_validade">Validade</label>
+                            <input type="date" id="certidao_sefaz_validade" name="certidao_sefaz_validade">
                         </div>
                     </div>
                 </div>
@@ -423,6 +479,10 @@
                     criarInfoArquivo(data.documentos.certidaoPrefeitura, 'info_certidao_prefeitura_arquivo', 'remover_certidao_prefeitura_arquivo');
                     criarInfoArquivo(data.documentos.certidaoReceita, 'info_certidao_receita_arquivo', 'remover_certidao_receita_arquivo');
                     criarInfoArquivo(data.documentos.certidaoFGTS, 'info_certidao_fgts_arquivo', 'remover_certidao_fgts_arquivo');
+                    criarInfoArquivo(data.documentos.certidaoTrabalhista, 'info_certidao_trabalhista_arquivo', 'remover_certidao_trabalhista_arquivo');
+                    criarInfoArquivo(data.documentos.inscricaoEstadual, 'info_inscricao_estadual_arquivo', 'remover_inscricao_estadual_arquivo');
+                    criarInfoArquivo(data.documentos.certidaoSefaz, 'info_certidao_sefaz_arquivo', 'remover_certidao_sefaz_arquivo');
+                    criarInfoArquivo(data.documentos.certidaoFalencia, 'info_certidao_falencia_arquivo', 'remover_certidao_falencia_arquivo');
 
                     // --- CORREÇÃO: Preenche os campos de data dos documentos ---
                     const preencherCampoData = (idCampo, valorData) => {
@@ -433,6 +493,10 @@
                     preencherCampoData('certidao_prefeitura_validade', data.documentos.certidaoPrefeitura?.dataValidade);
                     preencherCampoData('certidao_receita_validade', data.documentos.certidaoReceita?.dataValidade);
                     preencherCampoData('certidao_fgts_validade', data.documentos.certidaoFGTS?.dataValidade);
+                    preencherCampoData('certidao_trabalhista_validade', data.documentos.certidaoTrabalhista?.dataValidade);
+                    preencherCampoData('inscricao_estadual_validade', data.documentos.inscricaoEstadual?.dataValidade);
+                    preencherCampoData('certidao_sefaz_validade', data.documentos.certidaoSefaz?.dataValidade);
+                    preencherCampoData('certidao_falencia_validade', data.documentos.certidaoFalencia?.dataValidade);
                     
                     // Preenche o ano do alvará
                     if (data.documentos.alvara?.ano) document.getElementById('alvara_ano').value = data.documentos.alvara.ano;

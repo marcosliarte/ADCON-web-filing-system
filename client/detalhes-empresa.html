@@ -234,10 +234,24 @@
                 documentosHtml += createDocumentoItem(`Certidão do FGTS${validade}`, data.documentos.certidaoFGTS);
             }
             if (data.documentos.certidaoSefaz) {
-                // Adicione lógica para Sefaz, Trabalhista e Falência aqui
+                const validade = data.documentos.certidaoSefaz.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoSefaz.dataValidade)})` : '';
+                documentosHtml += createDocumentoItem(`Certidão da SEFAZ${validade}`, data.documentos.certidaoSefaz);
             }
             if (data.documentos.certidaoTrabalhista) {
-                // ...
+                const validade = data.documentos.certidaoTrabalhista.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoTrabalhista.dataValidade)})` : '';
+                documentosHtml += createDocumentoItem(`Certidão Trabalhista${validade}`, data.documentos.certidaoTrabalhista);
+            }
+            if (data.documentos.inscricaoEstadual) {
+                const validade = data.documentos.inscricaoEstadual.dataValidade ? ` (Validade: ${formatarData(data.documentos.inscricaoEstadual.dataValidade)})` : '';
+                documentosHtml += createDocumentoItem(`Inscrição Estadual${validade}`, data.documentos.inscricaoEstadual);
+            }
+            if (data.documentos.certidaoSefaz) {
+                const validade = data.documentos.certidaoSefaz.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoSefaz.dataValidade)})` : '';
+                documentosHtml += createDocumentoItem(`Certidão da SEFAZ${validade}`, data.documentos.certidaoSefaz);
+            }
+            if (data.documentos.certidaoFalencia) {
+                const validade = data.documentos.certidaoFalencia.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoFalencia.dataValidade)})` : '';
+                documentosHtml += createDocumentoItem(`Certidão de Falência${validade}`, data.documentos.certidaoFalencia);
             }
             if (data.documentos.contratos && data.documentos.contratos.length > 0) {
                 data.documentos.contratos.forEach((contrato, index) => {
