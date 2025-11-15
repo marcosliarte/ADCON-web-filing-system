@@ -102,6 +102,7 @@ router.get('/dashboard/expiring-docs', async (req, res) => {
                         const nomeDocumento = docKey.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
                         
                         alertas.push({
+                            empresaId: empresa._id, // ADICIONADO: Envia o ID da empresa para o frontend.
                             empresaNome: empresa.nome,
                             documento: nomeDocumento,
                             dataValidade: dataValidade,
