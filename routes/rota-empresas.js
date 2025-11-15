@@ -678,7 +678,13 @@ router.get('/documentos/vencendo', auth, async (req, res) => {
       };
 
       checarDocumento(empresa.documentos.certificadoDigital, 'Certificado Digital');
-      // Adicione chamadas para outros documentos aqui...
+      checarDocumento(empresa.documentos.certidaoPrefeitura, 'Certidão da Prefeitura');
+      checarDocumento(empresa.documentos.certidaoReceita, 'Certidão da Receita Federal');
+      checarDocumento(empresa.documentos.certidaoFGTS, 'Certidão do FGTS');
+      checarDocumento(empresa.documentos.certidaoTrabalhista, 'Certidão Trabalhista');
+      checarDocumento(empresa.documentos.certidaoFalencia, 'Certidão de Falência');
+      checarDocumento(empresa.documentos.inscricaoEstadual, 'Inscrição Estadual');
+      checarDocumento(empresa.documentos.certidaoSefaz, 'Certidão da SEFAZ');
     });
 
     res.json(documentosVencendo.sort((a, b) => a.diasRestantes - b.diasRestantes));
