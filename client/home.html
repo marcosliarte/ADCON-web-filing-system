@@ -446,6 +446,14 @@
                     <h3>Meus Pagamentos</h3>
                     <p>Acompanhe seu histórico de pagamentos e gere recibos.</p>
                 </a>
+
+                <!-- CARD DOCUMENTOS A VENCER -->
+                <a href="documentos-vencendo.html" class="dashboard-card" id="card-documentos-vencer" style="display: none;">
+                    <div class="card-icon">🗓️</div>
+                    <h3>Documentos a Vencer</h3>
+                    <p>Monitore os documentos e certificados que estão próximos do vencimento.</p>
+                </a>
+
             </div>
         </div>
     </div>
@@ -512,6 +520,7 @@
                         document.getElementById('card-gerenciar-mensalidades').style.display = 'flex';
                         document.getElementById('card-cadastrar-empresa').style.display = 'flex';
                         // Exibe o card "Meus Pagamentos" para admin, gerente e funcionário.
+                        document.getElementById('card-documentos-vencer').style.display = 'flex';
                         document.getElementById('card-meus-pagamentos').style.display = 'flex';
                     }
                 }

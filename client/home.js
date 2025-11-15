@@ -23,6 +23,9 @@ async function getUsuario() {
             const userRole = usuario.role;
             const getCard = (id) => document.getElementById(id);
 
+            // Funcionalidades para TODOS os usuários
+            if (getCard('card-nova-funcionalidade')) getCard('card-nova-funcionalidade').style.display = 'flex';
+
             // Funcionalidades para Admin e Gerente
             if (userRole === 'admin' || userRole === 'gerente') {
                 if (getCard('card-gerenciar-mensalidades')) getCard('card-gerenciar-mensalidades').style.display = 'flex';
