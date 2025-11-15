@@ -112,6 +112,9 @@ router.get('/dashboard/expiring-docs', async (req, res) => {
             }
         });
 
+        // NOVA LÓGICA: Ordenar os alertas pela data de validade (do mais antigo/próximo para o mais distante).
+        alertas.sort((a, b) => a.dataValidade - b.dataValidade);
+
         res.json(alertas);
     } catch (err) {
         console.error(err.message);
