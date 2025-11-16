@@ -25,14 +25,16 @@ app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3000;
 
 // Escolher URI dependendo do ambiente
-const isProduction = process.env.NODE_ENV === 'production';
-const MONGODB_URI = isProduction
-  ? process.env.MONGODB_URI_PROD
-  : process.env.MONGODB_URI_LOCAL;
+let MONGODB_URI;
+if (process.env.NODE_ENV === 'production') {
+    MONGODB_URI = process.env.MONGODB_URI_PROD;
+} else {
+    MONGODB_URI = process.env.MONGODB_URI_LOCAL;
+}
 
 if (!MONGODB_URI) {
-  console.error('Erro: MONGODB_URI não está definida!');
-  process.exit(1);
+    console.error('Erro: MONGODB_URI não está definida!');
+    process.exit(1);
 }
 
 // Conectar ao MongoDB
@@ -40,7 +42,7 @@ mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
-.then(() => console.log(`MongoDB conectado (${isProduction ? 'produção' : 'local'})...`))
+.then(() => console.log(`MongoDB conectado (${process.env.NODE_ENV === 'production' ? 'produção' : 'local'})...`))
 .catch(err => {
     console.error('Erro ao conectar ao MongoDB:', err);
     process.exit(1);
@@ -77,7 +79,7 @@ app.use('/api/admin', adminRoutes);
 // Arquivos estáticos
 app.use(express.static('client'));
 app.use('/assets', express.static(path.join(__dirname, 'client/assets')));
-app.use('/js/config.js', express.static(path.join(__dirname, 'config.js'))); // <-- ADICIONAR ESTA LINHA
+app.use('/js/config.js', express.static(path.join(__dirname, 'config.js')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rotas adicionais
@@ -89,7 +91,9 @@ app.get('/healthz', (req, res) => {
     res.status(200).send('OK');
 });
 
-// Iniciar servidor
+// -----------------------------
+//       INICIAR SERVIDOR
+// -----------------------------
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
     console.log(`JWT_SECRET carregado: ${process.env.JWT_SECRET ? 'Sim' : 'Não'}`);
