@@ -18,6 +18,10 @@ const pagamentosRoutes = require('./routes/rota-pagamentos'); // CORREÇÃO: Apo
 const adminRoutes = require('./routes/rota-admin'); // ROTA PARA DASHBOARD DO ADMIN
 
 const app = express();
+
+// ⚠️ NECESSÁRIO PARA O RENDER (proxy reverse)
+app.set("trust proxy", 1);
+
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -50,14 +54,13 @@ app.use(express.json());
 
 // 3. Middlewares de Rota
 app.use('/api/auth', authRoutes);
-// A linha acima já lida com todas as rotas de autenticação, incluindo /api/auth/admin/users
 app.use('/api/empresas', empresaRoutes);
-app.use('/api/mensalidades', mensalidadeRoutes); // ROTA REGISTRADA
-app.use('/api/relatorios', relatoriosRoutes); // REGISTRANDO ROTA DE RELATÓRIOS
-app.use('/api/configuracao', configuracaoRoutes); // REGISTRANDO NOVA ROTA
-app.use('/api/funcionarios', funcionarioRoutes); // REGISTRANDO ROTA DE FUNCIONÁRIOS
-app.use('/api/pagamentos', pagamentosRoutes); // REGISTRANDO ROTA DE PAGAMENTOS
-app.use('/api/admin', adminRoutes); // REGISTRANDO ROTA DO ADMIN
+app.use('/api/mensalidades', mensalidadeRoutes);
+app.use('/api/relatorios', relatoriosRoutes);
+app.use('/api/configuracao', configuracaoRoutes);
+app.use('/api/funcionarios', funcionarioRoutes);
+app.use('/api/pagamentos', pagamentosRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 4. Middlewares para servir arquivos estáticos (frontend e uploads)
 app.use(express.static('client'));
@@ -66,17 +69,14 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando!`);
-    console.log(`JWT_SECRET carregado: ${process.env.JWT_SECRET ? 'Sim' : 'Não'}`); // Adicionado para debug
+    console.log(`JWT_SECRET carregado: ${process.env.JWT_SECRET ? 'Sim' : 'Não'}`);
     
     // Função para encontrar o endereço IP local
     const interfaces = os.networkInterfaces();
     let ipAddress = 'localhost';
     for (const name of Object.keys(interfaces)) {
         for (const iface of interfaces[name]) {
-            // Pula endereços internos (ex: 127.0.0.1) e não-ipv4
-            if ('IPv4' !== iface.family || iface.internal !== false) {
-                continue;
-            }
+            if ('IPv4' !== iface.family || iface.internal !== false) continue;
             ipAddress = iface.address;
             break;
         }
