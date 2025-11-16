@@ -10,7 +10,7 @@ const connectDB = require('./config/db'); // Importa a função de conexão padr
 // --- DADOS DO ADMINISTRADOR ---
 // Altere os dados abaixo para o seu usuário administrador
 const ADMIN_EMAIL = 'marcos.liarte.neves@gmail.com';
-const ADMIN_SENHA = 'Rokku281093!';
+const ADMIN_SENHA = '123456';
 const ADMIN_NOME = 'Marcos Liarte';
 
 const createAdmin = async () => {

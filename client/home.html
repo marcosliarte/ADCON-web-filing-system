@@ -86,7 +86,6 @@
 
         /* --- Layout Principal --- */
         .container {
-            flex-grow: 1;
             display: flex;
             flex-wrap: wrap;
             gap: 2rem;
@@ -170,6 +169,7 @@
         /* --- Conteúdo Principal --- */
         .main-content {
             flex: 3 1 600px; /* Ocupa mais espaço */
+            flex-grow: 1; /* Faz esta área crescer para empurrar o rodapé para baixo */
         }
 
         .main-content h2 {

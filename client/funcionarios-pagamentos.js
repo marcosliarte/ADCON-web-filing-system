@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     btnGerarDemonstrativo.addEventListener('click', gerarDemonstrativo);
+    btnCancelarEdicao.addEventListener('click', resetarFormulario); // ADICIONADO: Listener para o botão de cancelar
 });
 
 async function carregarUsuariosDisponiveis() {
@@ -494,7 +495,7 @@ function calcularResumo(salarioBase, descontosFixos) {
 
     const totalDescontosFixos = descontosFixos.reduce((acc, d) => acc + d.valor, 0);
 
-    const totalProventos = salarioBase + adicionais;
+    const totalProventos = salarioBase + totalAdicionais; // CORREÇÃO: Usar a variável correta que soma os adicionais
     const totalDescontos = totalDescontosFixos + totalDescontosVariaveis;
     const salarioLiquido = totalProventos - totalDescontos;
 
@@ -597,7 +598,12 @@ function exibirHistoricoPagamentos(historico) {
         return;
     }
     historico.sort((a, b) => new Date(b.ano, b.mes - 1) - new Date(a.ano, a.mes - 1)).forEach(p => {
-        const funcionarioId = document.getElementById('btn-gerar-demonstrativo').dataset.funcionarioId;
+        // CORREÇÃO: A função de exclusão precisa ser acessível globalmente ou o listener precisa ser adicionado aqui.
+        // Para simplificar, vamos tornar a função de exclusão acessível no escopo global (window).
+        // Isso evita problemas com o `onclick` no HTML gerado dinamicamente.
+        window.excluirPagamento = excluirPagamento;
+
+        const funcionarioId = document.getElementById('btn-gerar-demonstrativo').dataset.funcionarioId; // Pega o ID do funcionário do botão
         const li = document.createElement('li');
         li.innerHTML = `
             <span>${String(p.mes).padStart(2, '0')}/${p.ano}</span>
