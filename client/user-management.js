@@ -3,7 +3,7 @@ checkAuth();
 let currentUser; // Usuário logado (admin)
 
 async function setupPage() {
-    const response = await fetchWithAuth('/api/auth');
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/auth`);
     if (response) {
         currentUser = await response.json();
         createHeader('header-placeholder', currentUser);
@@ -19,7 +19,7 @@ async function setupPage() {
 
 async function loadUsers() {
     try {
-        const response = await fetchWithAuth('/api/auth/admin/users');
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/admin/users`);
         if (response && response.ok) {
             const users = await response.json();
             const tbody = document.querySelector('#usersTable tbody');
@@ -62,7 +62,7 @@ async function deleteUser(userId) {
     if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
 
     try {
-        const response = await fetchWithAuth(`/api/auth/admin/users/${userId}`, { method: 'DELETE' });
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/admin/users/${userId}`, { method: 'DELETE' });
         if (response && response.ok) {
             alert('Usuário excluído com sucesso!');
             loadUsers();
@@ -80,7 +80,7 @@ async function impersonateUser(userId) {
     if (!confirm('Tem certeza que deseja personificar este usuário? Você será redirecionado para a página inicial como se fosse ele.')) return;
 
     try {
-        const response = await fetchWithAuth(`/api/auth/admin/impersonate/${userId}`, {
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/admin/impersonate/${userId}`, {
             method: 'POST'
         });
 
@@ -108,7 +108,7 @@ document.getElementById('createUserForm').addEventListener('submit', async funct
     const createMessage = document.getElementById('createMessage');
 
     try {
-        const response = await fetchWithAuth('/api/auth/admin/users', {
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/admin/users`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nome, email, senha, role })

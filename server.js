@@ -1,87 +1,109 @@
-require('dotenv').config(); // Carrega as variáveis de ambiente do arquivo .env
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose'); // Importe o Mongoose
-const path = require('path'); // Módulo para lidar com caminhos de arquivos
-const os = require('os'); // Módulo para obter informações do sistema operacional, como o IP
-const helmet = require('helmet'); // Para segurança dos cabeçalhos HTTP
-const mongoSanitize = require('express-mongo-sanitize'); // Para prevenir NoSQL Injection
+const mongoose = require('mongoose');
+const path = require('path');
+const os = require('os');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
 
 // Importar rotas
 const authRoutes = require('./routes/rota-auth');
 const empresaRoutes = require('./routes/rota-empresas');
 const mensalidadeRoutes = require('./routes/rota-mensalidades');
-const relatoriosRoutes = require('./routes/rota-relatorios'); // ROTA DE RELATÓRIOS
-const configuracaoRoutes = require('./routes/rota-configuracao'); // NOVA ROTA
-const funcionarioRoutes = require('./routes/rota-funcionarios'); // ROTA PARA FUNCIONÁRIOS
-const pagamentosRoutes = require('./routes/rota-pagamentos'); // CORREÇÃO: Apontando para a pasta de rotas
-const adminRoutes = require('./routes/rota-admin'); // ROTA PARA DASHBOARD DO ADMIN
+const relatoriosRoutes = require('./routes/rota-relatorios');
+const configuracaoRoutes = require('./routes/rota-configuracao');
+const funcionarioRoutes = require('./routes/rota-funcionarios');
+const pagamentosRoutes = require('./routes/rota-pagamentos');
+const adminRoutes = require('./routes/rota-admin');
 
 const app = express();
+
+// ⚠️ Necessário para o Render (proxy reverse)
+app.set("trust proxy", 1);
+
 const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGODB_URI;
+
+// Escolher URI dependendo do ambiente
+const isProduction = process.env.NODE_ENV === 'production';
+const MONGODB_URI = isProduction
+  ? process.env.MONGODB_URI_PROD
+  : process.env.MONGODB_URI_LOCAL;
+
+if (!MONGODB_URI) {
+  console.error('Erro: MONGODB_URI não está definida!');
+  process.exit(1);
+}
 
 // Conectar ao MongoDB
-mongoose.connect(MONGODB_URI)
-.then(() => console.log('Conectado ao MongoDB'))
+mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log(`MongoDB conectado (${isProduction ? 'produção' : 'local'})...`))
 .catch(err => {
     console.error('Erro ao conectar ao MongoDB:', err);
-    process.exit(1); // Encerra a aplicação se não conseguir conectar ao DB
+    process.exit(1);
 });
 
-// --- ORDEM CORRETA DOS MIDDLEWARES ---
-
-// 1. Middlewares de Segurança primeiro
+// -----------------------------
+//       MIDDLEWARES
+// -----------------------------
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'"], // Permite <script> tags
-      "connect-src": ["'self'", "https://viacep.com.br", "https://servicodados.ibge.gov.br"], // Permite conexão com ViaCEP e IBGE
-      "script-src-attr": ["'self'", "'unsafe-inline'"], // Permite onclick="", etc.
-    },
+      "script-src": ["'self'", "'unsafe-inline'"],
+      "connect-src": ["'self'", "https://viacep.com.br", "https://servicodados.ibge.gov.br"],
+      "script-src-attr": ["'self'", "'unsafe-inline'"]
+    }
   })
 );
-app.use(mongoSanitize()); // Previne NoSQL Injection
 
-// 2. Middlewares de parsing e CORS
+app.use(mongoSanitize());
 app.use(cors());
 app.use(express.json());
 
-// 3. Middlewares de Rota
+// Rotas da API
 app.use('/api/auth', authRoutes);
-// A linha acima já lida com todas as rotas de autenticação, incluindo /api/auth/admin/users
 app.use('/api/empresas', empresaRoutes);
-app.use('/api/mensalidades', mensalidadeRoutes); // ROTA REGISTRADA
-app.use('/api/relatorios', relatoriosRoutes); // REGISTRANDO ROTA DE RELATÓRIOS
-app.use('/api/configuracao', configuracaoRoutes); // REGISTRANDO NOVA ROTA
-app.use('/api/funcionarios', funcionarioRoutes); // REGISTRANDO ROTA DE FUNCIONÁRIOS
-app.use('/api/pagamentos', pagamentosRoutes); // REGISTRANDO ROTA DE PAGAMENTOS
-app.use('/api/admin', adminRoutes); // REGISTRANDO ROTA DO ADMIN
+app.use('/api/mensalidades', mensalidadeRoutes);
+app.use('/api/relatorios', relatoriosRoutes);
+app.use('/api/configuracao', configuracaoRoutes);
+app.use('/api/funcionarios', funcionarioRoutes);
+app.use('/api/pagamentos', pagamentosRoutes);
+app.use('/api/admin', adminRoutes);
 
-// 4. Middlewares para servir arquivos estáticos (frontend e uploads)
+// Arquivos estáticos
 app.use(express.static('client'));
 app.use('/assets', express.static(path.join(__dirname, 'client/assets')));
+app.use('/js/config.js', express.static(path.join(__dirname, 'config.js'))); // <-- ADICIONAR ESTA LINHA
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor rodando!`);
-    console.log(`JWT_SECRET carregado: ${process.env.JWT_SECRET ? 'Sim' : 'Não'}`); // Adicionado para debug
-    
-    // Função para encontrar o endereço IP local
+// Rotas adicionais
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/login.html'));
+});
+
+app.get('/healthz', (req, res) => {
+    res.status(200).send('OK');
+});
+
+// Iniciar servidor
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`JWT_SECRET carregado: ${process.env.JWT_SECRET ? 'Sim' : 'Não'}`);
+
     const interfaces = os.networkInterfaces();
     let ipAddress = 'localhost';
     for (const name of Object.keys(interfaces)) {
         for (const iface of interfaces[name]) {
-            // Pula endereços internos (ex: 127.0.0.1) e não-ipv4
-            if ('IPv4' !== iface.family || iface.internal !== false) {
-                continue;
-            }
+            if ('IPv4' !== iface.family || iface.internal !== false) continue;
             ipAddress = iface.address;
             break;
         }
     }
 
-    console.log(`\nAcesse a aplicação localmente em: http://localhost:${PORT}/login.html`);
-    console.log(`Acesse na sua rede em:          http://${ipAddress}:${PORT}/login.html\n`);
+    console.log(`\nAcesse localmente: http://localhost:${PORT}/login.html`);
+    console.log(`Acesse na rede:    http://${ipAddress}:${PORT}/login.html\n`);
 });
