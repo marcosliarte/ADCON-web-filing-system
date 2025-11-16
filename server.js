@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config(); // Carrega .env localmente, se existir
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -24,13 +24,10 @@ app.set("trust proxy", 1);
 
 const PORT = process.env.PORT || 3000;
 
-// Escolher URI dependendo do ambiente
-let MONGODB_URI;
-if (process.env.NODE_ENV === 'production') {
-    MONGODB_URI = process.env.MONGODB_URI_PROD;
-} else {
-    MONGODB_URI = process.env.MONGODB_URI_LOCAL;
-}
+// -----------------------------
+//       CONFIGURAÇÃO DO MONGODB
+// -----------------------------
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
 
 if (!MONGODB_URI) {
     console.error('Erro: MONGODB_URI não está definida!');
@@ -42,7 +39,7 @@ mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
-.then(() => console.log(`MongoDB conectado (${process.env.NODE_ENV === 'production' ? 'produção' : 'local'})...`))
+.then(() => console.log(`MongoDB conectado (${MONGODB_URI.includes('127.0.0.1') ? 'local' : 'produção'})...`))
 .catch(err => {
     console.error('Erro ao conectar ao MongoDB:', err);
     process.exit(1);
@@ -66,7 +63,9 @@ app.use(mongoSanitize());
 app.use(cors());
 app.use(express.json());
 
-// Rotas da API
+// -----------------------------
+//       ROTAS DA API
+// -----------------------------
 app.use('/api/auth', authRoutes);
 app.use('/api/empresas', empresaRoutes);
 app.use('/api/mensalidades', mensalidadeRoutes);
@@ -76,20 +75,22 @@ app.use('/api/funcionarios', funcionarioRoutes);
 app.use('/api/pagamentos', pagamentosRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Arquivos estáticos
+// -----------------------------
+//       ARQUIVOS ESTÁTICOS
+// -----------------------------
 app.use(express.static('client'));
 app.use('/assets', express.static(path.join(__dirname, 'client/assets')));
 app.use('/js/config.js', express.static(path.join(__dirname, 'config.js')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Rotas adicionais
+// -----------------------------
+//       ROTAS ADICIONAIS
+// -----------------------------
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'client/login.html'));
 });
 
-app.get('/healthz', (req, res) => {
-    res.status(200).send('OK');
-});
+app.get('/healthz', (req, res) => res.status(200).send('OK'));
 
 // -----------------------------
 //       INICIAR SERVIDOR
