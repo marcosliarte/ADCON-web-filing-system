@@ -34,11 +34,8 @@ if (!MONGODB_URI) {
     process.exit(1);
 }
 
-// Conectar ao MongoDB
-mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
+// Conectar ao MongoDB (versão moderna, sem warnings)
+mongoose.connect(MONGODB_URI)
 .then(() => console.log(`MongoDB conectado (${MONGODB_URI.includes('127.0.0.1') ? 'local' : 'produção'})...`))
 .catch(err => {
     console.error('Erro ao conectar ao MongoDB:', err);
@@ -81,7 +78,7 @@ app.use('/api/admin', adminRoutes);
 app.use(express.static('client'));
 app.use('/assets', express.static(path.join(__dirname, 'client/assets')));
 app.use('/js/config.js', express.static(path.join(__dirname, 'config.js')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // ⚠️ Apenas temporário no Render
 
 // -----------------------------
 //       ROTAS ADICIONAIS
@@ -111,4 +108,10 @@ app.listen(PORT, () => {
 
     console.log(`\nAcesse localmente: http://localhost:${PORT}/login.html`);
     console.log(`Acesse na rede:    http://${ipAddress}:${PORT}/login.html\n`);
+
+    if (process.env.RENDER_EXTERNAL_URL) {
+        console.log(`Disponível online: ${process.env.RENDER_EXTERNAL_URL}\n`);
+    }
+
+    console.log("⚠️ Lembre-se: uploads em /uploads não persistem após reinícios no Render. Use S3 ou storage externo se necessário.\n");
 });
