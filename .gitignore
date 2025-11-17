@@ -6,9 +6,6 @@ yarn-error.log
 # Arquivos de logs
 *.log
 
-# Pastas de uploads
-uploads/
-
 # Arquivos do sistema (se estiver usando Windows ou Mac)
 .DS_Store
 Thumbs.db
