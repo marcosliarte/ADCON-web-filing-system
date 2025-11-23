@@ -16,7 +16,7 @@ const Usuario = require('../models/model-usuario'); // Adicionado para contagem 
 router.use(auth, adminAuth);
 
 // --- CONFIGURAÇÃO DE BACKUP ---
-const backupDir = path.join(__dirname, '../../_backups'); // Pasta na raiz do projeto
+const backupDir = path.join(__dirname, '../_backups'); // Define a pasta de backups DENTRO do projeto.
 
 // Garante que a pasta de backups exista
 if (!fs.existsSync(backupDir)) {
@@ -146,46 +146,50 @@ router.get('/dashboard/expiring-docs', async (req, res) => {
 // @route   POST api/admin/backup/create
 // @desc    Criar um novo backup do banco de dados
 router.post('/backup/create', (req, res) => {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const dbDumpFilename = `db-dump-${timestamp}.gz`;
-    const dbDumpFilePath = path.join(backupDir, dbDumpFilename);
+  // LÓGICA DE BACKUP DO ZERO
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const dbDumpFilename = `db-dump-${timestamp}.gz`;
+  const dbDumpFilePath = path.join(backupDir, dbDumpFilename);
+
+  // 1. Pega o caminho do mongodump do .env ou usa o comando padrão.
+  const mongodumpExecutable = process.env.MONGODUMP_PATH || 'mongodump';
+  const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
+
+  // 2. Constrói o comando, garantindo que o executável e os caminhos de arquivo estejam entre aspas.
+  // Esta é a correção crucial para o Windows.
+  const command = `"${mongodumpExecutable}" --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip`;
+
+  console.log('--- EXECUTANDO COMANDO DE BACKUP ---');
+  console.log(command);
+
+  // 3. Executa o comando.
+  exec(command, (dumpError, stdout, stderr) => {
+    if (dumpError) {
+      console.error(`Erro ao criar dump do banco de dados: ${stderr}`);
+      return res.status(500).json({ msg: 'Falha ao criar o backup do banco de dados.', error: stderr });
+    }
+
+    // 4. Se o dump do banco de dados foi bem-sucedido, cria o arquivo .zip.
     const finalBackupFilename = `backup-completo-${timestamp}.zip`;
     const finalBackupPath = path.join(backupDir, finalBackupFilename);
     const uploadsPath = path.join(__dirname, '../uploads');
 
-    const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
-    const mongodumpExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH}"` : 'mongodump';
-    const dumpCommand = `${mongodumpExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip`;
+    const output = fs.createWriteStream(finalBackupPath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
 
-    exec(dumpCommand, (dumpError, stdout, stderr) => {
-        if (dumpError) {
-            console.error(`Erro ao criar dump do banco de dados: ${stderr}`);
-            return res.status(500).json({ msg: 'Falha ao criar o backup do banco de dados.', error: stderr });
-        }
-
-        const output = fs.createWriteStream(finalBackupPath);
-        const archive = archiver('zip', { zlib: { level: 9 } });
-
-        output.on('close', () => {
-            fs.unlink(dbDumpFilePath, (unlinkErr) => {
-                if (unlinkErr) console.error("Erro ao remover arquivo de dump temporário:", unlinkErr);
-            });
-            res.json({ msg: 'Backup completo criado com sucesso!', file: finalBackupFilename });
-        });
-
-        archive.on('error', (archiveErr) => {
-            res.status(500).json({ msg: 'Falha ao criar o arquivo de backup final.', error: archiveErr.message });
-        });
-
-        archive.pipe(output);
-
-        archive.file(dbDumpFilePath, { name: dbDumpFilename });
-        if (fs.existsSync(uploadsPath)) {
-            archive.directory(uploadsPath, 'uploads');
-        }
-
-        archive.finalize();
+    output.on('close', () => {
+      fs.unlink(dbDumpFilePath, (unlinkErr) => { if (unlinkErr) console.error("Erro ao remover arquivo de dump temporário:", unlinkErr); });
+      res.json({ msg: 'Backup completo criado com sucesso!', file: finalBackupFilename });
     });
+
+    archive.on('error', (archiveErr) => res.status(500).json({ msg: 'Falha ao criar o arquivo ZIP.', error: archiveErr.message }));
+    archive.pipe(output);
+    archive.file(dbDumpFilePath, { name: dbDumpFilename });
+    if (fs.existsSync(uploadsPath)) {
+      archive.directory(uploadsPath, 'uploads');
+    }
+    archive.finalize();
+  });
 });
 
 // @route   GET api/admin/backup/list
