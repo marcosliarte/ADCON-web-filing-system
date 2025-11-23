@@ -6,8 +6,11 @@ const path = require('path');
 const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
 const { exec } = require('child_process'); // Para executar comandos do sistema (mongodump/mongorestore)
+const archiver = require('archiver'); // Para criar arquivos .zip
+const unzipper = require('unzipper'); // Para extrair arquivos .zip
 
 const Empresa = require('../models/model-empresa');
+const Usuario = require('../models/model-usuario'); // Adicionado para contagem de usuários
 
 // Middleware para garantir que apenas admins acessem estas rotas
 router.use(auth, adminAuth);
@@ -57,9 +60,26 @@ router.get('/dashboard/status', async (req, res) => {
             diskUsage = getDirSize(uploadsDir);
         }
 
+        // 3. Uso de espaço em disco pela pasta de backups
+        let backupDiskUsage = 0;
+        if (fs.existsSync(backupDir)) {
+            backupDiskUsage = getDirSize(backupDir);
+        }
+
+        // 4. Contagem de entidades
+        const totalUsuarios = await Usuario.countDocuments();
+        const totalEmpresas = await Empresa.countDocuments();
+
         res.json({
             dbStatus: { status: dbStatus, state: dbState },
-            diskUsage: { bytes: diskUsage, megabytes: (diskUsage / (1024 * 1024)).toFixed(2) }
+            diskUsage: { 
+                uploads: { bytes: diskUsage, megabytes: (diskUsage / (1024 * 1024)).toFixed(2) },
+                backups: { bytes: backupDiskUsage, megabytes: (backupDiskUsage / (1024 * 1024)).toFixed(2) }
+            },
+            counts: {
+                usuarios: totalUsuarios,
+                empresas: totalEmpresas
+            }
         });
 
     } catch (err) {
@@ -127,16 +147,44 @@ router.get('/dashboard/expiring-docs', async (req, res) => {
 // @desc    Criar um novo backup do banco de dados
 router.post('/backup/create', (req, res) => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `backup-${timestamp}.gz`;
-    const backupFilePath = path.join(backupDir, filename);
-    const command = `mongodump --uri="${process.env.MONGODB_URI}" --archive="${backupFilePath}" --gzip`;
+    const dbDumpFilename = `db-dump-${timestamp}.gz`;
+    const dbDumpFilePath = path.join(backupDir, dbDumpFilename);
+    const finalBackupFilename = `backup-completo-${timestamp}.zip`;
+    const finalBackupPath = path.join(backupDir, finalBackupFilename);
+    const uploadsPath = path.join(__dirname, '../uploads');
 
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Erro ao criar backup: ${stderr}`);
-            return res.status(500).json({ msg: 'Falha ao criar o backup.', error: stderr });
+    const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
+    const mongodumpExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH}"` : 'mongodump';
+    const dumpCommand = `${mongodumpExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip`;
+
+    exec(dumpCommand, (dumpError, stdout, stderr) => {
+        if (dumpError) {
+            console.error(`Erro ao criar dump do banco de dados: ${stderr}`);
+            return res.status(500).json({ msg: 'Falha ao criar o backup do banco de dados.', error: stderr });
         }
-        res.json({ msg: 'Backup criado com sucesso!', file: filename });
+
+        const output = fs.createWriteStream(finalBackupPath);
+        const archive = archiver('zip', { zlib: { level: 9 } });
+
+        output.on('close', () => {
+            fs.unlink(dbDumpFilePath, (unlinkErr) => {
+                if (unlinkErr) console.error("Erro ao remover arquivo de dump temporário:", unlinkErr);
+            });
+            res.json({ msg: 'Backup completo criado com sucesso!', file: finalBackupFilename });
+        });
+
+        archive.on('error', (archiveErr) => {
+            res.status(500).json({ msg: 'Falha ao criar o arquivo de backup final.', error: archiveErr.message });
+        });
+
+        archive.pipe(output);
+
+        archive.file(dbDumpFilePath, { name: dbDumpFilename });
+        if (fs.existsSync(uploadsPath)) {
+            archive.directory(uploadsPath, 'uploads');
+        }
+
+        archive.finalize();
     });
 });
 
@@ -148,7 +196,7 @@ router.get('/backup/list', (req, res) => {
             return res.status(500).json({ msg: 'Não foi possível ler a pasta de backups.' });
         }
         const backups = files
-            .filter(file => file.endsWith('.gz'))
+            .filter(file => file.endsWith('.zip')) // Lista os arquivos .zip
             .map(file => {
                 const stats = fs.statSync(path.join(backupDir, file));
                 return {
@@ -175,16 +223,46 @@ router.post('/backup/restore', (req, res) => {
         return res.status(404).json({ msg: 'Arquivo de backup não encontrado.' });
     }
 
-    // O --drop apaga as coleções existentes antes de restaurar
-    const command = `mongorestore --uri="${process.env.MONGODB_URI}" --archive="${backupFilePath}" --gzip --drop`;
+    const tempRestoreDir = path.join(backupDir, `temp-restore-${Date.now()}`);
+    fs.mkdirSync(tempRestoreDir, { recursive: true });
 
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Erro ao restaurar backup: ${stderr}`);
-            return res.status(500).json({ msg: 'Falha ao restaurar o backup.', error: stderr });
-        }
-        res.json({ msg: 'Banco de dados restaurado com sucesso!' });
-    });
+    fs.createReadStream(backupFilePath)
+        .pipe(unzipper.Extract({ path: tempRestoreDir }))
+        .on('finish', () => {
+            const filesInTemp = fs.readdirSync(tempRestoreDir);
+            const dbDumpFile = filesInTemp.find(f => f.endsWith('.gz'));
+
+            if (!dbDumpFile) {
+                fs.rmSync(tempRestoreDir, { recursive: true, force: true });
+                return res.status(500).json({ msg: 'Arquivo de dump do banco de dados não encontrado no backup.' });
+            }
+
+            const dbDumpFilePath = path.join(tempRestoreDir, dbDumpFile);
+            const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
+            const mongorestoreExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 'mongorestore';
+            const restoreCommand = `${mongorestoreExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip --drop`;
+
+            exec(restoreCommand, (restoreError, stdout, stderr) => {
+                if (restoreError) {
+                    fs.rmSync(tempRestoreDir, { recursive: true, force: true });
+                    console.error(`Erro ao restaurar banco de dados: ${stderr}`);
+                    return res.status(500).json({ msg: 'Falha ao restaurar o banco de dados.', error: stderr });
+                }
+
+                const uploadsBackupPath = path.join(tempRestoreDir, 'uploads');
+                const serverUploadsPath = path.join(__dirname, '../uploads');
+
+                if (fs.existsSync(uploadsBackupPath)) {
+                    if (fs.existsSync(serverUploadsPath)) {
+                        fs.rmSync(serverUploadsPath, { recursive: true, force: true });
+                    }
+                    fs.renameSync(uploadsBackupPath, serverUploadsPath);
+                }
+
+                fs.rmSync(tempRestoreDir, { recursive: true, force: true });
+                res.json({ msg: 'Sistema restaurado com sucesso!' });
+            });
+        });
 });
 
 // @route   GET api/admin/backup/download/:filename
@@ -209,6 +287,27 @@ router.delete('/backup/delete/:filename', (req, res) => {
         res.json({ msg: 'Backup excluído com sucesso.' });
     } else {
         res.status(404).json({ msg: 'Arquivo não encontrado.' });
+    }
+});
+
+// @route   GET api/admin/logs/recent
+// @desc    Obter os 5 logs de atividade mais recentes
+router.get('/logs/recent', async (req, res) => {
+    try {
+        // CORREÇÃO: Verifica se o modelo já foi compilado antes de tentar compilá-lo novamente.
+        // Isso evita erros em ambientes onde a ordem de carregamento dos arquivos pode variar.
+        const LogAcao = mongoose.models.LogAcao || mongoose.model('LogAcao');
+        if (!LogAcao) {
+            return res.status(500).json({ msg: 'Modelo de Log não inicializado.' });
+        }
+        const recentLogs = await LogAcao.find({})
+            .sort({ createdAt: -1 }) // Ordena dos mais recentes para os mais antigos
+            .limit(5); // Limita a 5 resultados
+
+        res.json(recentLogs);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ msg: 'Erro no servidor ao buscar logs recentes.' });
     }
 });
 

@@ -25,6 +25,15 @@
         .status-indicator { padding: 0.3rem 0.8rem; border-radius: 12px; color: white; font-size: 0.9rem; }
         .status-ok { background-color: #28a745; }
         .status-error { background-color: #dc3545; }
+        /* --- NOVOS ESTILOS --- */
+        .log-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; border-top: 1px solid #eee; margin-top: 1rem; }
+        .log-item { padding: 0.5rem; border-bottom: 1px solid #f1f1f1; font-size: 0.9rem; }
+        .log-item:last-child { border-bottom: none; }
+        .log-item .log-time { color: #6c757d; font-size: 0.8rem; display: block; }
+        .log-item .log-user { font-weight: bold; }
+        .log-item .log-device { color: #6c757d; font-size: 0.8rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* --------------------- */
+
         /* --- ESTILOS PARA A BARRA DE ROLAGEM DOS ALERTAS --- */
         #alerts-widget {
             max-height: 200px; /* Altura máxima da caixa de alertas */
@@ -64,6 +73,14 @@
                 <h3>Saúde do Sistema</h3>
                 <div id="system-status-widget">
                     <p>Carregando status...</p>
+                </div>
+            </div>
+
+            <!-- NOVO WIDGET: Logs de Atividade Recente -->
+            <div class="widget">
+                <h3>Atividade Recente</h3>
+                <div id="recent-logs-widget">
+                    <p>Carregando logs...</p>
                 </div>
             </div>
 
@@ -115,6 +132,7 @@
             document.body.style.display = 'block';
             loadSystemStatus();
             loadAlerts();
+            loadRecentLogs(); // Chama a nova função
             loadBackups();
         });
 
@@ -133,8 +151,20 @@
                         <span class="status-indicator ${dbStatusClass}">${data.dbStatus.status}</span>
                     </div>
                     <div class="widget-item">
+                        <span>Total de Usuários</span>
+                        <span>${data.counts.usuarios}</span>
+                    </div>
+                    <div class="widget-item">
+                        <span>Total de Empresas</span>
+                        <span>${data.counts.empresas}</span>
+                    </div>
+                    <div class="widget-item">
                         <span>Uso de Disco (Uploads)</span>
-                        <span>${data.diskUsage.megabytes} MB</span>
+                        <span>${data.diskUsage.uploads.megabytes} MB</span>
+                    </div>
+                    <div class="widget-item">
+                        <span>Uso de Disco (Backups)</span>
+                        <span>${data.diskUsage.backups.megabytes} MB</span>
                     </div>
                 `;
             } catch (error) {
@@ -163,6 +193,39 @@
                 html += '</ul>';
                 widget.innerHTML = html;
 
+            } catch (error) {
+                widget.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            }
+        }
+
+        // --- NOVA FUNÇÃO PARA CARREGAR LOGS RECENTES ---
+        async function loadRecentLogs() {
+            const widget = document.getElementById('recent-logs-widget');
+            try {
+                const response = await fetchWithAuth('/api/admin/logs/recent');
+                if (!response.ok) throw new Error('Falha ao carregar logs recentes.');
+                const logs = await response.json();
+
+                if (logs.length === 0) {
+                    widget.innerHTML = '<p>Nenhuma atividade recente registrada.</p>';
+                    return;
+                }
+
+                let html = '<ul class="log-list">';
+                logs.forEach(log => {
+                    // CORREÇÃO: Lógica mais segura para extrair informações do dispositivo.
+                    // Garante que o código não quebre se 'log.dispositivo' for nulo ou tiver um formato inesperado.
+                    const deviceMatch = log.dispositivo ? log.dispositivo.match(/\(([^)]+)\)/) : null;
+                    const deviceInfo = deviceMatch && deviceMatch[1] ? deviceMatch[1].split(';').slice(0, 2).join('; ') : 'Dispositivo não informado';
+
+                    html += `<li class="log-item">
+                        <span class="log-time">${new Date(log.createdAt).toLocaleString('pt-BR')}</span>
+                        <div><span class="log-user">${log.usuarioNome}</span>: ${log.acao}</div>
+                        <span class="log-device" title="${log.dispositivo || ''}">${deviceInfo}</span>
+                    </li>`;
+                });
+                html += '</ul>';
+                widget.innerHTML = html;
             } catch (error) {
                 widget.innerHTML = `<p style="color: red;">${error.message}</p>`;
             }

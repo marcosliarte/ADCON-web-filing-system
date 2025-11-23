@@ -47,6 +47,8 @@
         .btn-secondary:hover { background-color: #5a6268; }
         .btn-add { background-color: #28a745; font-size: 0.9rem; padding: 0.5rem 1rem; }
         .btn-add:hover { background-color: #218838; }
+        .btn-remover { background-color: #dc3545; color: white; border: none; font-size: 0.8rem; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; }
+        .btn-remover:hover { background-color: #c82333; }
         .socio-card, .alteracao-card { border: 1px solid #ddd; border-radius: 5px; padding: 1rem; margin-top: 1rem; background-color: #f8f9fa; }
         .socio-card h3, .alteracao-card h3 { margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; }
         #mensagem { margin-top: 1.5rem; padding: 1rem; border-radius: 5px; text-align: center; display: none; }
@@ -334,6 +336,7 @@
     <!-- Template para o card de sócio -->
     <template id="socio-template">
         <div class="socio-card">
+            <button type="button" class="btn-remover" style="float: right;" onclick="this.closest('.socio-card').remove()">Remover</button>
             <h3>Dados do Sócio</h3>
             <div class="form-grid">
                 <div class="form-group form-group-full">

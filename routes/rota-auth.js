@@ -22,15 +22,39 @@ const LogAcaoSchema = new mongoose.Schema({
   entidade: { type: String, default: 'Empresa' },
   entidadeId: { type: mongoose.Schema.Types.ObjectId },
   entidadeNome: { type: String },
+  dispositivo: { type: String }, // NOVO CAMPO: Armazena o User-Agent
 }, { timestamps: true });
 mongoose.model('LogAcao', LogAcaoSchema); // Compila o modelo para uso global
 
 // --- NOVA: Função Auxiliar para Registrar Log de Ações de Usuário ---
-async function registrarLogUsuario(usuarioExecutorId, acao, usuarioAlvo) {
+async function registrarLogUsuario(req, acao, usuarioAlvo) {
   const LogAcao = mongoose.model('LogAcao');
-  const usuarioExecutor = await Usuario.findById(usuarioExecutorId).select('nome');
+  const usuarioExecutor = await Usuario.findById(req.usuario.id).select('nome');
   // Cria o log com a entidade 'Usuário'
-  const log = new LogAcao({ usuarioId: usuarioExecutorId, usuarioNome: usuarioExecutor.nome, acao, entidade: 'Usuário', entidadeId: usuarioAlvo._id, entidadeNome: usuarioAlvo.nome });
+  const log = new LogAcao({
+    usuarioId: req.usuario.id,
+    usuarioNome: usuarioExecutor.nome,
+    acao,
+    dispositivo: req.headers['user-agent'], // Captura o dispositivo da requisição
+    entidade: 'Usuário',
+    entidadeId: usuarioAlvo._id,
+    entidadeNome: usuarioAlvo.nome
+  });
+  await log.save();
+}
+
+// --- NOVA: Função Auxiliar para Registrar Log de Sistema (Login, etc.) ---
+async function registrarLogSistema(req, acao, usuario) {
+  const LogAcao = mongoose.model('LogAcao');
+  // Cria o log sem uma entidade específica, apenas a ação do usuário.
+  const log = new LogAcao({
+    usuarioId: usuario._id,
+    usuarioNome: usuario.nome,
+    acao,
+    dispositivo: req.headers['user-agent'], // Captura o dispositivo da requisição
+    entidade: 'Sistema', // Indica que é uma ação de sistema
+    entidadeNome: 'Login'
+  });
   await log.save();
 }
 
@@ -159,6 +183,9 @@ router.post(
       if (!isMatch) {
         return res.status(400).json({ msg: 'Credenciais inválidas' });
       }
+
+      // REGISTRA O LOG DE LOGIN BEM-SUCEDIDO
+      await registrarLogSistema(req, 'Login bem-sucedido', usuario);
 
       const payload = {
         usuario: {
@@ -371,7 +398,7 @@ router.post(
       delete usuarioCriado.senha;
 
       // REGISTRA O LOG
-      await registrarLogUsuario(req.usuario.id, `Criação de Usuário: ${usuario.role}`, usuario);
+      await registrarLogUsuario(req, `Criação de Usuário: ${usuario.role}`, usuario);
 
       res.status(201).json(usuarioCriado);
 
@@ -422,7 +449,7 @@ router.delete('/admin/users/:id', [auth, adminAuth], async (req, res) => {
     await Usuario.findByIdAndDelete(req.params.id);
 
     // REGISTRA O LOG
-    await registrarLogUsuario(req.usuario.id, 'Exclusão de Usuário', usuario);
+    await registrarLogUsuario(req, 'Exclusão de Usuário', usuario);
 
     res.json({ msg: 'Usuário removido com sucesso' });
   } catch (err) {
@@ -466,7 +493,7 @@ router.put('/admin/users/:id/role', [auth, adminAuth], async (req, res) => {
         await targetUser.save();
 
         // REGISTRA O LOG
-        await registrarLogUsuario(req.usuario.id, `Alteração de Perfil para: ${role}`, targetUser);
+        await registrarLogUsuario(req, `Alteração de Perfil para: ${role}`, targetUser);
 
         res.json({ msg: `Perfil de ${targetUser.nome} atualizado para ${role} com sucesso.` });
     } catch (err) {
