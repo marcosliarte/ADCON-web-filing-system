@@ -45,20 +45,34 @@ mongoose.connect(MONGODB_URI)
 // -----------------------------
 //       MIDDLEWARES
 // -----------------------------
-app.use(
-  helmet.contentSecurityPolicy({
-    directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'"],
-      "connect-src": ["'self'", "https://viacep.com.br", "https://servicodados.ibge.gov.br"],
-      "script-src-attr": ["'self'", "'unsafe-inline'"]
+
+// Encontra o IP local para adicionar à CSP em ambiente de desenvolvimento
+const interfaces = os.networkInterfaces();
+let localIpAddress = 'localhost';
+for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+        if ('IPv4' !== iface.family || iface.internal !== false) continue;
+        localIpAddress = iface.address;
+        break;
     }
-  })
-);
+}
+
+// Configuração de segurança simplificada para desenvolvimento.
+// Apenas desativa o HSTS para impedir que o navegador force HTTPS.
+app.use(helmet({
+  hsts: false,
+  contentSecurityPolicy: false, // Desativa a CSP para simplificar o diagnóstico.
+}));
 
 app.use(mongoSanitize());
 app.use(cors());
 app.use(express.json());
+
+// Middleware para logar todas as requisições recebidas
+app.use((req, res, next) => {
+  console.log(`[${new Date().toLocaleString('pt-BR')}] Requisição recebida: ${req.method} ${req.originalUrl} de ${req.ip}`);
+  next();
+});
 
 // -----------------------------
 //       ROTAS DA API
@@ -92,22 +106,13 @@ app.get('/healthz', (req, res) => res.status(200).send('OK'));
 // -----------------------------
 //       INICIAR SERVIDOR
 // -----------------------------
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando na porta ${PORT}`);
     console.log(`JWT_SECRET carregado: ${process.env.JWT_SECRET ? 'Sim' : 'Não'}`);
 
-    const interfaces = os.networkInterfaces();
-    let ipAddress = 'localhost';
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            if ('IPv4' !== iface.family || iface.internal !== false) continue;
-            ipAddress = iface.address;
-            break;
-        }
-    }
-
+    // O IP local já é detectado acima para a CSP
     console.log(`\nAcesse localmente: http://localhost:${PORT}/login.html`);
-    console.log(`Acesse na rede:    http://${ipAddress}:${PORT}/login.html\n`);
+    console.log(`Acesse na rede:    http://${localIpAddress}:${PORT}/login.html\n`);
 
     if (process.env.RENDER_EXTERNAL_URL) {
         console.log(`Disponível online: ${process.env.RENDER_EXTERNAL_URL}\n`);

@@ -40,8 +40,12 @@
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('error-message');
 
+            // Constrói a URL da API dinamicamente, forçando o protocolo HTTP.
+            // window.location.hostname pega o IP (ex: 192.168.1.10) ou 'localhost' da barra de endereço.
+            const apiUrl = `http://${window.location.hostname}:3000/api/auth/login`;
+
             try {
-                const response = await fetch('/api/auth/login', {
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, senha: password })
