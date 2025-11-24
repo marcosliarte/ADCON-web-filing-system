@@ -181,10 +181,10 @@
                     <h3>${socio.nome} ${socio.is_admin === 'sim' ? '<span style="font-size: 0.8rem; color: #28a745;">(Sócio Admin)</span>' : ''}</h3>
                     <div class="info-grid">
                         ${createItem('CPF', formatarCPF(socio.cpf))}
-                        ${createItem('RG', socio.rg)}
-                        ${createItem('Data de Nascimento', formatarData(socio.data_nascimento))}
-                        ${createItem('Estado Civil', socio.estado_civil ? `${socio.estado_civil}${socio.estado_civil === 'casado' ? ` (${socio.regime_casamento.replace(/_/g, ' ')})` : ''}` : 'Não informado')}
-                        ${createItem('Endereço', socio.endereco ? `${socio.endereco.rua}, ${socio.endereco.numero} - ${socio.endereco.bairro}, ${socio.endereco.cidade}/${socio.endereco.estado}` : 'Não informado')}
+                        ${createItem('RG', `${socio.rg || ''} ${socio.orgao_emissor ? socio.orgao_emissor : ''}${socio.estado_emissor ? '/' + socio.estado_emissor : ''}`)}
+                        ${createItem('Data de Nascimento', formatarData(socio.data_nascimento))}                        
+                        ${createItem('Estado Civil', formatarEstadoCivil(socio.estado_civil, socio.regime_casamento))}
+                        ${createItem('Endereço', socio.endereco ? `${socio.endereco.rua}, ${socio.endereco.numero}${socio.endereco.complemento ? ' - ' + socio.endereco.complemento : ''} - ${socio.endereco.bairro}, ${socio.endereco.cidade}/${socio.endereco.estado}` : 'Não informado')}
                     </div>
                 </div>
             `).join('');
@@ -319,6 +319,23 @@
     function formatarCPF(cpf) { return cpf ? cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : ''; }
     function formatarData(data) { return data ? new Date(data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : ''; }
     function formatarBooleano(valor) { return valor === 'sim' ? 'Sim' : 'Não'; }
+
+    function formatarEstadoCivil(estado, regime) {
+        if (!estado) return 'Não informado';
+
+        const mapaEstadoCivil = {
+            'solteiro': 'Solteiro(a)',
+            'casado': 'Casado(a)',
+            'uniao_estavel': 'União Estável',
+            'divorciado': 'Divorciado(a)',
+            'viuvo': 'Viúvo(a)'
+        };
+
+        const estadoFormatado = mapaEstadoCivil[estado] || estado;
+        const regimeFormatado = regime ? ` (${regime.replace(/_/g, ' ')})` : '';
+
+        return estado === 'casado' ? `${estadoFormatado}${regimeFormatado}` : estadoFormatado;
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
         await getUsuario();

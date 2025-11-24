@@ -367,6 +367,14 @@
                     <input type="text" name="socios[INDEX][rg]" required>
                 </div>
                 <div class="form-group">
+                    <label>Órgão Emissor</label>
+                    <input type="text" name="socios[INDEX][orgao_emissor]" placeholder="Ex: SSP" required>
+                </div>
+                <div class="form-group">
+                    <label>UF Emissor</label>
+                    <input type="text" name="socios[INDEX][estado_emissor]" placeholder="Ex: SP" maxlength="2" required>
+                </div>
+                <div class="form-group">
                     <label>Data de Nascimento</label>
                     <input type="date" name="socios[INDEX][data_nascimento]" required>
                 </div>
@@ -376,6 +384,56 @@
                         <option value="nao">Não</option>
                         <option value="sim">Sim</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Estado Civil</label>
+                    <select name="socios[INDEX][estado_civil]" onchange="toggleRegimeCasamento(this)" required>
+                        <option value="solteiro">Solteiro(a)</option>
+                        <option value="casado">Casado(a)</option>
+                        <option value="uniao_estavel">União Estável</option>
+                        <option value="divorciado">Divorciado(a)</option>
+                        <option value="viuvo">Viúvo(a)</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: none;">
+                    <label>Regime de Casamento</label>
+                    <select name="socios[INDEX][regime_casamento]">
+                        <option value="comunhao_parcial">Comunhão Parcial de Bens</option>
+                        <option value="comunhao_universal">Comunhão Universal de Bens</option>
+                        <option value="separacao_total">Separação Total de Bens</option>
+                        <option value="participacao_final">Participação Final nos Aquestos</option>
+                    </select>
+                </div>
+            </div>
+            <h4>Endereço do Sócio</h4>
+            <div class="form-grid">
+                 <div class="form-group">
+                    <label>CEP</label>
+                    <input type="text" name="socios[INDEX][endereco][cep]" placeholder="00000-000" onblur="buscarCepSocio(this)" required>
+                </div>
+                <div class="form-group form-group-full">
+                    <label>Rua</label>
+                    <input type="text" name="socios[INDEX][endereco][rua]" required>
+                </div>
+                <div class="form-group">
+                    <label>Número</label>
+                    <input type="text" name="socios[INDEX][endereco][numero]" required>
+                </div>
+                <div class="form-group">
+                    <label>Complemento (Opcional)</label>
+                    <input type="text" name="socios[INDEX][endereco][complemento]">
+                </div>
+                <div class="form-group">
+                    <label>Bairro</label>
+                    <input type="text" name="socios[INDEX][endereco][bairro]" required>
+                </div>
+                <div class="form-group">
+                    <label>Cidade</label>
+                    <input type="text" name="socios[INDEX][endereco][cidade]" required>
+                </div>
+                <div class="form-group">
+                    <label>Estado</label>
+                    <input type="text" name="socios[INDEX][endereco][estado]" required>
                 </div>
             </div>
         </div>
@@ -525,8 +583,29 @@
                 newSocioDiv.querySelector(`input[name="socios[${socioIndex}][nome]"]`).value = socio.nome || '';
                 newSocioDiv.querySelector(`input[name="socios[${socioIndex}][cpf]"]`).value = socio.cpf || '';
                 newSocioDiv.querySelector(`input[name="socios[${socioIndex}][rg]"]`).value = socio.rg || '';
+                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][orgao_emissor]"]`).value = socio.orgao_emissor || '';
+                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][estado_emissor]"]`).value = socio.estado_emissor || '';
                 newSocioDiv.querySelector(`input[name="socios[${socioIndex}][data_nascimento]"]`).value = socio.data_nascimento ? socio.data_nascimento.split('T')[0] : '';
                 newSocioDiv.querySelector(`select[name="socios[${socioIndex}][is_admin]"]`).value = socio.is_admin || 'nao';
+
+                // Preenche os campos de estado civil e regime
+                const estadoCivilSelect = newSocioDiv.querySelector(`select[name="socios[${socioIndex}][estado_civil]"]`);
+                if (socio.estado_civil) {
+                    estadoCivilSelect.value = socio.estado_civil;
+                    toggleRegimeCasamento(estadoCivilSelect); // Mostra o campo de regime, se aplicável
+                    newSocioDiv.querySelector(`select[name="socios[${socioIndex}][regime_casamento]"]`).value = socio.regime_casamento || 'comunhao_parcial';
+                }
+
+                // Preenche o endereço do sócio
+                if (socio.endereco) {
+                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][cep]"]`).value = socio.endereco.cep || '';
+                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][rua]"]`).value = socio.endereco.rua || '';
+                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][numero]"]`).value = socio.endereco.numero || '';
+                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][complemento]"]`).value = socio.endereco.complemento || '';
+                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][bairro]"]`).value = socio.endereco.bairro || '';
+                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][cidade]"]`).value = socio.endereco.cidade || '';
+                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][estado]"]`).value = socio.endereco.estado || '';
+                }
             }
 
             container.appendChild(newSocioDiv);
@@ -585,6 +664,40 @@
             messageEl.textContent = text;
             messageEl.className = `message ${type}`;
             messageEl.style.display = 'block';
+        }
+
+        // --- FUNÇÕES GLOBAIS ---
+        function toggleRegimeCasamento(select) {
+            const regimeDiv = select.closest('.form-group').nextElementSibling;
+            // Mostra o campo de regime apenas se for 'casado'
+            regimeDiv.style.display = select.value === 'casado' ? 'block' : 'none';
+        }
+
+        async function fetchCep(cep) {
+            try {
+                const response = await fetchWithAuth(`/api/empresas/cep/${cep}`);
+                if (!response || !response.ok) throw new Error('CEP não encontrado ou falha na consulta.');
+                const data = await response.json();
+                if (data.erro) throw new Error('CEP inválido');
+                return data;
+            } catch (error) {
+                alert(error.message);
+                return null;
+            }
+        }
+
+        // Adiciona a função ao escopo global para ser acessível pelo 'onblur'
+        window.buscarCepSocio = async function(cepInput) {
+            const cep = cepInput.value.replace(/\D/g, '');
+            if (cep.length !== 8) return;
+            const data = await fetchCep(cep);
+            if (data) {
+                const socioCard = cepInput.closest('.socio-card');
+                socioCard.querySelector('input[name$="[endereco][rua]"]').value = data.logradouro;
+                socioCard.querySelector('input[name$="[endereco][bairro]"]').value = data.bairro;
+                socioCard.querySelector('input[name$="[endereco][cidade]"]').value = data.localidade;
+                socioCard.querySelector('input[name$="[endereco][estado]"]').value = data.uf;
+            }
         }
 
         document.addEventListener('DOMContentLoaded', async () => {

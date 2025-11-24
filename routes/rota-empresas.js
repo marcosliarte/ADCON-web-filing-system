@@ -421,8 +421,13 @@ router.put(
           nome: socio.nome,
           cpf: socio.cpf,
           rg: socio.rg,
+          orgao_emissor: socio.orgao_emissor,
+          estado_emissor: socio.estado_emissor,
           data_nascimento: socio.data_nascimento,
           is_admin: socio.is_admin,
+          estado_civil: socio.estado_civil,
+          regime_casamento: socio.regime_casamento,
+          endereco: socio.endereco
         }));
       } else {
         // Se nenhum sócio for enviado no formulário, remove todos.
