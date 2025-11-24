@@ -106,6 +106,13 @@
             <div class="widget">
                 <h3>Backup e Restauração</h3>
                 <button onclick="criarBackup()">Criar Backup Agora</button>
+                <!-- CAMPO PARA CARREGAR BACKUP -->
+                <div style="margin-top: 1rem; border-top: 1px solid #eee; padding-top: 1rem;">
+                    <label for="backup-file-input" style="display: block; margin-bottom: 0.5rem;">Ou carregue um arquivo de backup (.zip) para restaurar:</label>
+                    <input type="file" id="backup-file-input" accept=".zip" style="font-size: 0.9rem;">
+                    <button onclick="carregarBackup()" style="margin-top: 0.5rem;">Carregar e Restaurar</button>
+                </div>
+
                 <div id="backup-status" style="margin-top: 1rem;"></div>
                 <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Backups Disponíveis:</h4>
                 <ul id="backup-list" class="backup-list">
@@ -233,6 +240,59 @@
 
         // --- FUNÇÕES DE BACKUP ---
 
+        async function baixarBackup(event, nomeArquivoIncorreto) {
+            event.preventDefault();
+            const button = event.currentTarget.querySelector('button');
+            const originalText = button.textContent;
+            button.textContent = 'Baixando...';
+            button.disabled = true;
+
+            // ALTERAÇÃO: Envia o nome do arquivo exatamente como a API de listagem o fornece.
+            // A lógica de "tradução" do nome deve ser feita no backend.
+            const urlDownload = `/api/admin/backup/download/${nomeArquivoIncorreto}`;
+
+            try {
+                const response = await fetchWithAuth(urlDownload);
+
+                if (!response.ok) {
+                    // CORREÇÃO: Clona a resposta para evitar o erro "body stream already read".
+                    // Isso permite que tentemos ler o corpo como JSON e, se falhar, como texto.
+                    const responseClone = response.clone();
+                    let errorMessage;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.msg || JSON.stringify(errorData);
+                    } catch (jsonError) {
+                        // Se a leitura como JSON falhar, lê a resposta clonada como texto.
+                        errorMessage = await responseClone.text();
+                    }
+                    throw new Error(errorMessage || `Erro ${response.status}: Falha no download`);
+                }
+
+                // Converte a resposta em um blob (dados binários do arquivo)
+                const blob = await response.blob();
+                if (blob.size === 0) {
+                    throw new Error("O servidor retornou um arquivo vazio. Verifique se o arquivo de backup existe e não está corrompido.");
+                }
+
+                // Cria uma URL temporária para o blob
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = downloadUrl;
+                a.download = nomeArquivoIncorreto; // Usa o nome que o usuário vê na lista.
+                document.body.appendChild(a);
+                a.click(); // Simula o clique para iniciar o download
+                window.URL.revokeObjectURL(downloadUrl); // Libera a memória
+                a.remove();
+            } catch (error) {
+                alert(`Erro ao baixar o arquivo: ${error.message}`);
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
         async function loadBackups() {
             const list = document.getElementById('backup-list');
             list.innerHTML = '<li>Carregando...</li>';
@@ -256,7 +316,7 @@
                             <small>${new Date(backup.createdAt).toLocaleString('pt-BR')} - ${backup.size} MB</small>
                         </div>
                         <div class="backup-actions">
-                            <a href="/api/admin/backup/download/${backup.filename}" download><button class="btn-download">Baixar</button></a>
+                            <a href="#" onclick="baixarBackup(event, '${backup.filename}')"><button class="btn-download">Baixar</button></a>
                             <button class="btn-restore" onclick="restaurarBackup('${backup.filename}')">Restaurar</button>
                             <button class="btn-delete" onclick="excluirBackup('${backup.filename}')">Excluir</button>
                         </div>
@@ -305,6 +365,62 @@
                 window.location.reload(); // Recarrega a página para refletir os dados restaurados
             } catch (error) {
                 statusDiv.innerHTML = `<p style="color: red;">${error.message}</p>`;
+            }
+        }
+
+        async function carregarBackup() {
+            const fileInput = document.getElementById('backup-file-input');
+            const file = fileInput.files[0];
+            const statusDiv = document.getElementById('backup-status');
+
+            if (!file) {
+                alert('Por favor, selecione um arquivo de backup para carregar.');
+                return;
+            }
+
+            if (!file.name.endsWith('.zip')) {
+                alert('Por favor, selecione um arquivo de backup válido (com extensão .zip).');
+                return;
+            }
+
+            const confirmacao = prompt(`AÇÃO PERIGOSA!\n\nVocê está prestes a substituir TODOS os dados atuais do sistema pelos dados do arquivo "${file.name}".\n\nPara confirmar, digite "RESTAURAR" no campo abaixo:`);
+            if (confirmacao !== 'RESTAURAR') {
+                alert('Restauração cancelada.');
+                fileInput.value = ''; // Limpa o input de arquivo
+                return;
+            }
+
+            statusDiv.innerHTML = `<p>Carregando e restaurando o arquivo "${file.name}"...</p>`;
+
+            const formData = new FormData();
+            formData.append('backupFile', file);
+
+            try {
+                const response = await fetchWithAuth('/api/admin/backup/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                // CORREÇÃO: Verifica se a resposta foi bem-sucedida ANTES de tentar ler como JSON.
+                if (!response.ok) {
+                    // Se a resposta for um erro, tenta ler como texto para ver a mensagem real (que pode ser HTML).
+                    const errorText = await response.text();
+                    // O erro "Cannot POST /..." indica que a rota não existe no backend.
+                    throw new Error(errorText || 'Falha ao carregar o backup.');
+                }
+
+                const result = await response.json(); // Agora só executa em caso de sucesso.
+                alert(result.msg);
+                window.location.reload();
+            } catch (error) {
+                // Usa .textContent para exibir o erro como texto puro, evitando que o HTML seja renderizado.
+                const p = document.createElement('p');
+                p.style.color = 'red';
+                p.textContent = error.message;
+                statusDiv.innerHTML = '';
+                statusDiv.appendChild(p);
+            } finally {
+                fileInput.value = '';
             }
         }
 

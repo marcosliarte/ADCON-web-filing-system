@@ -1,22 +1,15 @@
-# Node.js
-node_modules/
-npm-debug.log
-yarn-error.log
+# Dependencies
+# A pasta node_modules contém milhares de arquivos que não devem ser versionados.
+/node_modules
 
-# Arquivos de logs
-*.log
-
-# Arquivos do sistema (se estiver usando Windows ou Mac)
-.DS_Store
-Thumbs.db
-
-# Arquivos de configuração do IDE (ex: VSCode, IntelliJ, etc)
-.vscode/
-.idea/
-
-# Arquivos de ambiente
+# Environment variables
+# O arquivo .env contém senhas e chaves secretas e NUNCA deve ser enviado para o GitHub.
 .env
 
-# Arquivos gerados por compiladores e minificadores
-dist/
-build/
+# Backup files
+# Ignora a pasta de backups para não inchar o repositório.
+/_backups
+
+# OS-generated files
+.DS_Store
+Thumbs.db

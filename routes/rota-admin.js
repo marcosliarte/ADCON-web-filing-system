@@ -8,6 +8,7 @@ const adminAuth = require('../middleware/adminAuth');
 const { exec } = require('child_process'); // Para executar comandos do sistema (mongodump/mongorestore)
 const archiver = require('archiver'); // Para criar arquivos .zip
 const unzipper = require('unzipper'); // Para extrair arquivos .zip
+const multer = require('multer'); // Para lidar com upload de arquivos
 
 const Empresa = require('../models/model-empresa');
 const Usuario = require('../models/model-usuario'); // Adicionado para contagem de usuários
@@ -22,6 +23,34 @@ const backupDir = path.join(__dirname, '../_backups'); // Define a pasta de back
 if (!fs.existsSync(backupDir)) {
     fs.mkdirSync(backupDir, { recursive: true });
 }
+
+// --- CONFIGURAÇÃO DO UPLOAD ---
+// Define onde os arquivos de backup carregados serão armazenados temporariamente.
+const uploadDir = path.join(__dirname, '..', '_temp_uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configura o multer para salvar o arquivo com seu nome original no diretório temporário.
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname);
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        if (file.originalname.endsWith('.zip') || file.originalname.endsWith('.gz')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Formato de arquivo inválido. Apenas .zip ou .gz são permitidos.'), false);
+        }
+    }
+});
 
 // @route   GET api/admin/dashboard/status
 // @desc    Obter o status de componentes vitais do sistema
@@ -313,6 +342,90 @@ router.get('/logs/recent', async (req, res) => {
         console.error(err.message);
         res.status(500).json({ msg: 'Erro no servidor ao buscar logs recentes.' });
     }
+});
+
+// --- NOVA ROTA PARA UPLOAD E RESTAURAÇÃO ---
+// A rota usa o middleware 'auth', 'adminAuth' e o 'upload.single()'.
+// 'backupFile' deve ser o mesmo nome usado no FormData do frontend.
+router.post('/backup/upload', upload.single('backupFile'), async (req, res) => {
+    // Verifica se um arquivo foi realmente enviado.
+    if (!req.file) {
+        return res.status(400).json({ msg: 'Nenhum arquivo de backup foi enviado.' });
+    }
+
+    const uploadedFilePath = req.file.path;
+    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+
+    // Validação do formato do arquivo
+    if (fileExtension !== '.zip') {
+        fs.unlinkSync(uploadedFilePath); // Limpa o arquivo inválido.
+        return res.status(400).json({ msg: 'Formato de arquivo inválido. A restauração só pode ser feita a partir de um arquivo .zip gerado pelo sistema.' });
+    }
+
+    const tempRestoreDir = path.join(uploadDir, `temp-restore-${Date.now()}`);
+    fs.mkdirSync(tempRestoreDir, { recursive: true });
+
+    // Descompacta o arquivo .zip carregado
+    fs.createReadStream(uploadedFilePath)
+        .pipe(unzipper.Extract({ path: tempRestoreDir }))
+        .on('finish', () => {
+            fs.unlinkSync(uploadedFilePath); // Remove o .zip temporário
+
+            const filesInTemp = fs.readdirSync(tempRestoreDir);
+            const dbDumpFile = filesInTemp.find(f => f.endsWith('.gz'));
+
+            if (!dbDumpFile) {
+                fs.rmSync(tempRestoreDir, { recursive: true, force: true });
+                return res.status(500).json({ msg: 'Arquivo de dump (.gz) do banco de dados não encontrado dentro do backup .zip.' });
+            }
+
+            const dbDumpFilePath = path.join(tempRestoreDir, dbDumpFile);
+            const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
+            const mongorestoreExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 'mongorestore';
+            const restoreCommand = `${mongorestoreExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip --drop`;
+
+            exec(restoreCommand, (restoreError, stdout, stderr) => {
+                if (restoreError) {
+                    fs.rmSync(tempRestoreDir, { recursive: true, force: true });
+                    console.error(`Erro ao restaurar banco de dados: ${stderr}`);
+                    return res.status(500).json({ msg: 'Falha ao restaurar o banco de dados.', error: stderr });
+                }
+
+                const uploadsBackupPath = path.join(tempRestoreDir, 'uploads');
+                const serverUploadsPath = path.join(__dirname, '../uploads');
+
+                // FUNÇÃO AUXILIAR PARA COPIAR DIRETÓRIOS DE FORMA SEGURA
+                const copyDirSync = (src, dest) => {
+                    fs.mkdirSync(dest, { recursive: true });
+                    const entries = fs.readdirSync(src, { withFileTypes: true });
+                    for (let entry of entries) {
+                        const srcPath = path.join(src, entry.name);
+                        const destPath = path.join(dest, entry.name);
+                        if (entry.isDirectory()) {
+                            copyDirSync(srcPath, destPath);
+                        } else {
+                            fs.copyFileSync(srcPath, destPath);
+                        }
+                    }
+                };
+
+                if (fs.existsSync(uploadsBackupPath)) {
+                    // Limpa a pasta de uploads atual antes de copiar os novos arquivos
+                    if (fs.existsSync(serverUploadsPath)) {
+                        fs.rmSync(serverUploadsPath, { recursive: true, force: true });
+                    }
+                    copyDirSync(uploadsBackupPath, serverUploadsPath);
+                }
+
+                fs.rmSync(tempRestoreDir, { recursive: true, force: true });
+                res.json({ msg: 'Sistema restaurado com sucesso a partir do arquivo carregado!' });
+            });
+        })
+        .on('error', (err) => {
+            fs.unlinkSync(uploadedFilePath);
+            fs.rmSync(tempRestoreDir, { recursive: true, force: true });
+            res.status(500).json({ msg: 'Falha ao descompactar o arquivo de backup.', error: err.message });
+        });
 });
 
 module.exports = router;
