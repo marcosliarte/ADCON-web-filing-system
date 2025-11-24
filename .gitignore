@@ -11,6 +11,7 @@
 /_backups
 /_temp_uploads
 /_uploads
+/uploads
 # OS-generated files
 .DS_Store
 Thumbs.db
