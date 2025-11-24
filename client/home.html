@@ -692,6 +692,32 @@
                 alert(`Erro: ${error.message}`);
             }
         }
+
+        async function deleteProfilePic() {
+            // Usando confirm() como um substituto simples para showConfirmationDialog
+            if (!confirm('Tem certeza que deseja remover sua foto de perfil?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetchWithAuth('/api/auth/profile-pic', {
+                    method: 'DELETE'
+                });
+                if (response && response.ok) {
+                    const data = await response.json();
+                    alert('Foto de perfil removida com sucesso!'); // Usando alert() como substituto para showToast
+                    document.getElementById('profile-pic').src = data.fotoPerfilUrl;
+                    document.getElementById('deletePicIcon').style.display = 'none';
+                    document.getElementById('savePicIcon').style.display = 'none';
+                    document.getElementById('editPicIcon').style.display = 'inline-block';
+                } else {
+                    throw new Error('Falha ao remover a foto.');
+                }
+            } catch (error) {
+                console.error('Erro ao remover foto:', error);
+                alert(`Erro: ${error.message}`); // Usando alert() para notificar o erro
+            }
+        }
     </script>
 </body>
 </html>
