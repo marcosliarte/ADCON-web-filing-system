@@ -71,7 +71,7 @@ router.put('/', auth, async (req, res) => {
 // @route   POST api/configuracao/logotipo
 // @desc    Fazer upload do logotipo da empresa
 // @access  Private (Admin, Gerente)
-router.post('/logotipo', [auth, upload.single('logotipo')], async (req, res) => {
+router.post('/logotipo', [auth, upload.single('logo')], async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ msg: 'Nenhum arquivo enviado.' });
     }

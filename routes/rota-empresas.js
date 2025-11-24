@@ -354,24 +354,9 @@ router.put(
   '/:id',
   [
     auth,
-    // **CORREÇÃO:** Usar upload.fields para corresponder aos campos do formulário de edição
-    upload.fields([
-      { name: 'arquivo_cnpj', maxCount: 1 },
-      { name: 'certificado_digital', maxCount: 1 },
-      { name: 'contrato_social[0][arquivo]', maxCount: 1 },
-      { name: 'contrato_social[1][arquivo]', maxCount: 1 },
-      { name: 'contrato_social[2][arquivo]', maxCount: 1 },
-      // Adicione mais campos de contrato se necessário,
-      // e os novos campos de arquivo
-      { name: 'alvara_arquivo', maxCount: 1 },
-      { name: 'certidao_prefeitura_arquivo', maxCount: 1 },
-      { name: 'certidao_receita_arquivo', maxCount: 1 },
-      { name: 'certidao_fgts_arquivo', maxCount: 1 },
-      { name: 'certidao_sefaz_arquivo', maxCount: 1 },
-      { name: 'inscricao_estadual_arquivo', maxCount: 1 },
-      { name: 'certidao_trabalhista_arquivo', maxCount: 1 },
-      { name: 'certidao_falencia_arquivo', maxCount: 1 },
-    ]),
+    // CORREÇÃO: Usar upload.any() para aceitar qualquer arquivo enviado.
+    // Isso torna a rota mais flexível e evita o erro "Unexpected field".
+    upload.any(),
     check('nome_empresarial', 'Nome empresarial é obrigatório').not().isEmpty(),
   ],
   async (req, res) => {
@@ -390,6 +375,18 @@ router.put(
       if (!empresa) {
         return res.status(404).json({ msg: 'Empresa não encontrada' });
       }
+
+      // Mapeia os arquivos recebidos pelo `upload.any()` para um formato mais fácil de usar.
+      // Transforma o array de arquivos em um objeto onde a chave é o nome do campo.
+      const filesMap = (req.files || []).reduce((acc, file) => {
+        // Se já existe um arquivo para este campo, transforma em um array.
+        if (acc[file.fieldname]) {
+          acc[file.fieldname] = Array.isArray(acc[file.fieldname]) ? [...acc[file.fieldname], file] : [acc[file.fieldname], file];
+        } else {
+          acc[file.fieldname] = file;
+        }
+        return acc;
+      }, {});
 
       // Atualiza os campos de texto simples
       empresa.nome = req.body.nome_empresarial;
@@ -463,7 +460,7 @@ router.put(
 
         empresa.documentos.contratos = contratosInfo
           .map((contratoInfo, index) => {
-            const file = req.files[`contrato_social[${index}][arquivo]`]?.[0];
+            const file = filesMap[`contrato_social[${index}][arquivo]`];
             // Pega o contrato existente pelo mesmo índice para manter o arquivo se não for alterado
             const contratoExistente = empresa.documentos.contratos?.[index] || {};
 
@@ -486,13 +483,13 @@ router.put(
       // A lógica de arquivos na edição é complexa. Vamos simplificar por agora:
       // Se um novo arquivo é enviado, ele substitui o antigo.
       // A remoção de arquivos existentes precisaria de uma lógica separada.
-      if (req.files) {
-        if (req.files.arquivo_cnpj) {
-            const file = req.files.arquivo_cnpj[0];
+      if (filesMap) {
+        if (filesMap.arquivo_cnpj) {
+            const file = filesMap.arquivo_cnpj;
             empresa.documentos.cartaoCnpj = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/documentos_empresa/${file.filename}` };
         }
-        if (req.files.certificado_digital) {
-            const file = req.files.certificado_digital[0];
+        if (filesMap.certificado_digital) {
+            const file = filesMap.certificado_digital;
             empresa.documentos.certificadoDigital = { 
                 nomeArquivo: file.originalname, 
                 caminhoArquivo: `/uploads/certificados/${file.filename}`,
@@ -500,36 +497,36 @@ router.put(
                 senha: req.body.certificado_senha // Salva a nova senha ao atualizar
             };
         }
-        if (req.files.alvara_arquivo) {
-            const file = req.files.alvara_arquivo[0];
+        if (filesMap.alvara_arquivo) {
+            const file = filesMap.alvara_arquivo;
             empresa.documentos.alvara = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/alvaras/${file.filename}`, ano: req.body.alvara_ano };
         }
-        if (req.files.certidao_prefeitura_arquivo) {
-            const file = req.files.certidao_prefeitura_arquivo[0];
+        if (filesMap.certidao_prefeitura_arquivo) {
+            const file = filesMap.certidao_prefeitura_arquivo;
             empresa.documentos.certidaoPrefeitura = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_prefeitura_validade };
         }
-        if (req.files.certidao_receita_arquivo) {
-            const file = req.files.certidao_receita_arquivo[0];
+        if (filesMap.certidao_receita_arquivo) {
+            const file = filesMap.certidao_receita_arquivo;
             empresa.documentos.certidaoReceita = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_receita_validade };
         }
-        if (req.files.certidao_fgts_arquivo) {
-            const file = req.files.certidao_fgts_arquivo[0];
+        if (filesMap.certidao_fgts_arquivo) {
+            const file = filesMap.certidao_fgts_arquivo;
             empresa.documentos.certidaoFGTS = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_fgts_validade };
         }
-        if (req.files.certidao_sefaz_arquivo) {
-            const file = req.files.certidao_sefaz_arquivo[0];
+        if (filesMap.certidao_sefaz_arquivo) {
+            const file = filesMap.certidao_sefaz_arquivo;
             empresa.documentos.certidaoSefaz = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_sefaz_validade };
         }
-        if (req.files.inscricao_estadual_arquivo) {
-            const file = req.files.inscricao_estadual_arquivo[0];
+        if (filesMap.inscricao_estadual_arquivo) {
+            const file = filesMap.inscricao_estadual_arquivo;
             empresa.documentos.inscricaoEstadual = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.inscricao_estadual_validade };
         }
-        if (req.files.certidao_trabalhista_arquivo) {
-            const file = req.files.certidao_trabalhista_arquivo[0];
+        if (filesMap.certidao_trabalhista_arquivo) {
+            const file = filesMap.certidao_trabalhista_arquivo;
             empresa.documentos.certidaoTrabalhista = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_trabalhista_validade };
         }
-        if (req.files.certidao_falencia_arquivo) {
-            const file = req.files.certidao_falencia_arquivo[0];
+        if (filesMap.certidao_falencia_arquivo) {
+            const file = filesMap.certidao_falencia_arquivo;
             empresa.documentos.certidaoFalencia = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.certidao_falencia_validade };
         }
       }

@@ -2,24 +2,26 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const Usuario = require('./models/model-usuario');
 
-// Escolher URI de acordo com o ambiente
-const isProduction = process.env.NODE_ENV === 'production';
-const mongoURI = isProduction 
-  ? process.env.MONGODB_URI_PROD 
-  : process.env.MONGODB_URI_LOCAL;
+// Utiliza a mesma lógica do server.js para obter a URI do MongoDB
+const mongoURI = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
 
 const ADMIN_EMAIL = 'marcos.liarte.neves@gmail.com';
-const ADMIN_SENHA = '123456';
-const ADMIN_NOME = 'Marcos Liarte';
+const ADMIN_SENHA = '91886129';
+const ADMIN_NOME = 'Marcos Antonio Liarte Neves';
 
 const createAdmin = async () => {
   try {
     // Conectar ao MongoDB
+    if (!mongoURI) {
+      throw new Error('A variável de ambiente MONGODB_URI ou MONGODB_URI_LOCAL não foi definida no arquivo .env');
+    }
+
     await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log(`Conectado ao MongoDB (${isProduction ? 'produção' : 'local'})`);
+    const dbType = mongoURI.includes('127.0.0.1') || mongoURI.includes('localhost') ? 'local' : 'produção';
+    console.log(`Conectado ao MongoDB (${dbType})`);
 
     // Verificar se o admin já existe
     const adminExists = await Usuario.findOne({ email: ADMIN_EMAIL });
