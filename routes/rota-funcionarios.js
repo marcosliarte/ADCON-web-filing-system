@@ -4,6 +4,7 @@ const { check, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const Usuario = require('../models/model-usuario');
 const Funcionario = require('../models/model-funcionario');
+const Notificacao = require('../models/model-notificacao');
 
 // Middleware para verificar se o usuário é Admin ou Gerente
 const checkAdminGerente = async (req, res, next) => {
@@ -139,7 +140,7 @@ router.delete('/:id', [auth, checkAdminGerente], async (req, res) => {
 router.post('/:id/pagamentos', [auth, checkAdminGerente], async (req, res) => {
     const { mes, ano, salarioBase, adicionais, descontosFixos, descontosVariaveis, totalProventos, totalDescontos, salarioLiquido, formaPagamento, chavePix } = req.body;
     try {
-        const funcionario = await Funcionario.findById(req.params.id);
+        const funcionario = await Funcionario.findById(req.params.id).populate('usuario');
         if (!funcionario) return res.status(404).json({ message: 'Funcionário não encontrado.' });
 
         // Remove pagamento antigo para o mesmo período para evitar duplicatas
@@ -147,6 +148,21 @@ router.post('/:id/pagamentos', [auth, checkAdminGerente], async (req, res) => {
 
         funcionario.historicoPagamentos.push({ mes, ano, salarioBase, adicionais, descontosFixos, descontosVariaveis, totalProventos, totalDescontos, salarioLiquido, formaPagamento, chavePix });
         await funcionario.save();
+
+        // Criar notificação para o funcionário se houver usuário vinculado
+        if (funcionario.usuario) {
+            const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const mesNome = meses[parseInt(mes) - 1];
+            
+            await Notificacao.create({
+                usuarioId: funcionario.usuario._id,
+                tipo: 'pagamento_recebido',
+                titulo: 'Pagamento Recebido',
+                mensagem: `Seu pagamento referente a ${mesNome}/${ano} foi registrado. Valor líquido: R$ ${salarioLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                lida: false
+            });
+        }
 
         res.status(201).json({ message: 'Pagamento registrado com sucesso!', funcionario });
     } catch (err) {
