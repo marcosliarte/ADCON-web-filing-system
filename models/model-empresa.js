@@ -19,6 +19,8 @@ const SocioSchema = new mongoose.Schema({
   nome: { type: String, required: true },
   cpf: { type: String, required: true },
   rg: { type: String },
+  orgao_emissor: { type: String },
+  estado_emissor: { type: String, maxlength: 2 },
   data_nascimento: { type: Date, required: true },
   is_admin: { type: String, enum: ['sim', 'nao'], default: 'nao' },
   estado_civil: { type: String },
