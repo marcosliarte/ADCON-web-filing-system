@@ -45,6 +45,25 @@
     .actions button { margin-right: 5px; }
     .loading { margin-left: 10px; font-style: italic; color: #555; }
     .arrow { display: inline-block; margin-left: 5px; }
+    /* Responsividade para tabelas */
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* --- MOBILE / RESPONSIVE --- */
+    @media (max-width: 800px) {
+      .page-container { margin: 1rem; padding: 1rem; }
+      h1 { font-size: 1.25rem; }
+      .search-container { flex-direction: column; }
+      .search-container input, .search-container button { width: 100%; margin-bottom: 0.5rem; }
+      button { width: 100%; margin-bottom: 0.5rem; }
+      th, td { padding: 6px; font-size: 0.9rem; }
+      table { min-width: 480px; }
+      .actions button { display: block; width: 100%; margin: 4px 0; }
+    }
+    @media (max-width: 480px) {
+      .page-container { padding: 0.75rem; }
+      h1 { font-size: 1.1rem; }
+      table { min-width: 420px; font-size: 0.85rem; }
+    }
   </style>
 </head>
 <body style="display: none;">
@@ -69,6 +88,7 @@
       <span id="loading" class="loading" style="display: none;">Carregando...</span>
     </div>
 
+    <div class="table-responsive">
     <table>
       <thead>
         <tr>
@@ -84,6 +104,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
 
     <div class="pagination">
       <button id="btn-anterior" onclick="paginaAnterior()" disabled>&lt; Anterior</button>

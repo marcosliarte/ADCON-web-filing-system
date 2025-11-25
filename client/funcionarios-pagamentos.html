@@ -21,6 +21,24 @@
             align-items: center;
             justify-content: center;
         }
+        /* Estilos para os itens de desconto adicionados dinamicamente */
+        .discount-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: flex-end; /* Alinha itens na parte inferior para melhor alinhamento do botão */
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #fdfdfd;
+        }
+        .discount-item .form-group {
+            margin-bottom: 0; /* Remove margem padrão do form-group */
+        }
+        .discount-item label {
+            margin-bottom: 5px;
+        }
+
     </style>
 </head>
 <body>
@@ -64,6 +82,7 @@
                     <label>Descontos Fixos Recorrentes:</label>
                     <div id="descontos-container"></div>
                     <button type="button" id="btn-add-desconto" class="btn-secondary" style="margin-top: 0.5rem;">+ Adicionar Desconto</button>
+                    <button type="button" id="btn-add-desconto" class="btn" style="margin-top: 0.5rem;">+ Adicionar Desconto</button>
                 </div>
                 <div class="action-buttons">
                     <button type="submit" id="btn-salvar-funcionario" class="btn">Cadastrar</button>
@@ -118,8 +137,71 @@
         </div>
     </div>
 
+    <!-- Template para um único campo de desconto -->
+    <template id="discount-template">
+        <div class="discount-item">
+            <div class="form-group" style="flex: 1;">
+                <label for="desconto-descricao-INDEX">Descrição:</label>
+                <input type="text" id="desconto-descricao-INDEX" name="descontos[INDEX][descricao]" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="desconto-valor-INDEX">Valor (R$):</label>
+                <input type="number" id="desconto-valor-INDEX" name="descontos[INDEX][valor]" step="0.01" required>
+            </div>
+            <button type="button" class="btn-secondary" onclick="removeDiscountField(this)" style="background-color: #dc3545; margin-top: 0;">Remover</button>
+        </div>
+    </template>
+
     <script src="shared.js"></script>
     <script src="funcionarios-pagamentos.js"></script>
 
+    <script>
+        // Variável para manter um índice único para cada desconto adicionado
+        let discountIndex = 0;
+
+        /**
+         * Adiciona um novo campo de desconto ao formulário.
+         * @param {object} [initialData={}] - Dados iniciais para preencher o campo (opcional).
+         * @param {string} initialData.descricao - Descrição do desconto.
+         * @param {number} initialData.valor - Valor do desconto.
+         */
+        function addDiscountField(initialData = {}) {
+            const template = document.getElementById('discount-template');
+            const clone = template.content.cloneNode(true);
+            
+            // Atualiza IDs e nomes para garantir unicidade no formulário
+            const htmlContent = clone.innerHTML.replace(/INDEX/g, discountIndex);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+
+            const container = document.getElementById('descontos-container');
+            container.appendChild(tempDiv.firstElementChild); // Adiciona o elemento raiz do template
+
+            // Preenche com dados iniciais se fornecidos (útil para edição)
+            if (initialData.descricao) {
+                document.getElementById(`desconto-descricao-${discountIndex}`).value = initialData.descricao;
+            }
+            if (initialData.valor) {
+                document.getElementById(`desconto-valor-${discountIndex}`).value = initialData.valor;
+            }
+
+            discountIndex++;
+        }
+
+        /**
+         * Remove o campo de desconto pai do botão clicado.
+         * @param {HTMLElement} button - O botão "Remover" clicado.
+         */
+        function removeDiscountField(button) {
+            button.closest('.discount-item').remove();
+        }
+
+        // Adiciona um campo de desconto inicial ao carregar a página
+        // e configura o listener para o botão "Adicionar Desconto".
+        document.addEventListener('DOMContentLoaded', () => {
+            addDiscountField(); // Adiciona um campo por padrão
+            document.getElementById('btn-add-desconto').addEventListener('click', () => addDiscountField());
+        });
+    </script>
 </body>
 </html>
