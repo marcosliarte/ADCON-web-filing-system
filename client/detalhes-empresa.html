@@ -426,8 +426,13 @@
         if (data.documentos) {
             const documentosContainer = document.getElementById('documentos-container');
             let documentosHtml = '';
+            
+            // Debug: log dos documentos recebidos
+            console.log('Documentos recebidos do backend:', data.documentos);
+            
             if (data.documentos.cartaoCnpj) {
-                documentosHtml += createDocumentoItem('Cartão CNPJ', data.documentos.cartaoCnpj, false);
+                console.log('Cartão CNPJ:', data.documentos.cartaoCnpj);
+                documentosHtml += createDocumentoItem('Cartão CNPJ', data.documentos.cartaoCnpj, false, null, 'cartaoCnpj');
             }
             if (data.documentos.certificadoDigital) {
                 const validade = data.documentos.certificadoDigital.dataValidade ? ` (Validade: ${formatarData(data.documentos.certificadoDigital.dataValidade)})` : '';
@@ -515,9 +520,16 @@
     function createDocumentoItem(label, doc, isCertificado = false, certificadoObj = null, tipoCampo = '') {
         const docId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const pdfId = `pdf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Normaliza o caminho do arquivo: garante que comece com / se não tiver protocolo
+        let caminhoNormalizado = doc.caminhoArquivo || '';
+        if (caminhoNormalizado && !caminhoNormalizado.startsWith('http') && !caminhoNormalizado.startsWith('/')) {
+            caminhoNormalizado = '/' + caminhoNormalizado;
+        }
+        
         const docData = JSON.stringify({
             nome: label,
-            caminho: doc.caminhoArquivo,
+            caminho: caminhoNormalizado,
             nomeArquivo: doc.nomeArquivo,
             tipo: tipoCampo
         }).replace(/"/g, '&quot;');
@@ -525,17 +537,21 @@
         // Informações adicionais para impressão
         const dataValidade = doc.dataValidade ? `Validade: ${formatarData(doc.dataValidade)}` : '';
         const nomeArquivo = doc.nomeArquivo || 'Arquivo não especificado';
-        const caminho = doc.caminhoArquivo || '';
+        const caminho = caminhoNormalizado;
         const isPDF = caminho.toLowerCase().endsWith('.pdf');
+        
+        // Verifica se o arquivo existe (será validado via tentativa de acesso)
+        const arquivoMissing = !caminho || caminho === '/undefined' || caminho === '/';
+        const statusArquivo = arquivoMissing ? '<span style="color: #dc3545; font-weight: bold;">⚠️ Arquivo não encontrado</span>' : '';
         
         let html = `<li>
                 <label class="doc-label">
-                    <input type="checkbox" class="doc-checkbox" id="${docId}" data-doc='${docData}' onchange="atualizarContador()">
+                    <input type="checkbox" class="doc-checkbox" id="${docId}" data-doc='${docData}' onchange="atualizarContador()" ${arquivoMissing ? 'disabled' : ''}>
                     <span>${label}</span>
                 </label>
                 <div style="flex: 1;">
                     <div class="doc-info">
-                        <strong>Arquivo:</strong> ${nomeArquivo}
+                        <strong>Arquivo:</strong> ${nomeArquivo} ${statusArquivo}
                         ${dataValidade ? `<br><strong>${dataValidade}</strong>` : ''}
                         <br><span class="doc-path"><strong>Caminho:</strong> ${caminho}</span>
                     </div>`;
@@ -551,9 +567,12 @@
         
         html += `</div>
                 </div>
-                <a href="${doc.caminhoArquivo}" target="_blank" rel="noopener noreferrer">
-                    <button class="btn-download">Visualizar / Baixar</button>
-                </a>
+                ${arquivoMissing ? 
+                    '<button class="btn-download" disabled style="opacity: 0.5; cursor: not-allowed;" title="Arquivo não disponível">Arquivo Indisponível</button>' :
+                    `<a href="${caminho}" target="_blank" rel="noopener noreferrer" onclick="return verificarArquivo('${caminho}', '${nomeArquivo}')">
+                        <button class="btn-download">Visualizar / Baixar</button>
+                    </a>`
+                }
             </li>`;
         
         return html;
@@ -590,6 +609,30 @@
         const regimeFormatado = regime ? ` (${regime.replace(/_/g, ' ')})` : '';
 
         return estado === 'casado' ? `${estadoFormatado}${regimeFormatado}` : estadoFormatado;
+    }
+
+    // Função para verificar se arquivo existe antes de abrir
+    async function verificarArquivo(caminho, nomeArquivo) {
+        try {
+            const response = await fetch(caminho, { method: 'HEAD' });
+            if (!response.ok) {
+                if (typeof showToast === 'function') {
+                    showToast(`❌ Arquivo não encontrado: ${nomeArquivo}\n\nO arquivo pode ter sido movido ou excluído do servidor.\nCaminho: ${caminho}`, 'error', 5000);
+                } else {
+                    alert(`❌ Arquivo não encontrado: ${nomeArquivo}\n\nO arquivo pode ter sido movido ou excluído do servidor.\nCaminho: ${caminho}`);
+                }
+                return false;
+            }
+            return true;
+        } catch (error) {
+            console.error('Erro ao verificar arquivo:', error);
+            if (typeof showToast === 'function') {
+                showToast(`⚠️ Erro ao acessar o arquivo: ${nomeArquivo}`, 'error', 5000);
+            } else {
+                alert(`⚠️ Erro ao acessar o arquivo: ${nomeArquivo}`);
+            }
+            return false;
+        }
     }
 
     // --- NOVO: Funções de Autenticação e Revelação de Senha ---

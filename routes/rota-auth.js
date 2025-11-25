@@ -279,8 +279,8 @@ router.delete('/profile-pic', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Usuário não encontrado.' });
     }
 
-    // Remove o arquivo físico se for um upload
-    if (usuario.fotoPerfilUrl && usuario.fotoPerfilUrl.startsWith('/uploads/')) {
+    // Remove o arquivo físico se for um upload (mas não remove no-profile.png)
+    if (usuario.fotoPerfilUrl && usuario.fotoPerfilUrl.startsWith('/uploads/') && !usuario.fotoPerfilUrl.includes('no-profile.png')) {
       const oldPath = path.join(__dirname, '..', usuario.fotoPerfilUrl);
       if (fs.existsSync(oldPath)) {
         fs.unlinkSync(oldPath);
@@ -288,7 +288,7 @@ router.delete('/profile-pic', auth, async (req, res) => {
     }
 
     // Define a foto para o padrão
-    usuario.fotoPerfilUrl = 'assets/profile-icon.svg';
+    usuario.fotoPerfilUrl = '/uploads/profile-pics/no-profile.png';
     await usuario.save();
 
     res.json({ msg: 'Foto de perfil removida com sucesso.', fotoPerfilUrl: usuario.fotoPerfilUrl });

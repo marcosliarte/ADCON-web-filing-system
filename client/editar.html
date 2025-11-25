@@ -138,9 +138,9 @@
                     <div class="form-group">
                         <label>Natureza Jurídica</label>
                         <div class="radio-group" id="natureza-group">
-                            <div class="radio-item"><input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required> <label for="natureza_individual">Individual</label></div>
-                            <div class="radio-item"><input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada"> <label for="natureza_limitada">Limitada</label></div>
-                            <div class="radio-item"><input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros"> <label for="natureza_outros">Outros</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required onchange="atualizarLabelsSocios()"> <label for="natureza_individual">Individual</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada" onchange="atualizarLabelsSocios()"> <label for="natureza_limitada">Limitada</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros" onchange="atualizarLabelsSocios()"> <label for="natureza_outros">Outros</label></div>
                         </div>
                     </div>
                 </div>
@@ -379,10 +379,17 @@
                     <input type="date" name="socios[INDEX][data_nascimento]" required>
                 </div>
                 <div class="form-group">
-                    <label>Sócio Administrador?</label>
-                    <select name="socios[INDEX][is_admin]" required>
-                        <option value="nao">Não</option>
-                        <option value="sim">Sim</option>
+                    <label>Gênero</label>
+                    <select name="socios[INDEX][genero]" required>
+                        <option value="masculino">Masculino</option>
+                        <option value="feminino">Feminino</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="label-socio-tipo">Tipo</label>
+                    <select name="socios[INDEX][is_admin]" class="select-socio-tipo" required>
+                        <option value="nao">Sócio</option>
+                        <option value="sim">Sócio Administrador</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -566,6 +573,9 @@
                         data.documentos.contratos.forEach(contrato => adicionarAlteracaoContrato(contrato));
                     }
                 }
+                
+                // Atualiza labels dos sócios baseado na natureza jurídica carregada
+                atualizarLabelsSocios();
 
             } catch (error) {
                 showMessage(error.message, 'error');
@@ -573,6 +583,27 @@
         }
 
         // --- MANIPULAÇÃO DINÂMICA DO FORMULÁRIO ---
+        // Função para atualizar labels dos sócios baseado na natureza jurídica
+        function atualizarLabelsSocios() {
+            const natureza = document.querySelector('input[name="natureza_juridica"]:checked')?.value;
+            const isIndividual = natureza === 'Individual';
+            
+            document.querySelectorAll('.label-socio-tipo').forEach(label => {
+                label.textContent = isIndividual ? 'Função' : 'Tipo';
+            });
+            
+            document.querySelectorAll('.select-socio-tipo').forEach(select => {
+                const valorAtual = select.value;
+                if (isIndividual) {
+                    select.innerHTML = '<option value="sim">Titular</option>';
+                    select.value = 'sim';
+                } else {
+                    select.innerHTML = '<option value="nao">Sócio</option><option value="sim">Sócio Administrador</option>';
+                    select.value = valorAtual;
+                }
+            });
+        }
+
         function adicionarSocio(socio = null) {
             const template = document.getElementById('socio-template').innerHTML;
             const container = document.getElementById('socios-container');
@@ -586,6 +617,7 @@
                 newSocioDiv.querySelector(`input[name="socios[${socioIndex}][orgao_emissor]"]`).value = socio.orgao_emissor || '';
                 newSocioDiv.querySelector(`input[name="socios[${socioIndex}][estado_emissor]"]`).value = socio.estado_emissor || '';
                 newSocioDiv.querySelector(`input[name="socios[${socioIndex}][data_nascimento]"]`).value = socio.data_nascimento ? socio.data_nascimento.split('T')[0] : '';
+                newSocioDiv.querySelector(`select[name="socios[${socioIndex}][genero]"]`).value = socio.genero || 'masculino';
                 newSocioDiv.querySelector(`select[name="socios[${socioIndex}][is_admin]"]`).value = socio.is_admin || 'nao';
 
                 // Preenche os campos de estado civil e regime
@@ -610,6 +642,7 @@
 
             container.appendChild(newSocioDiv);
             socioIndex++;
+            atualizarLabelsSocios(); // Atualiza labels após adicionar sócio
         }
 
         function adicionarAlteracaoContrato(contrato = null) {
@@ -715,6 +748,11 @@
             }
             loadEmpresa();
             setupAccordion();
+            
+            // Adiciona listeners para atualizar labels quando natureza jurídica mudar
+            document.querySelectorAll('input[name="natureza_juridica"]').forEach(radio => {
+                radio.addEventListener('change', atualizarLabelsSocios);
+            });
 
             function setupAccordion() {
                 const headers = document.querySelectorAll('.accordion-header');

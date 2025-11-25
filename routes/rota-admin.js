@@ -361,17 +361,38 @@ router.post('/backup/restore', async (req, res) => {
             });
         });
 
-        // Restaurar uploads se existir
+        // Restaurar uploads se existir - MERGE ao invés de substituir
         const uploadsBackupPath = path.join(tempRestoreDir, 'uploads');
         const serverUploadsPath = path.join(__dirname, '../uploads');
 
         if (fs.existsSync(uploadsBackupPath)) {
             if (fs.existsSync(serverUploadsPath)) {
-                // Renomear a pasta antiga ao invés de deletar (mais seguro)
-                const backupOldUploads = path.join(__dirname, `../uploads_old_${Date.now()}`);
-                fs.renameSync(serverUploadsPath, backupOldUploads);
+                // Fazer merge: copiar arquivos do backup sem sobrescrever os existentes
+                const copyRecursivePreservingExisting = (src, dest) => {
+                    if (fs.statSync(src).isDirectory()) {
+                        if (!fs.existsSync(dest)) {
+                            fs.mkdirSync(dest, { recursive: true });
+                        }
+                        const entries = fs.readdirSync(src, { withFileTypes: true });
+                        for (const entry of entries) {
+                            const srcPath = path.join(src, entry.name);
+                            const destPath = path.join(dest, entry.name);
+                            if (entry.isDirectory()) {
+                                copyRecursivePreservingExisting(srcPath, destPath);
+                            } else {
+                                // Copiar apenas se o arquivo não existir no destino
+                                if (!fs.existsSync(destPath)) {
+                                    fs.copyFileSync(srcPath, destPath);
+                                }
+                            }
+                        }
+                    }
+                };
+                copyRecursivePreservingExisting(uploadsBackupPath, serverUploadsPath);
+            } else {
+                // Se não existe pasta uploads, simplesmente mover
+                fs.renameSync(uploadsBackupPath, serverUploadsPath);
             }
-            fs.renameSync(uploadsBackupPath, serverUploadsPath);
         }
 
         // Limpar pasta temporária

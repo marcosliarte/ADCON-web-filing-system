@@ -86,8 +86,113 @@ async function carregarEmpresas() {
 function buscarEmpresas() {
     termoBusca = document.getElementById('busca').value;
     pagina = 1;
+    esconderAutocomplete();
     carregarEmpresas();
 }
+
+// Autocomplete para busca
+let todasEmpresas = [];
+let timeoutBusca;
+
+async function carregarTodasEmpresas() {
+    try {
+        const response = await fetchWithAuth('/api/empresas?limite=10000');
+        if (!response.ok) return;
+        const data = await response.json();
+        todasEmpresas = data.docs || data;
+        todasEmpresas.sort((a, b) => a.nome.localeCompare(b.nome));
+    } catch (error) {
+        console.error('Erro ao carregar empresas para autocomplete:', error);
+    }
+}
+
+function mostrarAutocomplete() {
+    const autocompleteList = document.getElementById('autocomplete-list');
+    if (autocompleteList) {
+        autocompleteList.classList.add('active');
+    }
+}
+
+function esconderAutocomplete() {
+    const autocompleteList = document.getElementById('autocomplete-list');
+    if (autocompleteList) {
+        autocompleteList.classList.remove('active');
+    }
+}
+
+function selecionarEmpresaAutocomplete(empresaId) {
+    window.location.href = `detalhes-empresa.html?id=${empresaId}`;
+}
+
+// Adiciona evento de input ao campo de busca
+document.addEventListener('DOMContentLoaded', () => {
+    const inputBusca = document.getElementById('busca');
+    if (inputBusca) {
+        inputBusca.addEventListener('input', function(e) {
+            clearTimeout(timeoutBusca);
+            const termo = e.target.value.toLowerCase().trim();
+            
+            if (!termo) {
+                esconderAutocomplete();
+                return;
+            }
+
+            timeoutBusca = setTimeout(() => {
+                filtrarAutocomplete(termo);
+            }, 200);
+        });
+
+        inputBusca.addEventListener('focus', function() {
+            if (this.value.trim()) {
+                filtrarAutocomplete(this.value.toLowerCase().trim());
+            }
+        });
+    }
+
+    carregarTodasEmpresas();
+});
+
+function filtrarAutocomplete(termo) {
+    const autocompleteList = document.getElementById('autocomplete-list');
+    if (!autocompleteList) return;
+
+    const termoNumeros = termo.replace(/\D/g, '');
+    
+    const empresasFiltradas = todasEmpresas.filter(empresa => {
+        const nome = empresa.nome.toLowerCase();
+        const cnpj = empresa.cnpj.replace(/\D/g, '');
+        return nome.includes(termo) || (termoNumeros && cnpj.includes(termoNumeros));
+    }).slice(0, 10); // Limita a 10 resultados
+
+    autocompleteList.innerHTML = '';
+    
+    if (empresasFiltradas.length === 0) {
+        autocompleteList.innerHTML = '<div class="autocomplete-empty">Nenhuma empresa encontrada</div>';
+        mostrarAutocomplete();
+        return;
+    }
+
+    empresasFiltradas.forEach(empresa => {
+        const item = document.createElement('div');
+        item.className = 'autocomplete-item';
+        item.innerHTML = `
+            <strong>${empresa.nome}</strong>
+            <small>${empresa.cnpj}</small>
+        `;
+        item.onclick = () => selecionarEmpresaAutocomplete(empresa._id);
+        autocompleteList.appendChild(item);
+    });
+
+    mostrarAutocomplete();
+}
+
+// Fechar autocomplete ao clicar fora
+document.addEventListener('click', (e) => {
+    const searchWrapper = document.querySelector('.search-wrapper');
+    if (searchWrapper && !searchWrapper.contains(e.target)) {
+        esconderAutocomplete();
+    }
+});
 
 function ordenarPor(coluna) {
     if (ordenacao === coluna) {

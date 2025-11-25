@@ -355,7 +355,7 @@
     <div class="container">
         <div class="sidebar">
             <div class="profile-pic-container">
-                <img src="assets/profile-icon.svg" alt="Foto de Perfil" class="profile-pic" id="profile-pic">
+                <img src="/uploads/profile-pics/no-profile.png" alt="Foto de Perfil" class="profile-pic" id="profile-pic">
                 <div class="profile-pic-actions">
                     <span id="editPicIcon" title="Alterar foto" onclick="document.getElementById('profilePicInput').click()">✏️</span>
                     <span id="savePicIcon" title="Salvar foto" style="display: none;" onclick="saveProfilePic()">✔️</span>
@@ -480,6 +480,13 @@
                     <p>Monitore os documentos e certificados que estão próximos do vencimento.</p>
                 </a>
 
+                <!-- CARD FATURAMENTO -->
+                <a href="faturamento.html" class="dashboard-card" id="card-faturamento" style="display: none;">
+                    <div class="card-icon">📊</div>
+                    <h3>Faturamento</h3>
+                    <p>Gere relatórios de faturamento mensal das empresas cadastradas.</p>
+                </a>
+
             </div>
         </div>
     </div>
@@ -514,10 +521,16 @@
                         const roleEl = document.getElementById('user-role');
                         roleEl.textContent = usuario.role.charAt(0).toUpperCase() + usuario.role.slice(1); // Capitaliza a primeira letra
                         roleEl.classList.remove('skeleton');
-                    // Carrega a foto de perfil do usuário ou o ícone padrão
+                    // Carrega a foto de perfil do usuário ou a imagem padrão
                     const profilePicElement = document.getElementById('profile-pic');
-                    profilePicElement.src = usuario.fotoPerfilUrl || 'assets/profile-icon.svg'; // Usa o ícone padrão se não houver foto
-                    if (usuario.fotoPerfilUrl && usuario.fotoPerfilUrl !== 'assets/profile-icon.svg') {
+                    const defaultProfilePic = '/uploads/profile-pics/no-profile.png';
+                    profilePicElement.src = usuario.fotoPerfilUrl || defaultProfilePic;
+                    // Adiciona fallback se a imagem não carregar
+                    profilePicElement.onerror = function() {
+                        this.onerror = null; // Previne loop infinito
+                        this.src = defaultProfilePic;
+                    };
+                    if (usuario.fotoPerfilUrl && usuario.fotoPerfilUrl !== defaultProfilePic) {
                         document.getElementById('deletePicIcon').style.display = 'inline-block';
                     }
 
@@ -534,6 +547,7 @@
                     }
                     // Funcionalidades para Admin, Gerente e Funcionário
                     if (['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
+                        document.getElementById('card-faturamento').style.display = 'flex';
                         document.getElementById('card-gerenciar-mensalidades').style.display = 'flex';
                         document.getElementById('card-cadastrar-empresa').style.display = 'flex';
                         // Exibe o card "Meus Pagamentos" para admin, gerente e funcionário.
@@ -722,7 +736,7 @@
                 if (response && response.ok) {
                     const data = await response.json();
                     showToast('Foto de perfil removida com sucesso!', 'success');
-                    document.getElementById('profile-pic').src = data.fotoPerfilUrl;
+                    document.getElementById('profile-pic').src = data.fotoPerfilUrl || '/uploads/profile-pics/no-profile.png';
                     document.getElementById('deletePicIcon').style.display = 'none';
                     document.getElementById('savePicIcon').style.display = 'none';
                     document.getElementById('editPicIcon').style.display = 'inline-block';

@@ -653,7 +653,16 @@
         }
 
         async function restaurarBackup(filename) {
-            const confirmed = await openConfirmModal(`Você está prestes a substituir TODOS os dados atuais do sistema pelos dados do backup "${filename}". Esta ação é IRREVERSÍVEL.`, { requireTyped: true, expectedText: 'RESTAURAR', title: 'Restaurar Backup' });
+            const confirmed = await openConfirmModal(
+                `⚠️ ATENÇÃO - RESTAURAÇÃO DE BACKUP\n\n` +
+                `Você está prestes a substituir TODOS os dados atuais do sistema pelos dados do backup "${filename}".\n\n` +
+                `IMPORTANTE:\n` +
+                `• O banco de dados atual será SUBSTITUÍDO\n` +
+                `• Os arquivos de upload do backup serão MESCLADOS com os atuais\n` +
+                `• Arquivos atuais que não existem no backup serão PRESERVADOS\n\n` +
+                `Esta ação é IRREVERSÍVEL para os dados do banco.`,
+                { requireTyped: true, expectedText: 'RESTAURAR', title: 'Restaurar Backup' }
+            );
             if (!confirmed) {
                 alert('Restauração cancelada.');
                 return;
@@ -692,7 +701,16 @@
                 return;
             }
 
-            const confirmed = await openConfirmModal(`Você está prestes a substituir TODOS os dados atuais do sistema pelos dados do arquivo "${file.name}". Esta ação é IRREVERSÍVEL.`, { requireTyped: true, expectedText: 'RESTAURAR', title: 'Restaurar Backup (Upload)' });
+            const confirmed = await openConfirmModal(
+                `⚠️ ATENÇÃO - RESTAURAÇÃO DE BACKUP\n\n` +
+                `Você está prestes a substituir TODOS os dados atuais do sistema pelos dados do arquivo "${file.name}".\n\n` +
+                `IMPORTANTE:\n` +
+                `• O banco de dados atual será SUBSTITUÍDO\n` +
+                `• Os arquivos de upload do backup serão MESCLADOS com os atuais\n` +
+                `• Arquivos atuais que não existem no backup serão PRESERVADOS\n\n` +
+                `Esta ação é IRREVERSÍVEL para os dados do banco.`,
+                { requireTyped: true, expectedText: 'RESTAURAR', title: 'Restaurar Backup (Upload)' }
+            );
             if (!confirmed) {
                 alert('Restauração cancelada.');
                 fileInput.value = ''; // Limpa o input de arquivo

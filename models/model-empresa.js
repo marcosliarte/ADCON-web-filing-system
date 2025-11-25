@@ -22,6 +22,7 @@ const SocioSchema = new mongoose.Schema({
   orgao_emissor: { type: String },
   estado_emissor: { type: String, maxlength: 2 },
   data_nascimento: { type: Date, required: true },
+  genero: { type: String, enum: ['masculino', 'feminino'], default: 'masculino' },
   is_admin: { type: String, enum: ['sim', 'nao'], default: 'nao' },
   estado_civil: { type: String },
   regime_casamento: { type: String },

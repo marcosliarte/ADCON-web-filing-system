@@ -18,6 +18,7 @@ const pagamentosRoutes = require('./routes/rota-pagamentos');
 const adminRoutes = require('./routes/rota-admin');
 const notificacoesRoutes = require('./routes/rota-notificacoes');
 const compartilhamentoRoutes = require('./routes/rota-compartilhamento');
+const faturamentoRoutes = require('./routes/rota-faturamento');
 
 const app = express();
 
@@ -88,6 +89,7 @@ app.use('/api/funcionarios', funcionarioRoutes);
 app.use('/api/pagamentos', pagamentosRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notificacoes', notificacoesRoutes);
+app.use('/api/faturamento', faturamentoRoutes);
 app.use('/api/compartilhamento', compartilhamentoRoutes);
 
 // -----------------------------
