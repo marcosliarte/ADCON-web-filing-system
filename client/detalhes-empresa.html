@@ -35,6 +35,26 @@
         .btn-back { background-color: #6c757d; }
         .btn-edit { background-color: #ffc107; color: #212529; }
         .btn-download { background-color: #28a745; }
+        
+        /* --- NOVO: Modal de Autenticação para Senha do Certificado --- */
+        .auth-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; }
+        .auth-modal.show { display: flex; }
+        .auth-modal-content { background: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+        .auth-modal-content h2 { margin-top: 0; color: #007bff; }
+        .auth-modal-content p { font-size: 0.95rem; color: #555; }
+        .auth-modal-form { display: flex; flex-direction: column; gap: 1rem; }
+        .auth-modal-form input { padding: 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        .auth-modal-form button { margin: 0; }
+        .auth-modal-buttons { display: flex; gap: 0.5rem; }
+        .auth-modal-buttons button { flex: 1; }
+        .auth-modal-buttons .btn-cancel { background-color: #6c757d; }
+        .auth-modal-buttons .btn-cancel:hover { background-color: #545b62; }
+        
+        /* --- Estilo para senha protegida --- */
+        .senha-certificado-container { display: flex; align-items: center; gap: 0.5rem; }
+        .senha-certificado-container input { flex: 1; }
+        .btn-show-senha { background-color: #17a2b8; padding: 0.6rem 0.8rem; font-size: 0.85rem; }
+        .btn-show-senha:hover { background-color: #138496; }
     </style>
 </head>
 <body style="display: none;">
@@ -47,6 +67,25 @@
   </script>
 
   <div id="header-placeholder"></div>
+
+  <!-- Modal de Autenticação para Senha do Certificado -->
+  <div id="authModalCertificado" class="auth-modal">
+    <div class="auth-modal-content">
+      <h2>Autenticação Necessária</h2>
+      <p>Para visualizar a senha do certificado digital, você precisa se autenticar:</p>
+      <form class="auth-modal-form" onsubmit="autenticarSenha(event)">
+        <div>
+          <label for="auth-password" style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Senha:</label>
+          <input type="password" id="auth-password" name="auth-password" placeholder="Digite sua senha" required autofocus>
+        </div>
+        <div class="auth-modal-buttons">
+          <button type="button" class="btn-cancel" onclick="fecharModalAutenticacao()">Cancelar</button>
+          <button type="submit">Autenticar</button>
+        </div>
+      </form>
+      <p id="auth-error" style="color: #dc3545; margin-top: 0.5rem; display: none;"></p>
+    </div>
+  </div>
 
   <div class="container">
     <h1 id="relatorio-titulo">Relatório da Empresa</h1>
@@ -211,53 +250,53 @@
             const documentosContainer = document.getElementById('documentos-container');
             let documentosHtml = '';
             if (data.documentos.cartaoCnpj) {
-                documentosHtml += createDocumentoItem('Cartão CNPJ', data.documentos.cartaoCnpj);
+                documentosHtml += createDocumentoItem('Cartão CNPJ', data.documentos.cartaoCnpj, false);
             }
             if (data.documentos.certificadoDigital) {
                 const validade = data.documentos.certificadoDigital.dataValidade ? ` (Validade: ${formatarData(data.documentos.certificadoDigital.dataValidade)})` : '';
-                documentosHtml += createDocumentoItem(`Certificado Digital${validade}`, data.documentos.certificadoDigital);
+                documentosHtml += createDocumentoItem(`Certificado Digital${validade}`, data.documentos.certificadoDigital, true, data.documentos.certificadoDigital);
             }
             if (data.documentos.alvara) {
                 const ano = data.documentos.alvara.ano ? ` (Ano: ${data.documentos.alvara.ano})` : '';
-                documentosHtml += createDocumentoItem(`Alvará de Funcionamento${ano}`, data.documentos.alvara);
+                documentosHtml += createDocumentoItem(`Alvará de Funcionamento${ano}`, data.documentos.alvara, false);
             }
             if (data.documentos.certidaoPrefeitura) {
                 const validade = data.documentos.certidaoPrefeitura.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoPrefeitura.dataValidade)})` : '';
-                documentosHtml += createDocumentoItem(`Certidão da Prefeitura${validade}`, data.documentos.certidaoPrefeitura);
+                documentosHtml += createDocumentoItem(`Certidão da Prefeitura${validade}`, data.documentos.certidaoPrefeitura, false);
             }
             if (data.documentos.certidaoReceita) {
                 const validade = data.documentos.certidaoReceita.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoReceita.dataValidade)})` : '';
-                documentosHtml += createDocumentoItem(`Certidão da Receita Federal${validade}`, data.documentos.certidaoReceita);
+                documentosHtml += createDocumentoItem(`Certidão da Receita Federal${validade}`, data.documentos.certidaoReceita, false);
             }
             if (data.documentos.certidaoFGTS) {
                 const validade = data.documentos.certidaoFGTS.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoFGTS.dataValidade)})` : '';
-                documentosHtml += createDocumentoItem(`Certidão do FGTS${validade}`, data.documentos.certidaoFGTS);
+                documentosHtml += createDocumentoItem(`Certidão do FGTS${validade}`, data.documentos.certidaoFGTS, false);
             }
             if (data.documentos.certidaoSefaz) {
                 const validade = data.documentos.certidaoSefaz.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoSefaz.dataValidade)})` : '';
-                documentosHtml += createDocumentoItem(`Certidão da SEFAZ${validade}`, data.documentos.certidaoSefaz);
+                documentosHtml += createDocumentoItem(`Certidão da SEFAZ${validade}`, data.documentos.certidaoSefaz, false);
             }
             if (data.documentos.certidaoTrabalhista) {
                 const validade = data.documentos.certidaoTrabalhista.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoTrabalhista.dataValidade)})` : '';
-                documentosHtml += createDocumentoItem(`Certidão Trabalhista${validade}`, data.documentos.certidaoTrabalhista);
+                documentosHtml += createDocumentoItem(`Certidão Trabalhista${validade}`, data.documentos.certidaoTrabalhista, false);
             }
             if (data.documentos.inscricaoEstadual) {
                 const validade = data.documentos.inscricaoEstadual.dataValidade ? ` (Validade: ${formatarData(data.documentos.inscricaoEstadual.dataValidade)})` : '';
-                documentosHtml += createDocumentoItem(`Inscrição Estadual${validade}`, data.documentos.inscricaoEstadual);
+                documentosHtml += createDocumentoItem(`Inscrição Estadual${validade}`, data.documentos.inscricaoEstadual, false);
             }
             if (data.documentos.certidaoSefaz) {
                 const validade = data.documentos.certidaoSefaz.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoSefaz.dataValidade)})` : '';
-                documentosHtml += createDocumentoItem(`Certidão da SEFAZ${validade}`, data.documentos.certidaoSefaz);
+                documentosHtml += createDocumentoItem(`Certidão da SEFAZ${validade}`, data.documentos.certidaoSefaz, false);
             }
             if (data.documentos.certidaoFalencia) {
                 const validade = data.documentos.certidaoFalencia.dataValidade ? ` (Validade: ${formatarData(data.documentos.certidaoFalencia.dataValidade)})` : '';
-                documentosHtml += createDocumentoItem(`Certidão de Falência${validade}`, data.documentos.certidaoFalencia);
+                documentosHtml += createDocumentoItem(`Certidão de Falência${validade}`, data.documentos.certidaoFalencia, false);
             }
             if (data.documentos.contratos && data.documentos.contratos.length > 0) {
                 data.documentos.contratos.forEach((contrato, index) => {
                     const nome = index === 0 ? 'Contrato Social Original' : `Alteração Contratual #${contrato.numeroAlteracao || index}`;
                     const info = `${nome} - ${formatarData(contrato.dataAlteracao)}`;
-                    documentosHtml += createDocumentoItem(info, contrato);
+                    documentosHtml += createDocumentoItem(info, contrato, false);
                 });
             }
             if (documentosHtml) {
@@ -293,15 +332,26 @@
         `;
     }
 
-    function createDocumentoItem(label, doc) {
-        return `
-            <li>
-                <span>${label}</span>
+    function createDocumentoItem(label, doc, isCertificado = false, certificadoObj = null) {
+        let html = `<li>
+                <div style="flex: 1;">
+                    <span>${label}</span>`;
+        
+        // Adiciona campo de senha do certificado se aplicável
+        if (isCertificado && certificadoObj && certificadoObj.senha) {
+            html += `<div class="senha-certificado-container" style="margin-top: 0.5rem;">
+                        <input type="password" id="senha-cert-${Date.now()}" value="${certificadoObj.senha}" disabled readonly style="font-family: monospace; background-color: #f0f0f0; border: 1px solid #ccc; padding: 0.5rem; border-radius: 4px;">
+                        <button type="button" class="btn-show-senha" onclick="revelarSenha(this)">Revelar</button>
+                    </div>`;
+        }
+        
+        html += `</div>
                 <a href="${doc.caminhoArquivo}" target="_blank" rel="noopener noreferrer">
                     <button class="btn-download">Visualizar / Baixar</button>
                 </a>
-            </li>
-        `;
+            </li>`;
+        
+        return html;
     }
 
     function mostrarLoading(mostrar) { document.getElementById('loading').style.display = mostrar ? 'block' : 'none'; }
@@ -336,6 +386,84 @@
 
         return estado === 'casado' ? `${estadoFormatado}${regimeFormatado}` : estadoFormatado;
     }
+
+    // --- NOVO: Funções de Autenticação e Revelação de Senha ---
+    let senhaAutenticadaTemp = false; // Flag de autenticação temporária da sessão
+    let inputSenhaAtuais = []; // Rastreia inputs de senha abertos
+
+    function revelarSenha(botao) {
+        // Verifica se o usuário já se autenticou nesta sessão
+        if (!senhaAutenticadaTemp) {
+            abrirModalAutenticacao();
+            return;
+        }
+
+        // Se já autenticado, alterna visibilidade
+        const input = botao.previousElementSibling;
+        if (input.type === 'password') {
+            input.type = 'text';
+            botao.textContent = 'Ocultar';
+        } else {
+            input.type = 'password';
+            botao.textContent = 'Revelar';
+        }
+    }
+
+    function abrirModalAutenticacao() {
+        document.getElementById('authModalCertificado').classList.add('show');
+        document.getElementById('auth-password').focus();
+        document.getElementById('auth-error').style.display = 'none';
+    }
+
+    function fecharModalAutenticacao() {
+        document.getElementById('authModalCertificado').classList.remove('show');
+        document.getElementById('auth-password').value = '';
+        document.getElementById('auth-error').style.display = 'none';
+    }
+
+    async function autenticarSenha(event) {
+        event.preventDefault();
+        const senha = document.getElementById('auth-password').value;
+        
+        try {
+            // Valida a senha contra o servidor
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: usuario.email, senha: senha })
+            });
+
+            if (response.ok) {
+                // Autenticação bem-sucedida
+                senhaAutenticadaTemp = true;
+                fecharModalAutenticacao();
+                // Tenta usar showToast se disponível, caso contrário usa alert
+                if (typeof showToast === 'function') {
+                    showToast('Autenticação bem-sucedida! Você pode visualizar a senha do certificado.', 'success', 3000);
+                } else {
+                    alert('Autenticação bem-sucedida! Você pode visualizar a senha do certificado.');
+                }
+            } else {
+                // Falha na autenticação
+                document.getElementById('auth-error').textContent = 'Senha incorreta. Tente novamente.';
+                document.getElementById('auth-error').style.display = 'block';
+                document.getElementById('auth-password').value = '';
+                document.getElementById('auth-password').focus();
+            }
+        } catch (error) {
+            console.error('Erro ao autenticar:', error);
+            document.getElementById('auth-error').textContent = 'Erro ao processar autenticação. Tente novamente.';
+            document.getElementById('auth-error').style.display = 'block';
+        }
+    }
+
+    // Fechar modal ao clicar fora dele
+    document.addEventListener('click', (event) => {
+        const modal = document.getElementById('authModalCertificado');
+        if (event.target === modal) {
+            fecharModalAutenticacao();
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', async () => {
         await getUsuario();
