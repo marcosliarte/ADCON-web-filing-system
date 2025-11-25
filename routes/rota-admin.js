@@ -313,57 +313,79 @@ router.get('/backup/list', (req, res) => {
 
 // @route   POST api/admin/backup/restore
 // @desc    Restaurar o banco de dados a partir de um backup
-router.post('/backup/restore', (req, res) => {
-    const { filename } = req.body;
-    if (!filename) {
-        return res.status(400).json({ msg: 'Nome do arquivo de backup é obrigatório.' });
-    }
+router.post('/backup/restore', async (req, res) => {
+    try {
+        const { filename } = req.body;
+        if (!filename) {
+            return res.status(400).json({ msg: 'Nome do arquivo de backup é obrigatório.' });
+        }
 
-    const backupFilePath = path.join(backupDir, filename);
-    if (!fs.existsSync(backupFilePath)) {
-        return res.status(404).json({ msg: 'Arquivo de backup não encontrado.' });
-    }
+        const backupFilePath = path.join(backupDir, filename);
+        if (!fs.existsSync(backupFilePath)) {
+            return res.status(404).json({ msg: 'Arquivo de backup não encontrado.' });
+        }
 
-    const tempRestoreDir = path.join(backupDir, `temp-restore-${Date.now()}`);
-    fs.mkdirSync(tempRestoreDir, { recursive: true });
+        const tempRestoreDir = path.join(backupDir, `temp-restore-${Date.now()}`);
+        fs.mkdirSync(tempRestoreDir, { recursive: true });
 
-    fs.createReadStream(backupFilePath)
-        .pipe(unzipper.Extract({ path: tempRestoreDir }))
-        .on('finish', () => {
-            const filesInTemp = fs.readdirSync(tempRestoreDir);
-            const dbDumpFile = filesInTemp.find(f => f.endsWith('.gz'));
+        // Extrair o ZIP usando Promise
+        await new Promise((resolve, reject) => {
+            fs.createReadStream(backupFilePath)
+                .pipe(unzipper.Extract({ path: tempRestoreDir }))
+                .on('finish', resolve)
+                .on('error', reject);
+        });
 
-            if (!dbDumpFile) {
-                fs.rmSync(tempRestoreDir, { recursive: true, force: true });
-                return res.status(500).json({ msg: 'Arquivo de dump do banco de dados não encontrado no backup.' });
-            }
+        const filesInTemp = fs.readdirSync(tempRestoreDir);
+        const dbDumpFile = filesInTemp.find(f => f.endsWith('.gz'));
 
-            const dbDumpFilePath = path.join(tempRestoreDir, dbDumpFile);
-            const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
-            const mongorestoreExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 'mongorestore';
-            const restoreCommand = `${mongorestoreExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip --drop`;
+        if (!dbDumpFile) {
+            fs.rmSync(tempRestoreDir, { recursive: true, force: true });
+            return res.status(500).json({ msg: 'Arquivo de dump do banco de dados não encontrado no backup.' });
+        }
 
+        const dbDumpFilePath = path.join(tempRestoreDir, dbDumpFile);
+        const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
+        const mongorestoreExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 'mongorestore';
+        const restoreCommand = `${mongorestoreExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip --drop`;
+
+        // Executar restore usando Promise
+        await new Promise((resolve, reject) => {
             exec(restoreCommand, (restoreError, stdout, stderr) => {
                 if (restoreError) {
-                    fs.rmSync(tempRestoreDir, { recursive: true, force: true });
                     console.error(`Erro ao restaurar banco de dados: ${stderr}`);
-                    return res.status(500).json({ msg: 'Falha ao restaurar o banco de dados.', error: stderr });
+                    reject(new Error(stderr || 'Falha ao restaurar o banco de dados'));
+                } else {
+                    resolve();
                 }
-
-                const uploadsBackupPath = path.join(tempRestoreDir, 'uploads');
-                const serverUploadsPath = path.join(__dirname, '../uploads');
-
-                if (fs.existsSync(uploadsBackupPath)) {
-                    if (fs.existsSync(serverUploadsPath)) {
-                        fs.rmSync(serverUploadsPath, { recursive: true, force: true });
-                    }
-                    fs.renameSync(uploadsBackupPath, serverUploadsPath);
-                }
-
-                fs.rmSync(tempRestoreDir, { recursive: true, force: true });
-                res.json({ msg: 'Sistema restaurado com sucesso!' });
             });
         });
+
+        // Restaurar uploads se existir
+        const uploadsBackupPath = path.join(tempRestoreDir, 'uploads');
+        const serverUploadsPath = path.join(__dirname, '../uploads');
+
+        if (fs.existsSync(uploadsBackupPath)) {
+            if (fs.existsSync(serverUploadsPath)) {
+                // Renomear a pasta antiga ao invés de deletar (mais seguro)
+                const backupOldUploads = path.join(__dirname, `../uploads_old_${Date.now()}`);
+                fs.renameSync(serverUploadsPath, backupOldUploads);
+            }
+            fs.renameSync(uploadsBackupPath, serverUploadsPath);
+        }
+
+        // Limpar pasta temporária
+        fs.rmSync(tempRestoreDir, { recursive: true, force: true });
+        
+        res.json({ msg: 'Sistema restaurado com sucesso!' });
+
+    } catch (error) {
+        console.error('Erro ao restaurar backup:', error);
+        res.status(500).json({ 
+            msg: 'Erro ao restaurar backup.', 
+            error: error.message 
+        });
+    }
 });
 
 // @route   GET api/admin/backup/download/:filename

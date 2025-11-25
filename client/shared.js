@@ -87,30 +87,215 @@ async function createHeader(placeholderId, usuario) {
         : '';
 
     placeholder.innerHTML = `
+        <style>
+            .notification-icon { position: relative; margin-right: 1rem; cursor: pointer; }
+            .notification-badge { position: absolute; top: -8px; right: -8px; background: #dc3545; color: white; 
+                border-radius: 10px; padding: 2px 6px; font-size: 0.7rem; font-weight: bold; min-width: 18px; text-align: center; }
+            .notification-dropdown { display: none; position: absolute; right: 0; top: 45px; background: white; 
+                min-width: 350px; max-width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); border-radius: 8px; 
+                z-index: 1000; max-height: 500px; overflow-y: auto; }
+            .notification-dropdown.show { display: block; }
+            .notification-header { padding: 1rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+            .notification-header h4 { margin: 0; font-size: 1rem; color: #333; }
+            .notification-item { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f1f1; cursor: pointer; transition: background 0.2s; }
+            .notification-item:hover { background: #f8f9fa; }
+            .notification-item.unread { background: #e7f3ff; }
+            .notification-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; color: #333; }
+            .notification-message { font-size: 0.85rem; color: #666; margin-bottom: 0.25rem; }
+            .notification-time { font-size: 0.75rem; color: #999; }
+            .notification-empty { padding: 2rem; text-align: center; color: #999; }
+            .notification-footer { padding: 0.75rem; text-align: center; border-top: 1px solid #eee; }
+            .notification-footer a { color: #007bff; text-decoration: none; font-size: 0.9rem; }
+        </style>
         <div class="header">
             ${impersonationBanner}
             <h1><a href="home.html" style="color: white; text-decoration: none;">${nomeFantasia}</a></h1>
-            <div class="user-actions dropdown">
-                <button class="dropdown-toggle" id="userMenuBtn">
-                    <span style="margin-right: 0.5rem;">${nomeAbreviado}</span>
-                    <span>👤</span>
-                </button>
-                <div id="userMenu" class="dropdown-content">
-                    <a href="home.html"><span>🏠</span> Início</a>
-                    ${relatoriosLink}
-                    <hr style="margin: 0;">
-                    <a href="#" onclick="logout()"><span>⏻</span> Sair</a>
+            <div style="display: flex; align-items: center;">
+                <div class="notification-icon" id="notificationIcon">
+                    <span style="font-size: 1.5rem;">🔔</span>
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    <div class="notification-dropdown" id="notificationDropdown">
+                        <div class="notification-header">
+                            <h4>Notificações</h4>
+                            <a href="#" onclick="marcarTodasLidas(event)" style="font-size: 0.85rem; color: #007bff; text-decoration: none;">Marcar todas como lidas</a>
+                        </div>
+                        <div id="notificationList">
+                            <div class="notification-empty">Carregando...</div>
+                        </div>
+                        <div class="notification-footer">
+                            <a href="notificacoes.html">Ver todas as notificações</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="user-actions dropdown">
+                    <button class="dropdown-toggle" id="userMenuBtn">
+                        <span style="margin-right: 0.5rem;">${nomeAbreviado}</span>
+                        <span>👤</span>
+                    </button>
+                    <div id="userMenu" class="dropdown-content">
+                        <a href="home.html"><span>🏠</span> Início</a>
+                        ${relatoriosLink}
+                        <hr style="margin: 0;">
+                        <a href="#" onclick="logout()"><span>⏻</span> Sair</a>
+                    </div>
                 </div>
             </div>
         </div>
     `;
 
-    // Adiciona a lógica do dropdown
+    // Adiciona a lógica do dropdown do menu de usuário
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userMenu = document.getElementById('userMenu');
     userMenuBtn.addEventListener('click', () => {
         userMenu.classList.toggle('show');
+        document.getElementById('notificationDropdown').classList.remove('show');
     });
+
+    // Adiciona a lógica do dropdown de notificações
+    const notificationIcon = document.getElementById('notificationIcon');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    notificationIcon.addEventListener('click', () => {
+        notificationDropdown.classList.toggle('show');
+        userMenu.classList.remove('show');
+        if (notificationDropdown.classList.contains('show')) {
+            loadNotifications();
+        }
+    });
+
+    // Fecha dropdowns ao clicar fora
+    document.addEventListener('click', (e) => {
+        if (!notificationIcon.contains(e.target)) {
+            notificationDropdown.classList.remove('show');
+        }
+        if (!userMenuBtn.contains(e.target)) {
+            userMenu.classList.remove('show');
+        }
+    });
+
+    // Carrega contagem inicial de notificações
+    updateNotificationBadge();
+    
+    // Atualiza contagem a cada 30 segundos
+    setInterval(updateNotificationBadge, 30000);
+}
+
+/**
+ * Atualiza o badge de notificações não lidas
+ */
+async function updateNotificationBadge() {
+    try {
+        const response = await fetchWithAuth('/api/notificacoes/count');
+        if (!response || !response.ok) return;
+        
+        const { count } = await response.json();
+        const badge = document.getElementById('notificationBadge');
+        
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    } catch (err) {
+        console.error('Erro ao atualizar badge de notificações:', err);
+    }
+}
+
+/**
+ * Carrega as notificações recentes
+ */
+async function loadNotifications() {
+    try {
+        const response = await fetchWithAuth('/api/notificacoes?limit=10');
+        if (!response || !response.ok) throw new Error('Falha ao carregar notificações');
+        
+        const { notificacoes } = await response.json();
+        const list = document.getElementById('notificationList');
+        
+        if (!list) return;
+
+        if (notificacoes.length === 0) {
+            list.innerHTML = '<div class="notification-empty">Nenhuma notificação</div>';
+            return;
+        }
+
+        const icones = {
+            'documento_vencendo': '⏰',
+            'documento_vencido': '⚠️',
+            'pagamento_recebido': '💰',
+            'mensagem_admin': '📢',
+            'sistema': 'ℹ️'
+        };
+
+        list.innerHTML = notificacoes.map(n => {
+            const tempo = formatarTempo(new Date(n.createdAt));
+            const icone = icones[n.tipo] || '📌';
+            const unreadClass = n.lida ? '' : 'unread';
+            
+            return `
+                <div class="notification-item ${unreadClass}" onclick="abrirNotificacao('${n._id}', '${n.link || '#'}')">
+                    <div class="notification-title">${icone} ${n.titulo}</div>
+                    <div class="notification-message">${n.mensagem}</div>
+                    <div class="notification-time">${tempo}</div>
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error('Erro ao carregar notificações:', err);
+        document.getElementById('notificationList').innerHTML = 
+            '<div class="notification-empty">Erro ao carregar</div>';
+    }
+}
+
+/**
+ * Abre uma notificação e marca como lida
+ */
+async function abrirNotificacao(id, link) {
+    try {
+        await fetchWithAuth(`/api/notificacoes/${id}/ler`, { method: 'PUT' });
+        updateNotificationBadge();
+        
+        if (link && link !== '#') {
+            window.location.href = link;
+        }
+    } catch (err) {
+        console.error('Erro ao abrir notificação:', err);
+    }
+}
+
+/**
+ * Marca todas as notificações como lidas
+ */
+async function marcarTodasLidas(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    try {
+        const response = await fetchWithAuth('/api/notificacoes/ler-todas', { method: 'PUT' });
+        if (!response || !response.ok) throw new Error('Falha ao marcar notificações');
+        
+        showToast('Todas as notificações foram marcadas como lidas', 'success');
+        updateNotificationBadge();
+        loadNotifications();
+    } catch (err) {
+        showToast('Erro ao marcar notificações como lidas', 'error');
+    }
+}
+
+/**
+ * Formata tempo relativo (ex: "há 5 minutos")
+ */
+function formatarTempo(data) {
+    const agora = new Date();
+    const diff = Math.floor((agora - data) / 1000); // diferença em segundos
+    
+    if (diff < 60) return 'Agora mesmo';
+    if (diff < 3600) return `Há ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `Há ${Math.floor(diff / 3600)}h`;
+    if (diff < 604800) return `Há ${Math.floor(diff / 86400)} dia(s)`;
+    return data.toLocaleDateString('pt-BR');
 }
 
 /**

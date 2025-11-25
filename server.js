@@ -16,6 +16,8 @@ const configuracaoRoutes = require('./routes/rota-configuracao');
 const funcionarioRoutes = require('./routes/rota-funcionarios');
 const pagamentosRoutes = require('./routes/rota-pagamentos');
 const adminRoutes = require('./routes/rota-admin');
+const notificacoesRoutes = require('./routes/rota-notificacoes');
+const compartilhamentoRoutes = require('./routes/rota-compartilhamento');
 
 const app = express();
 
@@ -85,6 +87,8 @@ app.use('/api/configuracao', configuracaoRoutes);
 app.use('/api/funcionarios', funcionarioRoutes);
 app.use('/api/pagamentos', pagamentosRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/notificacoes', notificacoesRoutes);
+app.use('/api/compartilhamento', compartilhamentoRoutes);
 
 // -----------------------------
 //       ARQUIVOS ESTÁTICOS

@@ -35,6 +35,23 @@
         .btn-back { background-color: #6c757d; }
         .btn-edit { background-color: #ffc107; color: #212529; }
         .btn-download { background-color: #28a745; }
+        .btn-whatsapp { background-color: #25D366; }
+        .btn-whatsapp:hover { background-color: #1da851; }
+        .btn-pdf { background-color: #dc3545; }
+        .btn-pdf:hover { background-color: #c82333; }
+        
+        /* Estilos para seleção de documentos */
+        .document-selection-header { background: #e7f3ff; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .selection-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .selection-actions button { padding: 0.5rem 1rem; font-size: 0.9rem; }
+        .doc-checkbox { width: 18px; height: 18px; margin-right: 10px; cursor: pointer; }
+        .document-list li { position: relative; }
+        .doc-label { cursor: pointer; display: flex; align-items: center; flex: 1; }
+        .selected-count { font-weight: 600; color: #007bff; }
+        .btn-select-all { background-color: #17a2b8; }
+        .btn-select-all:hover { background-color: #138496; }
+        .btn-deselect-all { background-color: #6c757d; }
+        .btn-deselect-all:hover { background-color: #5a6268; }
         
         /* --- NOVO: Modal de Autenticação para Senha do Certificado --- */
         .auth-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; }
@@ -55,6 +72,18 @@
         .senha-certificado-container input { flex: 1; }
         .btn-show-senha { background-color: #17a2b8; padding: 0.6rem 0.8rem; font-size: 0.85rem; }
         .btn-show-senha:hover { background-color: #138496; }
+        
+        /* Estilos para impressão/PDF */
+        @media print {
+            body { background-color: white; }
+            .header, .action-buttons, .document-selection-header, .btn-download, .btn-delete, .doc-checkbox, button { display: none !important; }
+            .container { box-shadow: none; max-width: 100%; }
+            .document-list li { break-inside: avoid; }
+            .socio-card, .filial-card { break-inside: avoid; }
+            h1, h2 { color: #000; }
+            .info-item { break-inside: avoid; }
+            a { text-decoration: none; color: #000; }
+        }
     </style>
 </head>
 <body style="display: none;">
@@ -125,13 +154,29 @@
         <!-- Seção de Documentos -->
         <div class="section" id="documentos-section" style="display: none;">
             <h2>Documentos Digitais</h2>
+            
+            <div class="document-selection-header">
+                <div>
+                    <span class="selected-count" id="selected-count">0 documento(s) selecionado(s)</span>
+                </div>
+                <div class="selection-actions">
+                    <button class="btn-select-all" onclick="selecionarTodos()">✓ Selecionar Todos</button>
+                    <button class="btn-deselect-all" onclick="desselecionarTodos()">✗ Limpar Seleção</button>
+                    <button class="btn-download" onclick="baixarSelecionados()" id="btn-download-selected">📥 Baixar Selecionados</button>
+                    <button class="btn-whatsapp" onclick="compartilharWhatsApp()">📱 Compartilhar WhatsApp</button>
+                    <button class="btn-delete" onclick="excluirSelecionados()" id="btn-delete-selected">🗑️ Excluir Selecionados</button>
+                </div>
+            </div>
+            
             <ul class="document-list" id="documentos-container"></ul>
         </div>
 
         <div class="action-buttons">
             <button class="btn-back" onclick="window.history.back()">Voltar</button>
             <button class="btn-edit" id="btn-editar" style="display: none;">Editar</button>
-            <button class="btn-print" onclick="window.print()">Imprimir Relatório</button>
+            <button class="btn-print" onclick="window.print()">🖨️ Imprimir Relatório</button>
+            <button class="btn-pdf" onclick="gerarRelatorioCompleto()">📄 Relatório Completo (PDF)</button>
+            <button class="btn-whatsapp" onclick="compartilharRelatorioWhatsApp()">📱 Compartilhar Relatório WhatsApp</button>
         </div>
     </div>
   </div>
@@ -139,6 +184,7 @@
   <script src="shared.js"></script>
   <script>
     let usuario;
+    let empresaId; // Variável global para o ID da empresa
 
     async function getUsuario() {
         const response = await fetchWithAuth('/api/auth');
@@ -156,7 +202,7 @@
         esconderConteudo();
         
         const urlParams = new URLSearchParams(window.location.search);
-        const empresaId = urlParams.get('id');
+        empresaId = urlParams.get('id'); // Atribui à variável global
         
         if (!empresaId) {
           throw new Error('ID da empresa não fornecido na URL');
@@ -169,6 +215,7 @@
         }
         
         const data = await response.json();
+        empresaAtual = data; // Armazena para uso posterior
         
         // Popula o relatório com os dados
         document.getElementById('relatorio-titulo').textContent = `Relatório da Empresa: ${data.nome}`;
@@ -322,6 +369,9 @@
       }
     }
 
+    // Variável global para armazenar dados da empresa
+    let empresaAtual = null;
+
     // --- Funções Auxiliares de UI ---
     function createItem(label, value) {
         return `
@@ -332,10 +382,21 @@
         `;
     }
 
-    function createDocumentoItem(label, doc, isCertificado = false, certificadoObj = null) {
+    function createDocumentoItem(label, doc, isCertificado = false, certificadoObj = null, tipoCampo = '') {
+        const docId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const docData = JSON.stringify({
+            nome: label,
+            caminho: doc.caminhoArquivo,
+            nomeArquivo: doc.nomeArquivo,
+            tipo: tipoCampo
+        }).replace(/"/g, '&quot;');
+        
         let html = `<li>
-                <div style="flex: 1;">
-                    <span>${label}</span>`;
+                <label class="doc-label">
+                    <input type="checkbox" class="doc-checkbox" id="${docId}" data-doc='${docData}' onchange="atualizarContador()">
+                    <span>${label}</span>
+                </label>
+                <div style="flex: 1;">`;
         
         // Adiciona campo de senha do certificado se aplicável
         if (isCertificado && certificadoObj && certificadoObj.senha) {
@@ -346,6 +407,7 @@
         }
         
         html += `</div>
+                </div>
                 <a href="${doc.caminhoArquivo}" target="_blank" rel="noopener noreferrer">
                     <button class="btn-download">Visualizar / Baixar</button>
                 </a>
@@ -464,6 +526,349 @@
             fecharModalAutenticacao();
         }
     });
+
+    // --- Funções de Seleção de Documentos ---
+    function atualizarContador() {
+        const checkboxes = document.querySelectorAll('.doc-checkbox');
+        const selecionados = Array.from(checkboxes).filter(cb => cb.checked);
+        document.getElementById('selected-count').textContent = `${selecionados.length} documento(s) selecionado(s)`;
+    }
+
+    function selecionarTodos() {
+        document.querySelectorAll('.doc-checkbox').forEach(cb => cb.checked = true);
+        atualizarContador();
+    }
+
+    function desselecionarTodos() {
+        document.querySelectorAll('.doc-checkbox').forEach(cb => cb.checked = false);
+        atualizarContador();
+    }
+
+    function obterDocumentosSelecionados() {
+        const checkboxes = document.querySelectorAll('.doc-checkbox:checked');
+        return Array.from(checkboxes).map(cb => JSON.parse(cb.getAttribute('data-doc')));
+    }
+
+    // --- Funções de Download ---
+    async function baixarSelecionados() {
+        const docs = obterDocumentosSelecionados();
+        
+        if (docs.length === 0) {
+            alert('Selecione pelo menos um documento para baixar.');
+            return;
+        }
+
+        if (typeof showToast === 'function') {
+            showToast(`Iniciando download de ${docs.length} documento(s)...`, 'info');
+        }
+
+        // Baixa cada documento em uma nova aba
+        docs.forEach((doc, index) => {
+            setTimeout(() => {
+                const link = document.createElement('a');
+                link.href = doc.caminho;
+                link.download = doc.nomeArquivo || '';
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }, index * 500); // Delay de 500ms entre downloads
+        });
+    }
+
+    // --- Função de Exclusão de Documentos ---
+    async function excluirSelecionados() {
+        const docs = obterDocumentosSelecionados();
+        
+        if (docs.length === 0) {
+            alert('Selecione pelo menos um documento para excluir.');
+            return;
+        }
+
+        // Confirmação de exclusão
+        const confirmacao = confirm(
+            `Tem certeza que deseja excluir ${docs.length} documento(s)?\n\n` +
+            'Esta ação não pode ser desfeita!\n\n' +
+            'Documentos que serão excluídos:\n' +
+            docs.map((doc, i) => `${i + 1}. ${doc.nome}`).join('\n')
+        );
+
+        if (!confirmacao) {
+            return;
+        }
+
+        try {
+            const btnExcluir = document.querySelector('.btn-delete');
+            const textoOriginal = btnExcluir.textContent;
+            btnExcluir.textContent = 'Excluindo...';
+            btnExcluir.disabled = true;
+
+            // Preparar dados para envio
+            const documentosParaExcluir = docs.map(doc => ({
+                tipo: doc.tipo,
+                caminho: doc.caminho
+            }));
+
+            // Enviar requisição de exclusão
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/empresas/${empresaId}/documentos/excluir`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                },
+                body: JSON.stringify({ documentos: documentosParaExcluir })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.msg || 'Erro ao excluir documentos');
+            }
+
+            const result = await response.json();
+
+            // Mostrar resultado
+            if (typeof showToast === 'function') {
+                showToast(
+                    `${result.excluidos} documento(s) excluído(s) com sucesso!`,
+                    'success'
+                );
+            } else {
+                alert(`${result.excluidos} documento(s) excluído(s) com sucesso!`);
+            }
+
+            // Recarregar a página para atualizar a lista
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+
+        } catch (error) {
+            console.error('Erro ao excluir documentos:', error);
+            alert('Erro ao excluir documentos: ' + error.message);
+            
+            // Restaurar botão
+            const btnExcluir = document.querySelector('.btn-delete');
+            if (btnExcluir) {
+                btnExcluir.textContent = '🗑️ Excluir Selecionados';
+                btnExcluir.disabled = false;
+            }
+        }
+    }
+
+    // --- Funções de Compartilhamento WhatsApp ---
+    async function compartilharWhatsApp() {
+        const docs = obterDocumentosSelecionados();
+        
+        if (docs.length === 0) {
+            alert('Selecione pelo menos um documento para compartilhar.');
+            return;
+        }
+
+        if (!empresaAtual) {
+            alert('Dados da empresa não carregados.');
+            return;
+        }
+
+        try {
+            // Mostrar loading
+            const btnCompartilhar = document.querySelector('.btn-whatsapp');
+            const textoOriginal = btnCompartilhar.textContent;
+            btnCompartilhar.textContent = 'Gerando ZIP...';
+            btnCompartilhar.disabled = true;
+
+            // Coletar caminhos dos documentos selecionados
+            const documentos = docs.map(doc => doc.caminho);
+
+            // Gerar ZIP no servidor
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/compartilhamento/empresas/${empresaId}/gerar-zip`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-auth-token': token
+                },
+                body: JSON.stringify({ documentos })
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao gerar ZIP');
+            }
+
+            // Receber o ZIP como blob
+            const blob = await response.blob();
+            const urlBlob = window.URL.createObjectURL(blob);
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `documentos-${empresaAtual.nome.replace(/\s+/g, '-')}-${timestamp}.zip`;
+
+            // Baixar o ZIP automaticamente
+            const link = document.createElement('a');
+            link.href = urlBlob;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Montar mensagem do WhatsApp
+            let mensagem = `📄 *Documentos da Empresa ${empresaAtual.nome}*\n\n`;
+            mensagem += `CNPJ: ${formatarCNPJ(empresaAtual.cnpj)}\n\n`;
+            mensagem += `*${docs.length} documento(s) selecionado(s)*\n\n`;
+            mensagem += `O arquivo ZIP com os documentos foi baixado para o seu computador.\n`;
+            mensagem += `📦 Arquivo: ${filename}\n\n`;
+            mensagem += `*Para enviar pelo WhatsApp:*\n`;
+            mensagem += `1. Clique no ícone de anexo (📎)\n`;
+            mensagem += `2. Selecione "Documento"\n`;
+            mensagem += `3. Escolha o arquivo ${filename}\n`;
+            mensagem += `4. Envie para o contato desejado\n\n`;
+            mensagem += `_Enviado via ADCON - Sistema de Gestão Empresarial_`;
+
+            // Codificar e abrir WhatsApp
+            const mensagemCodificada = encodeURIComponent(mensagem);
+            window.open(`https://wa.me/?text=${mensagemCodificada}`, '_blank');
+
+            // Limpar URL temporária após 1 minuto
+            setTimeout(() => window.URL.revokeObjectURL(urlBlob), 60000);
+
+            if (typeof showToast === 'function') {
+                showToast('ZIP baixado com sucesso! Anexe o arquivo no WhatsApp conforme as instruções.', 'success');
+            } else {
+                alert('ZIP baixado com sucesso! Anexe o arquivo no WhatsApp conforme as instruções.');
+            }
+
+            // Restaurar botão
+            btnCompartilhar.textContent = textoOriginal;
+            btnCompartilhar.disabled = false;
+
+        } catch (error) {
+            console.error('Erro ao compartilhar:', error);
+            alert('Erro ao gerar arquivo ZIP. Verifique se todos os documentos existem.');
+            
+            // Restaurar botão em caso de erro
+            const btnCompartilhar = document.querySelector('.btn-whatsapp');
+            if (btnCompartilhar) {
+                btnCompartilhar.textContent = '📱 Compartilhar via WhatsApp';
+                btnCompartilhar.disabled = false;
+            }
+        }
+    }
+
+    function compartilharRelatorioWhatsApp() {
+        if (!empresaAtual) {
+            alert('Dados da empresa não carregados.');
+            return;
+        }
+
+        // Monta relatório completo em texto
+        let mensagem = `📊 *RELATÓRIO COMPLETO DA EMPRESA*\n\n`;
+        mensagem += `═══════════════════════════\n`;
+        mensagem += `*${empresaAtual.nome}*\n`;
+        mensagem += `═══════════════════════════\n\n`;
+        
+        // Dados Básicos
+        mensagem += `📌 *DADOS CADASTRAIS*\n`;
+        mensagem += `CNPJ: ${formatarCNPJ(empresaAtual.cnpj)}\n`;
+        if (empresaAtual.inscricao_estadual) mensagem += `Insc. Estadual: ${empresaAtual.inscricao_estadual}\n`;
+        if (empresaAtual.nome_fantasia) mensagem += `Nome Fantasia: ${empresaAtual.nome_fantasia}\n`;
+        if (empresaAtual.nire) mensagem += `NIRE: ${empresaAtual.nire}\n`;
+        if (empresaAtual.data_abertura) mensagem += `Data Abertura: ${formatarData(empresaAtual.data_abertura)}\n`;
+        mensagem += `Capital Social: ${empresaAtual.capital_social}\n`;
+        mensagem += `Porte: ${empresaAtual.porte}\n`;
+        mensagem += `Simples Nacional: ${formatarBooleano(empresaAtual.simples_nacional)}\n\n`;
+
+        // Contato
+        mensagem += `📞 *CONTATO*\n`;
+        if (empresaAtual.email) mensagem += `Email: ${empresaAtual.email}\n`;
+        if (empresaAtual.telefone) mensagem += `Telefone: ${empresaAtual.telefone}\n\n`;
+
+        // Endereço
+        if (empresaAtual.endereco) {
+            mensagem += `📍 *ENDEREÇO*\n`;
+            mensagem += `${empresaAtual.endereco.rua}, ${empresaAtual.endereco.numero}\n`;
+            if (empresaAtual.endereco.complemento) mensagem += `${empresaAtual.endereco.complemento}\n`;
+            mensagem += `${empresaAtual.endereco.bairro} - ${empresaAtual.endereco.cidade}/${empresaAtual.endereco.estado}\n`;
+            if (empresaAtual.endereco.cep) mensagem += `CEP: ${empresaAtual.endereco.cep}\n`;
+            mensagem += `\n`;
+        }
+
+        // Sócios
+        if (empresaAtual.socios && empresaAtual.socios.length > 0) {
+            mensagem += `👥 *QUADRO SOCIETÁRIO (${empresaAtual.socios.length})*\n`;
+            empresaAtual.socios.forEach((socio, index) => {
+                mensagem += `\n${index + 1}. ${socio.nome}`;
+                if (socio.is_admin === 'sim') mensagem += ` (Administrador)`;
+                mensagem += `\n   CPF: ${formatarCPF(socio.cpf)}\n`;
+                if (socio.data_nascimento) mensagem += `   Nasc.: ${formatarData(socio.data_nascimento)}\n`;
+            });
+            mensagem += `\n`;
+        }
+
+        // Documentos
+        if (empresaAtual.documentos) {
+            mensagem += `📁 *DOCUMENTOS DISPONÍVEIS*\n`;
+            let countDocs = 0;
+            
+            const docTypes = [
+                { key: 'cartaoCnpj', label: 'Cartão CNPJ' },
+                { key: 'certificadoDigital', label: 'Certificado Digital' },
+                { key: 'alvara', label: 'Alvará' },
+                { key: 'certidaoPrefeitura', label: 'Certidão Prefeitura' },
+                { key: 'certidaoReceita', label: 'Certidão Receita' },
+                { key: 'certidaoFGTS', label: 'Certidão FGTS' },
+                { key: 'certidaoSefaz', label: 'Certidão SEFAZ' },
+                { key: 'certidaoTrabalhista', label: 'Certidão Trabalhista' },
+                { key: 'certidaoFalencia', label: 'Certidão Falência' }
+            ];
+
+            docTypes.forEach(type => {
+                if (empresaAtual.documentos[type.key]?.caminhoArquivo) {
+                    countDocs++;
+                    mensagem += `• ${type.label}\n`;
+                    if (empresaAtual.documentos[type.key].dataValidade) {
+                        mensagem += `  Validade: ${formatarData(empresaAtual.documentos[type.key].dataValidade)}\n`;
+                    }
+                }
+            });
+
+            if (empresaAtual.documentos.contratos?.length > 0) {
+                countDocs += empresaAtual.documentos.contratos.length;
+                mensagem += `• Contratos: ${empresaAtual.documentos.contratos.length} arquivo(s)\n`;
+            }
+
+            if (countDocs === 0) {
+                mensagem += `Nenhum documento cadastrado.\n`;
+            }
+            mensagem += `\n`;
+        }
+
+        // Link para acesso
+        mensagem += `═══════════════════════════\n`;
+        mensagem += `🔗 *Acesso ao Sistema:*\n`;
+        mensagem += `${window.location.origin}/detalhes-empresa.html?id=${empresaAtual._id}\n\n`;
+        
+        mensagem += `_Relatório gerado via ADCON_\n`;
+        mensagem += `_Data: ${new Date().toLocaleString('pt-BR')}_`;
+
+        // Abre WhatsApp
+        const mensagemCodificada = encodeURIComponent(mensagem);
+        const urlWhatsApp = `https://wa.me/?text=${mensagemCodificada}`;
+        
+        window.open(urlWhatsApp, '_blank');
+    }
+
+    // --- Função para Gerar Relatório PDF Completo ---
+    function gerarRelatorioCompleto() {
+        if (!empresaAtual) {
+            alert('Dados da empresa não carregados.');
+            return;
+        }
+
+        if (typeof showToast === 'function') {
+            showToast('Gerando relatório completo em PDF...', 'info');
+        }
+
+        // Usa a função de impressão do navegador
+        // Pode ser melhorado com biblioteca de PDF como jsPDF
+        window.print();
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
         await getUsuario();

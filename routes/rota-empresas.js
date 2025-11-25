@@ -685,4 +685,111 @@ router.get('/documentos/vencendo', auth, async (req, res) => {
   }
 });
 
+// @route   DELETE api/empresas/:id/documentos/excluir
+// @desc    Excluir documentos selecionados da empresa
+// @access  Private
+router.delete('/:id/documentos/excluir', auth, async (req, res) => {
+  try {
+    const { documentos } = req.body; // Array de { tipo, caminho }
+    
+    if (!documentos || !Array.isArray(documentos) || documentos.length === 0) {
+      return res.status(400).json({ msg: 'Nenhum documento selecionado para exclusão.' });
+    }
+
+    const empresa = await Empresa.findById(req.params.id);
+    if (!empresa) {
+      return res.status(404).json({ msg: 'Empresa não encontrada.' });
+    }
+
+    let excluidos = 0;
+    let erros = [];
+
+    // Processar cada documento
+    const camposParaRemover = {};
+    
+    for (const doc of documentos) {
+      try {
+        const { tipo, caminho } = doc;
+        
+        console.log(`Processando exclusão - Tipo: ${tipo}, Caminho: ${caminho}`);
+        
+        // Excluir arquivo físico
+        if (caminho) {
+          const cleanPath = caminho.startsWith('/') ? caminho.substring(1) : caminho;
+          const fullPath = path.join(__dirname, '..', cleanPath);
+          
+          if (fs.existsSync(fullPath)) {
+            fs.unlinkSync(fullPath);
+            console.log(`✓ Arquivo físico excluído: ${fullPath}`);
+          } else {
+            console.log(`⚠ Arquivo não encontrado: ${fullPath}`);
+          }
+        }
+
+        // Identificar qual campo do documento corresponde ao caminho
+        if (empresa.documentos) {
+          // Usar toObject() para pegar apenas os campos reais (não propriedades do Mongoose)
+          const documentosObj = empresa.documentos.toObject ? empresa.documentos.toObject() : empresa.documentos;
+          const campos = Object.keys(documentosObj);
+          let campoEncontrado = false;
+          
+          console.log(`Campos de documentos disponíveis:`, campos);
+          
+          for (const campo of campos) {
+            const docCampo = empresa.documentos[campo];
+            console.log(`Verificando campo ${campo}:`, docCampo);
+            
+            if (docCampo && docCampo.arquivo === caminho) {
+              camposParaRemover[`documentos.${campo}`] = '';
+              console.log(`✓ Campo identificado para remoção: documentos.${campo}`);
+              campoEncontrado = true;
+              excluidos++;
+              break;
+            }
+          }
+          
+          if (!campoEncontrado) {
+            console.log(`⚠ Campo não encontrado no BD para o caminho: ${caminho}`);
+            erros.push({ tipo: doc.tipo || 'Desconhecido', erro: 'Campo não encontrado no banco de dados' });
+          }
+        }
+      } catch (error) {
+        console.error(`Erro ao excluir documento ${doc.tipo}:`, error);
+        erros.push({ tipo: doc.tipo, erro: error.message });
+      }
+    }
+
+    // Remover campos usando $unset
+    if (Object.keys(camposParaRemover).length > 0) {
+      console.log('Removendo campos do banco:', Object.keys(camposParaRemover));
+      await Empresa.updateOne(
+        { _id: req.params.id },
+        { $unset: camposParaRemover }
+      );
+      console.log('✓ Campos removidos do banco de dados com sucesso');
+    }
+
+    // Registrar log
+    await registrarLog(req.usuario.id, 'Exclusão de Documentos', empresa);
+
+    // Retornar resultado
+    const resposta = {
+      msg: `${excluidos} documento(s) excluído(s) com sucesso.`,
+      excluidos,
+      total: documentos.length
+    };
+
+    if (erros.length > 0) {
+      resposta.erros = erros;
+      resposta.msg += ` ${erros.length} erro(s) ocorreram.`;
+    }
+
+    res.json(resposta);
+
+  } catch (err) {
+    console.error('Erro ao excluir documentos:', err);
+    res.status(500).json({ msg: 'Erro no servidor ao excluir documentos.' });
+  }
+});
+
 module.exports = router;
