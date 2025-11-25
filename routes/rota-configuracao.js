@@ -71,15 +71,16 @@ router.put('/', auth, async (req, res) => {
 // @route   POST api/configuracao/logotipo
 // @desc    Fazer upload do logotipo da empresa
 // @access  Private (Admin, Gerente)
-router.post('/logotipo', [auth, upload.single('logo')], async (req, res) => {
+router.post('/logotipo', [auth, upload.single('logotipo')], async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ msg: 'Nenhum arquivo enviado.' });
     }
 
     try {
-        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
+        let config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
         if (!config) {
-            return res.status(404).json({ msg: 'Configuração da empresa não encontrada.' });
+            // Cria configuração se não existir
+            config = new ConfiguracaoEmpresa({ identificador: 'adcon_config' });
         }
 
         // Se já existe um logotipo antigo, remove o arquivo do servidor
@@ -87,6 +88,7 @@ router.post('/logotipo', [auth, upload.single('logo')], async (req, res) => {
             const oldPath = path.join(__dirname, '..', config.logotipoUrl);
             if (fs.existsSync(oldPath)) {
                 fs.unlinkSync(oldPath);
+                console.log(`Logotipo antigo removido: ${oldPath}`);
             }
         }
 
@@ -98,6 +100,47 @@ router.post('/logotipo', [auth, upload.single('logo')], async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Erro no servidor ao salvar o logotipo.' });
+    }
+});
+
+// @route   DELETE api/configuracao/logotipo
+// @desc    Remover o logotipo da empresa
+// @access  Private (Admin, Gerente)
+router.delete('/logotipo', auth, async (req, res) => {
+    console.log('[DELETE /logotipo] Iniciando remoção do logotipo...');
+    try {
+        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
+        console.log('[DELETE /logotipo] Configuração encontrada:', config ? 'Sim' : 'Não');
+        
+        if (!config || !config.logotipoUrl) {
+            console.log('[DELETE /logotipo] Nenhum logotipo cadastrado');
+            return res.status(404).json({ msg: 'Nenhum logotipo cadastrado.' });
+        }
+
+        console.log('[DELETE /logotipo] URL do logotipo:', config.logotipoUrl);
+
+        // Remove o arquivo físico
+        const logoPath = path.join(__dirname, '..', config.logotipoUrl);
+        console.log('[DELETE /logotipo] Caminho completo:', logoPath);
+        
+        if (fs.existsSync(logoPath)) {
+            fs.unlinkSync(logoPath);
+            console.log(`[DELETE /logotipo] ✓ Arquivo físico removido: ${logoPath}`);
+        } else {
+            console.log(`[DELETE /logotipo] ⚠ Arquivo não encontrado: ${logoPath}`);
+        }
+
+        // Remove a referência do banco
+        config.logotipoUrl = null;
+        await config.save();
+        console.log('[DELETE /logotipo] ✓ Referência removida do banco');
+
+        res.status(200).json({ msg: 'Logotipo removido com sucesso!' });
+        console.log('[DELETE /logotipo] ✓ Resposta enviada ao cliente');
+    } catch (err) {
+        console.error('[DELETE /logotipo] ERRO:', err.message);
+        console.error('[DELETE /logotipo] Stack:', err.stack);
+        res.status(500).json({ msg: 'Erro no servidor ao remover o logotipo.' });
     }
 });
 

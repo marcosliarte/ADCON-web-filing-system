@@ -739,7 +739,20 @@ router.delete('/:id/documentos/excluir', auth, async (req, res) => {
             const docCampo = empresa.documentos[campo];
             console.log(`Verificando campo ${campo}:`, docCampo);
             
-            if (docCampo && docCampo.arquivo === caminho) {
+            // Verificar se é um array (contratos)
+            if (Array.isArray(docCampo)) {
+              const indexContrato = docCampo.findIndex(c => c.caminhoArquivo === caminho);
+              if (indexContrato !== -1) {
+                // Remover contrato específico do array
+                empresa.documentos[campo].splice(indexContrato, 1);
+                console.log(`✓ Contrato removido do array: documentos.${campo}[${indexContrato}]`);
+                campoEncontrado = true;
+                excluidos++;
+                break;
+              }
+            }
+            // Verificar se é um documento simples
+            else if (docCampo && docCampo.caminhoArquivo === caminho) {
               camposParaRemover[`documentos.${campo}`] = '';
               console.log(`✓ Campo identificado para remoção: documentos.${campo}`);
               campoEncontrado = true;
@@ -768,6 +781,9 @@ router.delete('/:id/documentos/excluir', auth, async (req, res) => {
       );
       console.log('✓ Campos removidos do banco de dados com sucesso');
     }
+    
+    // Salvar mudanças em arrays (contratos)
+    await empresa.save();
 
     // Registrar log
     await registrarLog(req.usuario.id, 'Exclusão de Documentos', empresa);

@@ -75,14 +75,138 @@
         
         /* Estilos para impressão/PDF */
         @media print {
-            body { background-color: white; }
+            body { background-color: white; margin: 0; padding: 20px; }
             .header, .action-buttons, .document-selection-header, .btn-download, .btn-delete, .doc-checkbox, button { display: none !important; }
-            .container { box-shadow: none; max-width: 100%; }
-            .document-list li { break-inside: avoid; }
-            .socio-card, .filial-card { break-inside: avoid; }
-            h1, h2 { color: #000; }
-            .info-item { break-inside: avoid; }
-            a { text-decoration: none; color: #000; }
+            .container { box-shadow: none; max-width: 100%; padding: 0; }
+            
+            /* Cabeçalho do relatório */
+            h1 { 
+                color: #000; 
+                font-size: 24pt; 
+                text-align: center; 
+                border-bottom: 3px solid #007bff; 
+                padding-bottom: 10px; 
+                margin-bottom: 20px; 
+            }
+            
+            h2 { 
+                color: #007bff; 
+                font-size: 16pt; 
+                border-bottom: 1px solid #ddd; 
+                padding-bottom: 5px; 
+                margin-top: 20px; 
+                page-break-after: avoid;
+            }
+            
+            /* Evitar quebras de página indesejadas */
+            .section { 
+                page-break-inside: avoid; 
+                margin-bottom: 25px;
+            }
+            .document-list li { 
+                page-break-inside: avoid; 
+                margin-bottom: 15px;
+                border: 1px solid #ddd;
+                padding: 10px;
+                border-radius: 4px;
+            }
+            .socio-card, .filial-card { 
+                page-break-inside: avoid; 
+                border: 1px solid #ddd;
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            .info-item { 
+                page-break-inside: avoid; 
+                padding: 5px 0;
+                border-bottom: 1px dotted #ddd;
+            }
+            
+            /* Ocultar links mas mostrar conteúdo */
+            a { 
+                text-decoration: none; 
+                color: #000; 
+            }
+            
+            /* Tabela de documentos melhorada */
+            .document-list { 
+                list-style: none; 
+                padding: 0; 
+            }
+            .document-list li label { 
+                display: block; 
+                font-weight: bold; 
+                font-size: 12pt; 
+                margin-bottom: 5px;
+                color: #007bff;
+            }
+            
+            /* Informações dos documentos */
+            .doc-info { 
+                display: block; 
+                margin-top: 5px; 
+                font-size: 10pt; 
+                color: #333;
+            }
+            .doc-path {
+                font-family: 'Courier New', monospace;
+                font-size: 9pt;
+                color: #666;
+                word-break: break-all;
+            }
+            
+
+            
+            /* Grid de informações */
+            .info-grid { 
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                gap: 10px; 
+            }
+            
+            /* Rodapé */
+            .print-footer {
+                display: block !important;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                text-align: center;
+                font-size: 9pt;
+                color: #666;
+                padding: 10px;
+                border-top: 1px solid #ddd;
+                background: white;
+            }
+            
+            /* Melhorias visuais */
+            .info-label {
+                font-weight: bold;
+                color: #555;
+            }
+            .info-value {
+                color: #000;
+            }
+            
+            /* Cards de sócios e filiais */
+            .socio-card h3,
+            .filial-card h3 {
+                font-size: 12pt;
+                margin: 0 0 10px 0;
+                color: #007bff;
+            }
+            
+            /* Senha do certificado */
+            .senha-certificado-container { 
+                display: block; 
+                margin-top: 5px;
+            }
+            .senha-certificado-container input { 
+                border: 1px solid #ddd; 
+                padding: 5px; 
+                background: #f5f5f5;
+                font-family: monospace;
+            }
         }
     </style>
 </head>
@@ -163,6 +287,7 @@
                     <button class="btn-select-all" onclick="selecionarTodos()">✓ Selecionar Todos</button>
                     <button class="btn-deselect-all" onclick="desselecionarTodos()">✗ Limpar Seleção</button>
                     <button class="btn-download" onclick="baixarSelecionados()" id="btn-download-selected">📥 Baixar Selecionados</button>
+                    <button class="btn-edit" onclick="abrirSelecionados()" id="btn-open-selected">📂 Abrir Selecionados</button>
                     <button class="btn-whatsapp" onclick="compartilharWhatsApp()">📱 Compartilhar WhatsApp</button>
                     <button class="btn-delete" onclick="excluirSelecionados()" id="btn-delete-selected">🗑️ Excluir Selecionados</button>
                 </div>
@@ -174,9 +299,14 @@
         <div class="action-buttons">
             <button class="btn-back" onclick="window.history.back()">Voltar</button>
             <button class="btn-edit" id="btn-editar" style="display: none;">Editar</button>
-            <button class="btn-print" onclick="window.print()">🖨️ Imprimir Relatório</button>
-            <button class="btn-pdf" onclick="gerarRelatorioCompleto()">📄 Relatório Completo (PDF)</button>
+            <button class="btn-print" onclick="prepararImpressao()">🖨️ Imprimir Relatório</button>
+            <button class="btn-pdf" onclick="gerarRelatorioCompleto()">📑 Relatório Completo</button>
             <button class="btn-whatsapp" onclick="compartilharRelatorioWhatsApp()">📱 Compartilhar Relatório WhatsApp</button>
+        </div>
+        
+        <!-- Rodapé para impressão -->
+        <div class="print-footer" style="display: none;">
+            <p>Relatório gerado em: <span id="print-datetime"></span> | ADCON - Sistema de Gestão Empresarial</p>
         </div>
     </div>
   </div>
@@ -384,6 +514,7 @@
 
     function createDocumentoItem(label, doc, isCertificado = false, certificadoObj = null, tipoCampo = '') {
         const docId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const pdfId = `pdf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const docData = JSON.stringify({
             nome: label,
             caminho: doc.caminhoArquivo,
@@ -391,16 +522,28 @@
             tipo: tipoCampo
         }).replace(/"/g, '&quot;');
         
+        // Informações adicionais para impressão
+        const dataValidade = doc.dataValidade ? `Validade: ${formatarData(doc.dataValidade)}` : '';
+        const nomeArquivo = doc.nomeArquivo || 'Arquivo não especificado';
+        const caminho = doc.caminhoArquivo || '';
+        const isPDF = caminho.toLowerCase().endsWith('.pdf');
+        
         let html = `<li>
                 <label class="doc-label">
                     <input type="checkbox" class="doc-checkbox" id="${docId}" data-doc='${docData}' onchange="atualizarContador()">
                     <span>${label}</span>
                 </label>
-                <div style="flex: 1;">`;
+                <div style="flex: 1;">
+                    <div class="doc-info">
+                        <strong>Arquivo:</strong> ${nomeArquivo}
+                        ${dataValidade ? `<br><strong>${dataValidade}</strong>` : ''}
+                        <br><span class="doc-path"><strong>Caminho:</strong> ${caminho}</span>
+                    </div>`;
         
         // Adiciona campo de senha do certificado se aplicável
         if (isCertificado && certificadoObj && certificadoObj.senha) {
             html += `<div class="senha-certificado-container" style="margin-top: 0.5rem;">
+                        <label style="font-size: 0.9rem; font-weight: bold;">Senha do Certificado:</label>
                         <input type="password" id="senha-cert-${Date.now()}" value="${certificadoObj.senha}" disabled readonly style="font-family: monospace; background-color: #f0f0f0; border: 1px solid #ccc; padding: 0.5rem; border-radius: 4px;">
                         <button type="button" class="btn-show-senha" onclick="revelarSenha(this)">Revelar</button>
                     </div>`;
@@ -855,19 +998,108 @@
     }
 
     // --- Função para Gerar Relatório PDF Completo ---
+    function prepararImpressao() {
+        // Atualizar data e hora da impressão
+        const agora = new Date();
+        const dataHora = agora.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        document.getElementById('print-datetime').textContent = dataHora;
+        
+        // Mostrar rodapé apenas para impressão
+        const footer = document.querySelector('.print-footer');
+        if (footer) {
+            footer.style.display = 'block';
+        }
+        
+        // Imprimir
+        window.print();
+        
+        // Ocultar rodapé após impressão
+        setTimeout(() => {
+            if (footer) {
+                footer.style.display = 'none';
+            }
+        }, 100);
+    }
+
+    function abrirSelecionados() {
+        const docs = obterDocumentosSelecionados();
+        
+        if (docs.length === 0) {
+            alert('Selecione pelo menos um documento para abrir.');
+            return;
+        }
+
+        // Filtrar apenas PDFs
+        const pdfs = docs.filter(doc => doc.caminho && doc.caminho.toLowerCase().endsWith('.pdf'));
+
+        if (pdfs.length === 0) {
+            alert('Nenhum documento PDF selecionado. Apenas arquivos PDF podem ser abertos em abas.');
+            return;
+        }
+
+        const confirmar = confirm(
+            `Deseja abrir ${pdfs.length} documento(s) PDF em novas abas?\n\n` +
+            'IMPORTANTE: Clique em "Permitir" quando o navegador solicitar permissão para abrir pop-ups.\n\n' +
+            'Documentos:\n' + pdfs.map(p => `• ${p.nome}`).join('\n')
+        );
+
+        if (!confirmar) return;
+
+        // Abrir cada PDF em nova aba com delay progressivo
+        let contador = 0;
+        pdfs.forEach((pdf, index) => {
+            setTimeout(() => {
+                const janela = window.open(pdf.caminho, '_blank');
+                contador++;
+                
+                if (typeof showToast === 'function') {
+                    showToast(`Abrindo ${contador}/${pdfs.length}: ${pdf.nome}`, 'info', 2000);
+                }
+                
+                // Se a janela foi bloqueada
+                if (!janela || janela.closed || typeof janela.closed == 'undefined') {
+                    alert(`⚠️ Pop-up bloqueado!\n\nO navegador bloqueou a abertura de "${pdf.nome}".\n\nPor favor, clique no ícone de pop-up bloqueado na barra de endereços e permita pop-ups para este site. Depois tente novamente.`);
+                }
+            }, index * 800); // Delay de 800ms entre cada abertura
+        });
+    }
+
     function gerarRelatorioCompleto() {
         if (!empresaAtual) {
             alert('Dados da empresa não carregados.');
             return;
         }
 
-        if (typeof showToast === 'function') {
-            showToast('Gerando relatório completo em PDF...', 'info');
-        }
+        const opcao = confirm(
+            '📄 RELATÓRIO COMPLETO\n\n' +
+            'Escolha uma opção:\n\n' +
+            'OK = Imprimir relatório de informações + Abrir PDFs selecionados em abas separadas\n' +
+            'Cancelar = Apenas imprimir relatório de informações\n\n' +
+            'Dica: Selecione os documentos que deseja incluir antes de gerar o relatório completo.'
+        );
 
-        // Usa a função de impressão do navegador
-        // Pode ser melhorado com biblioteca de PDF como jsPDF
-        window.print();
+        if (opcao) {
+            // Abrir PDFs selecionados primeiro
+            abrirSelecionados();
+            
+            // Aguardar um pouco e então imprimir o relatório
+            setTimeout(() => {
+                if (typeof showToast === 'function') {
+                    showToast('Gerando relatório de informações...', 'info');
+                }
+                prepararImpressao();
+            }, 1000);
+        } else {
+            // Apenas imprimir o relatório
+            prepararImpressao();
+        }
     }
 
     document.addEventListener('DOMContentLoaded', async () => {

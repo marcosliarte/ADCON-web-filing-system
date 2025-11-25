@@ -33,16 +33,25 @@
         .error { background-color: #f8d7da; color: #721c24; }
 
         /* Estilos para o upload do logotipo */
-        .logo-container { text-align: center; margin-bottom: 2rem; padding: 1rem; border: 2px dashed #ccc; border-radius: 8px; cursor: pointer; }
-        .logo-container:hover { border-color: #007bff; background-color: #f8f9fa; }
-        .logo-preview { max-width: 200px; max-height: 100px; margin-bottom: 1rem; border-radius: 5px; }
-        .logo-placeholder { color: #888; }
+        .logo-section { margin-bottom: 2rem; }
+        .logo-container { position: relative; text-align: center; padding: 2rem; border: 2px dashed #ccc; border-radius: 12px; background-color: #fafafa; transition: all 0.3s ease; }
+        .logo-container.has-logo { border-style: solid; border-color: #007bff; background-color: #f8f9ff; }
+        .logo-container.readonly { cursor: default; }
+        
+        .logo-preview-wrapper { display: inline-block; position: relative; max-width: 300px; margin: 0 auto; }
+        .logo-preview { max-width: 100%; max-height: 150px; display: block; margin: 0 auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        
+        .logo-placeholder { color: #888; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+        .logo-placeholder svg { width: 64px; height: 64px; opacity: 0.3; }
+        
+        .logo-actions { margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+        .btn-logo { padding: 0.5rem 1rem; border-radius: 5px; border: none; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
+        .btn-upload { background-color: #007bff; color: white; }
+        .btn-upload:hover { background-color: #0056b3; }
+        .btn-remove { background-color: #dc3545; color: white; }
+        .btn-remove:hover { background-color: #c82333; }
+        
         #logotipoInput { display: none; }
-
-        /* Desabilita o clique no container de logo quando não está em modo de edição */
-        .logo-container.readonly {
-            cursor: default;
-        }
     </style>
 </head>
 <body style="display: none;">
@@ -52,10 +61,28 @@
         <h1>Gerenciar Dados da Empresa</h1>
 
         <!-- Seção do Logotipo -->
-        <div id="logoContainer" class="logo-container readonly" onclick="document.getElementById('logotipoInput').click();">
-            <img id="logoPreview" class="logo-preview" style="display: none;">
-            <p id="logoPlaceholder" class="logo-placeholder">Clique aqui para adicionar um logotipo</p>
-            <input type="file" id="logotipoInput" accept="image/png, image/jpeg, image/svg+xml">
+        <div class="logo-section">
+            <h2>Logotipo da Empresa</h2>
+            <div id="logoContainer" class="logo-container readonly">
+                <div class="logo-preview-wrapper" id="logoPreviewWrapper" style="display: none;">
+                    <img id="logoPreview" class="logo-preview">
+                </div>
+                <div id="logoPlaceholder" class="logo-placeholder">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span><strong>Nenhum logotipo cadastrado</strong></span>
+                    <span style="font-size: 0.85rem; color: #999;">Clique em "Adicionar Logo" para fazer upload</span>
+                </div>
+                <input type="file" id="logotipoInput" accept="image/png, image/jpeg, image/svg+xml">
+            </div>
+            <div class="logo-actions" id="logoActions" style="display: none;">
+                <button type="button" class="btn-logo btn-upload" onclick="document.getElementById('logotipoInput').click();">📤 Alterar Logo</button>
+                <button type="button" class="btn-logo btn-remove" id="btnRemoveLogo" onclick="removerLogo()">🗑️ Remover Logo</button>
+            </div>
+            <div class="logo-actions" id="logoActionsEmpty">
+                <button type="button" class="btn-logo btn-upload" onclick="document.getElementById('logotipoInput').click();">📤 Adicionar Logo</button>
+            </div>
         </div>
 
         <form id="form-configuracao">
@@ -186,12 +213,10 @@
                 populateForm(data);
 
                 // Carrega o logotipo
-                const logoPreview = document.getElementById('logoPreview');
-                const logoPlaceholder = document.getElementById('logoPlaceholder');
                 if (data.logotipoUrl) {
-                    logoPreview.src = data.logotipoUrl;
-                    logoPreview.style.display = 'block';
-                    logoPlaceholder.style.display = 'none';
+                    mostrarLogo(data.logotipoUrl);
+                } else {
+                    esconderLogo();
                 }
                 toggleEditMode(false); // Inicia em modo de leitura
             } catch (error) {
@@ -260,12 +285,16 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            // Mostra preview
+            // Validar tamanho (máx 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                showMessage('Arquivo muito grande. Tamanho máximo: 2MB', 'error');
+                return;
+            }
+
+            // Mostra preview temporário
             const reader = new FileReader();
             reader.onload = (event) => {
-                document.getElementById('logoPreview').src = event.target.result;
-                document.getElementById('logoPreview').style.display = 'block';
-                document.getElementById('logoPlaceholder').style.display = 'none';
+                mostrarLogo(event.target.result);
             };
             reader.readAsDataURL(file);
 
@@ -274,6 +303,7 @@
             formData.append('logotipo', file);
 
             try {
+                showMessage('Fazendo upload do logotipo...', 'success');
                 const response = await fetchWithAuth('/api/configuracao/logotipo', {
                     method: 'POST',
                     body: formData
@@ -284,11 +314,64 @@
                 showMessage(result.msg, 'success');
                 // Atualiza a URL no objeto de dados original para consistência
                 originalData.logotipoUrl = result.logotipoUrl;
+                mostrarLogo(result.logotipoUrl);
 
             } catch (error) {
                 showMessage(`Erro no upload: ${error.message}`, 'error');
+                esconderLogo();
             }
         });
+
+        async function removerLogo() {
+            if (!confirm('Tem certeza que deseja remover o logotipo?')) return;
+
+            try {
+                const response = await fetchWithAuth('/api/configuracao/logotipo', {
+                    method: 'DELETE'
+                });
+
+                if (!response) {
+                    throw new Error('Erro de autenticação. Faça login novamente.');
+                }
+
+                // Verifica se a resposta é JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Resposta não é JSON:', text);
+                    throw new Error('Erro no servidor. Verifique se o servidor está rodando.');
+                }
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.msg || 'Erro ao remover logotipo');
+
+                showMessage(result.msg, 'success');
+                originalData.logotipoUrl = null;
+                esconderLogo();
+
+            } catch (error) {
+                console.error('Erro completo:', error);
+                showMessage(`Erro ao remover: ${error.message}`, 'error');
+            }
+        }
+
+        function mostrarLogo(url) {
+            document.getElementById('logoPreview').src = url;
+            document.getElementById('logoPreviewWrapper').style.display = 'block';
+            document.getElementById('logoPlaceholder').style.display = 'none';
+            document.getElementById('logoActions').style.display = 'flex';
+            document.getElementById('logoActionsEmpty').style.display = 'none';
+            document.getElementById('logoContainer').classList.add('has-logo');
+        }
+
+        function esconderLogo() {
+            document.getElementById('logoPreview').src = '';
+            document.getElementById('logoPreviewWrapper').style.display = 'none';
+            document.getElementById('logoPlaceholder').style.display = 'flex';
+            document.getElementById('logoActions').style.display = 'none';
+            document.getElementById('logoActionsEmpty').style.display = 'flex';
+            document.getElementById('logoContainer').classList.remove('has-logo');
+        }
 
         function showMessage(text, type) {
             const messageEl = document.getElementById('message');
@@ -301,17 +384,28 @@
         function toggleEditMode(isEditing) {
             const form = document.getElementById('form-configuracao');
             const inputs = form.querySelectorAll('input');
-            const logoContainer = document.getElementById('logoContainer');
-
-            if (isEditing) {
-                logoContainer.classList.remove('readonly');
-            } else {
-                logoContainer.classList.add('readonly');
-            }
+            const logoActions = document.getElementById('logoActions');
+            const logoActionsEmpty = document.getElementById('logoActionsEmpty');
 
             inputs.forEach(input => {
                 input.readOnly = !isEditing;
             });
+
+            // Controla visibilidade dos botões de logo
+            if (isEditing) {
+                // Mostra botões apropriados baseado se tem logo ou não
+                const hasLogo = document.getElementById('logoPreviewWrapper').style.display !== 'none';
+                if (hasLogo) {
+                    logoActions.style.display = 'flex';
+                    logoActionsEmpty.style.display = 'none';
+                } else {
+                    logoActions.style.display = 'none';
+                    logoActionsEmpty.style.display = 'flex';
+                }
+            } else {
+                logoActions.style.display = 'none';
+                logoActionsEmpty.style.display = 'none';
+            }
 
             document.getElementById('editBtn').style.display = isEditing ? 'none' : 'flex';
             document.getElementById('submitBtn').style.display = isEditing ? 'flex' : 'none';
