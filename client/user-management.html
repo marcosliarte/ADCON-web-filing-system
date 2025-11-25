@@ -112,6 +112,19 @@
         </div>
     </div>
 
+    <!-- Modal de Edição de Usuário -->
+    <div id="editUserModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); align-items:center; justify-content:center; z-index:1000;">
+        <div style="background:white; padding:1.2rem; border-radius:8px; width:420px; box-shadow:0 8px 24px rgba(0,0,0,0.2);">
+            <h3 style="margin-top:0;">Editar Usuário</h3>
+            <div style="margin-bottom:0.6rem;"><label style="display:block; font-weight:600;">Nome</label><input id="modal-nome" type="text" style="width:100%; padding:8px; box-sizing:border-box;"></div>
+            <div style="margin-bottom:0.6rem;"><label style="display:block; font-weight:600;">Email</label><input id="modal-email" type="email" style="width:100%; padding:8px; box-sizing:border-box;"></div>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:0.6rem;">
+                <button id="modal-cancel" style="background:#6c757d; color:white; border:none; padding:8px 12px; border-radius:4px;">Cancelar</button>
+                <button id="modal-save" style="background:#007bff; color:white; border:none; padding:8px 12px; border-radius:4px;">Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="shared.js"></script>
     <script>
         let currentUser; // Usuário logado (admin)
@@ -130,9 +143,10 @@
 
         async function loadUsers() {
             try {
-                const response = await fetchWithAuth('/api/auth/admin/users');
+                const response = await fetchWithAuth('/api/auth/admin/users?limit=1000&page=1');
                 if (response && response.ok) {
-                    const users = await response.json();
+                    const data = await response.json();
+                    const users = data.usuarios || data; // Compatibilidade com ambos formatos
                     const tbody = document.querySelector('#usersTable tbody');
                     tbody.innerHTML = '';
                     users.forEach(user => {
@@ -347,26 +361,38 @@
             }
         });
 
-        async function editUser(user) {
-            // Não permite editar a si mesmo por este painel (faça via perfil)
+        // Modal-driven edit flow
+        let editingUserId = null;
+        function openEditModal(user) {
             if (user._id === currentUser._id) {
                 alert('Para editar seus próprios dados use a tela de perfil.');
                 return;
             }
-
-            // Segerente não pode editar admin (checado no backend também)
             if (currentUser.role === 'gerente' && user.role === 'admin') {
                 alert('Ação não permitida: gerente não pode editar administradores.');
                 return;
             }
 
-            const novoNome = prompt('Novo nome:', user.nome);
-            if (novoNome === null) return; // cancelado
-            const novoEmail = prompt('Novo email:', user.email);
-            if (novoEmail === null) return;
+            editingUserId = user._id;
+            document.getElementById('modal-nome').value = user.nome || '';
+            document.getElementById('modal-email').value = user.email || '';
+            document.getElementById('editUserModal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            editingUserId = null;
+            document.getElementById('editUserModal').style.display = 'none';
+        }
+
+        document.getElementById('modal-cancel').addEventListener('click', (e) => { e.preventDefault(); closeEditModal(); });
+        document.getElementById('modal-save').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const novoNome = document.getElementById('modal-nome').value.trim();
+            const novoEmail = document.getElementById('modal-email').value.trim();
+            if (!novoNome || !novoEmail) { alert('Nome e email são obrigatórios.'); return; }
 
             try {
-                const response = await fetchWithAuth(`/api/auth/admin/users/${user._id}`, {
+                const response = await fetchWithAuth(`/api/auth/admin/users/${editingUserId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nome: novoNome, email: novoEmail })
@@ -377,11 +403,15 @@
                     throw new Error(err.msg || 'Erro ao atualizar usuário.');
                 }
                 alert('Usuário atualizado com sucesso.');
+                closeEditModal();
                 loadUsers();
             } catch (error) {
                 alert(`Erro: ${error.message}`);
             }
-        }
+        });
+
+        // Backwards-compatible stub used by table buttons
+        async function editUser(user) { openEditModal(user); }
 
         document.addEventListener('DOMContentLoaded', async () => {
             await getAdminUser(); // Verifica se é admin

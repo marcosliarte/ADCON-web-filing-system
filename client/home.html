@@ -12,6 +12,14 @@
             padding: 0;
         }
 
+        :root{
+            --primary: #007bff;
+            --danger: #dc3545;
+            --muted: #6c757d;
+            --bg: #f4f7f6;
+            --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             margin: 0;
@@ -25,7 +33,7 @@
 
         /* --- Cabeçalho --- */
         .header {
-            background-color: #007bff;
+            background-color: var(--primary);
             color: white;
             padding: 1rem 2rem;
             display: flex;
@@ -307,7 +315,18 @@
             padding: 10px;
             border-radius: 5px;
             transition: background-color 0.2s ease;
-        }    </style>
+        }
+
+        /* --- SKELETONS --- */
+        .skeleton { background: linear-gradient(90deg,#eee,#f6f6f6,#eee); background-size:200% 100%; animation: shimmer 1.2s infinite; color: transparent !important; }
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+        /* Role badge */
+        .role-badge { display:inline-block; background:rgba(0,0,0,0.06); color:var(--muted); padding:0.18rem 0.5rem; border-radius:12px; font-size:0.85rem; margin-left:8px }
+
+        /* Toasts (fallback styling if shared.js not loaded yet) */
+        #toast-container .toast { font-size:0.95rem }
+    </style>
 </head>
 <body style="display: none;">
     <!-- Script de bloqueio de acesso e exibição de conteúdo -->
@@ -318,13 +337,14 @@
             window.location.replace('login.html');
         }
     </script>
+    <script src="shared.js"></script>
 
-    <div class="header">
+        <div class="header">
         <h1>ADCON - Painel de Controle</h1>
         <div class="user-actions dropdown">
             <button class="dropdown-toggle" id="userMenuBtn">
-                <span id="header-user-name" style="margin-right: 0.5rem;"></span>
-                <span>👤</span>
+                    <span id="header-user-name" class="skeleton" style="margin-right: 0.5rem;"></span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="8" r="3" stroke="white" stroke-width="1.5"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div id="userMenu" class="dropdown-content">
                 <a href="#" onclick="logout()"><span>⏻</span> Sair</a>
@@ -343,9 +363,9 @@
                 </div>
                 <input type="file" id="profilePicInput" style="display: none;" accept="image/png, image/jpeg, image/gif">
             </div>
-            <h2 id="user-name"></h2>
-            <p><strong>Email:</strong> <span id="user-email"></span></p>
-            <p><strong>Perfil:</strong> <span id="user-role"></span></p>
+            <h2 id="user-name" class="skeleton"></h2>
+            <p><strong>Email:</strong> <span id="user-email" class="skeleton"></span></p>
+            <p><strong>Perfil:</strong> <span id="user-role" class="role-badge skeleton"></span></p>
             <hr style="margin: 1.5rem 0;">
             <h3>Navegação Rápida</h3>
             <div class="card" id="admin-links" style="display: none;">
@@ -398,7 +418,13 @@
             
             <!-- PAINEL DE FUNCIONALIDADES -->
             <h2>Painel de Funcionalidades</h2>
-            <div class="dashboard-grid">
+            <!-- skeleton enquanto as permissões são resolvidas -->
+            <div id="dashboard-skeleton" style="display:flex; gap:1rem; margin-bottom:1rem;">
+                <div style="flex:1; min-width:200px; height:120px; border-radius:8px; background:#eee;" class="skeleton"></div>
+                <div style="flex:1; min-width:200px; height:120px; border-radius:8px; background:#eee;" class="skeleton"></div>
+                <div style="flex:1; min-width:200px; height:120px; border-radius:8px; background:#eee;" class="skeleton"></div>
+            </div>
+            <div class="dashboard-grid" id="dashboard-grid">
                 <a href="empresas.html" class="dashboard-card">
                     <div class="card-icon">🏢</div>
                     <h3>Gerenciar Empresas</h3>
@@ -465,38 +491,29 @@
     <script>
         let usuario;
 
-        async function fetchWithAuth(url, options = {}) {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.replace('login.html');
-                return; // Importante para parar a execução
-            }
-
-            const headers = {
-                ...options.headers,
-                'x-auth-token': token
-            };
-
-            const response = await fetch(url, { ...options, headers });
-
-            if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('token'); // Token inválido, remove e redireciona
-                window.location.replace('login.html');
-                return; // Importante para parar a execução
-            }
-
-            return response;
-        }
+        // Usaremos fetchWithAuth definido em shared.js
 
         async function getUsuario() {
             try {
                 const response = await fetchWithAuth('/api/auth');
                 if (response && response.ok) {
                     usuario = await response.json();
-                    document.getElementById('header-user-name').textContent = `Olá, ${usuario.nome.split(' ')[0]}!`;
-                    document.getElementById('user-name').textContent = usuario.nome;
-                    document.getElementById('user-email').textContent = usuario.email;
-                    document.getElementById('user-role').textContent = usuario.role.charAt(0).toUpperCase() + usuario.role.slice(1); // Capitaliza a primeira letra
+                        // Preenche cabeçalho e remove skeletons
+                        const headerEl = document.getElementById('header-user-name');
+                        headerEl.textContent = `Olá, ${usuario.nome.split(' ')[0]}!`;
+                        headerEl.classList.remove('skeleton');
+
+                        const nameEl = document.getElementById('user-name');
+                        nameEl.textContent = usuario.nome;
+                        nameEl.classList.remove('skeleton');
+
+                        const emailEl = document.getElementById('user-email');
+                        emailEl.textContent = usuario.email;
+                        emailEl.classList.remove('skeleton');
+
+                        const roleEl = document.getElementById('user-role');
+                        roleEl.textContent = usuario.role.charAt(0).toUpperCase() + usuario.role.slice(1); // Capitaliza a primeira letra
+                        roleEl.classList.remove('skeleton');
                     // Carrega a foto de perfil do usuário ou o ícone padrão
                     const profilePicElement = document.getElementById('profile-pic');
                     profilePicElement.src = usuario.fotoPerfilUrl || 'assets/profile-icon.svg'; // Usa o ícone padrão se não houver foto
@@ -523,6 +540,9 @@
                         document.getElementById('card-documentos-vencer').style.display = 'flex';
                         document.getElementById('card-meus-pagamentos').style.display = 'flex';
                     }
+                    // Remove placeholder skeletons do painel de funcionalidades
+                    const sk = document.getElementById('dashboard-skeleton');
+                    if (sk) sk.style.display = 'none';
                 }
             } catch (error) {
                 console.error('Erro ao carregar dados do usuário:', error);
@@ -583,19 +603,19 @@
 
                     const data = await response.json();
 
-                    if (response.ok) {
-                        passwordMessage.textContent = data.msg;
-                        passwordMessage.style.color = 'green';
+                    if (response && response.ok) {
+                        const data = await response.json();
+                        showToast(data.msg || 'Senha alterada com sucesso!', 'success');
                         this.reset();
                         setTimeout(() => {
                             document.getElementById('changePasswordContainer').style.display = 'none';
-                        }, 2000);
+                        }, 1200);
                     } else {
-                        throw new Error(data.msg || 'Erro ao alterar a senha.');
+                        const data = response ? await response.json().catch(()=>({msg:'Erro'})) : {msg:'Erro'};
+                        showToast(data.msg || 'Erro ao alterar a senha.', 'error');
                     }
                 } catch (error) {
-                    passwordMessage.textContent = error.message;
-                    passwordMessage.style.color = 'red';
+                    showToast(error.message || 'Erro ao alterar a senha.', 'error');
                 }
             });
 
@@ -622,19 +642,15 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        emailMessage.textContent = data.msg;
-                        emailMessage.style.color = 'green';
+                        showToast(data.msg || 'Email alterado com sucesso!', 'success');
                         document.getElementById('user-email').textContent = data.usuario.email;
                         this.reset();
-                        setTimeout(() => {
-                            document.getElementById('changeEmailContainer').style.display = 'none';
-                        }, 2000);
+                        setTimeout(() => { document.getElementById('changeEmailContainer').style.display = 'none'; }, 1200);
                     } else {
-                        throw new Error(data.msg || 'Erro ao alterar o email.');
+                        showToast(data.msg || 'Erro ao alterar o email.', 'error');
                     }
                 } catch (error) {
-                    emailMessage.textContent = error.message;
-                    emailMessage.style.color = 'red';
+                    showToast(error.message || 'Erro ao alterar o email.', 'error');
                 }
             });
 
@@ -663,7 +679,7 @@
             const input = document.getElementById('profilePicInput');
             const file = input.files[0];
             if (!file) {
-                alert('Por favor, selecione um arquivo primeiro.');
+                showToast('Por favor, selecione um arquivo primeiro.', 'error');
                 return;
             }
 
@@ -679,25 +695,25 @@
                 if (response && response.ok) {
                     const data = await response.json();
                     document.getElementById('profile-pic').src = data.fotoPerfilUrl;
-                    alert('Foto de perfil atualizada com sucesso!');
+                    showToast('Foto de perfil atualizada com sucesso!', 'success');
                     document.getElementById('savePicIcon').style.display = 'none';
                     document.getElementById('editPicIcon').style.display = 'inline-block';
                     document.getElementById('deletePicIcon').style.display = 'inline-block';
+                    // Limpa o input para permitir re-seleção do mesmo arquivo no futuro
+                    try { document.getElementById('profilePicInput').value = ''; } catch (e) {}
                 } else {
                     const errorData = await response.json();
                     throw new Error(errorData.msg || 'Falha ao salvar a foto.');
                 }
             } catch (error) {
                 console.error('Erro ao salvar foto:', error);
-                alert(`Erro: ${error.message}`);
+                showToast(`Erro: ${error.message}`, 'error');
             }
         }
 
         async function deleteProfilePic() {
-            // Usando confirm() como um substituto simples para showConfirmationDialog
-            if (!confirm('Tem certeza que deseja remover sua foto de perfil?')) {
-                return;
-            }
+            const confirmed = await openConfirmModal('Tem certeza que deseja remover sua foto de perfil?', { requireTyped: false, title: 'Remover Foto' });
+            if (!confirmed) return;
             
             try {
                 const response = await fetchWithAuth('/api/auth/profile-pic', {
@@ -705,17 +721,19 @@
                 });
                 if (response && response.ok) {
                     const data = await response.json();
-                    alert('Foto de perfil removida com sucesso!'); // Usando alert() como substituto para showToast
+                    showToast('Foto de perfil removida com sucesso!', 'success');
                     document.getElementById('profile-pic').src = data.fotoPerfilUrl;
                     document.getElementById('deletePicIcon').style.display = 'none';
                     document.getElementById('savePicIcon').style.display = 'none';
                     document.getElementById('editPicIcon').style.display = 'inline-block';
+                    // Limpa o input de arquivo após exclusão
+                    try { document.getElementById('profilePicInput').value = ''; } catch (e) {}
                 } else {
                     throw new Error('Falha ao remover a foto.');
                 }
             } catch (error) {
                 console.error('Erro ao remover foto:', error);
-                alert(`Erro: ${error.message}`); // Usando alert() para notificar o erro
+                showToast(`Erro: ${error.message}`, 'error');
             }
         }
     </script>

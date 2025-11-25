@@ -410,16 +410,38 @@ router.post(
 );
 
 // @route   GET api/auth/admin/users
-// @desc    Listar todos os usuários (por um admin)
+// @desc    Listar todos os usuários (por um admin) com paginação
 // @access  Private (Admin)
 router.get('/admin/users', [auth, adminAuth], async (req, res) => {
   try {
-    // Retorna todos os usuários, exceto a senha, ordenados por nome
-    const usuarios = await Usuario.find().select('-senha').sort({ nome: 1 });
-    res.json(usuarios);
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 50)); // Máximo 100 por página
+    const skip = (page - 1) * limit;
+
+    // Busca total de usuários para calcular paginação
+    const total = await Usuario.countDocuments();
+    const usuarios = await Usuario.find()
+      .select('-senha')
+      .sort({ nome: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      usuarios,
+      paginacao: {
+        paginaAtual: page,
+        limitePorPagina: limit,
+        totalUsuarios: total,
+        totalPaginas: totalPages,
+        temProxima: page < totalPages,
+        temAnterior: page > 1
+      }
+    });
   } catch (err) {
-    console.error(err.message); // Loga o erro
-    res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro no servidor' });
   }
 });
 
@@ -477,9 +499,6 @@ router.put('/admin/users/:id/role', [auth, adminAuth], async (req, res) => {
     }
 
     try {
-      console.log(`PUT /api/auth/admin/users/${targetUserId} chamado por ${req.usuario.id}`);
-      console.log('Payload recebido:', req.body);
-
       const targetUser = await Usuario.findById(targetUserId);
         const modifierUser = await Usuario.findById(modifierUserId);
 
@@ -695,4 +714,100 @@ router.get('/admin/unlinked-users', [auth, adminAuth], async (req, res) => {
     res.status(500).json({ msg: 'Erro no servidor ao buscar usuários não vinculados.' });
   }
 });
+
+// @route   GET api/auth/admin/users.csv
+// @desc    Exportar todos os usuários como CSV (streaming)
+// @access  Private (Admin)
+router.get('/admin/users.csv', [auth, adminAuth], async (req, res) => {
+  try {
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="usuarios-export-${new Date().toISOString().slice(0, 10)}.csv"`);
+
+    // Escreve header CSV
+    res.write('Nome,Email,Perfil,Data de Registro\n');
+
+    // Usa cursor para evitar carregar todos os usuários em memória
+    const cursor = Usuario.find().select('nome email role dataRegistro').sort({ nome: 1 }).cursor();
+
+    let count = 0;
+    cursor.on('data', (doc) => {
+      const row = [
+        `"${(doc.nome || '').replace(/"/g, '""')}"`,
+        `"${(doc.email || '').replace(/"/g, '""')}"`,
+        `"${(doc.role || '').replace(/"/g, '""')}"`,
+        `"${doc.dataRegistro ? new Date(doc.dataRegistro).toLocaleString('pt-BR') : ''}"`
+      ].join(',');
+      res.write(row + '\n');
+      count++;
+    });
+
+    cursor.on('end', () => {
+      res.end();
+    });
+
+    cursor.on('error', (err) => {
+      console.error('Erro no cursor de usuários:', err.message);
+      res.status(500).end('Erro ao exportar usuários.');
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro no servidor ao exportar usuários.' });
+  }
+});
+
+// @route   GET api/auth/admin/logs.csv
+// @desc    Exportar logs como CSV (streaming) com filtros opcionais
+// @access  Private (Admin)
+router.get('/admin/logs.csv', [auth, adminAuth], async (req, res) => {
+  try {
+    const { usuario, acao, dataInicio, dataFim } = req.query;
+    const query = {};
+
+    if (usuario) query.usuarioNome = new RegExp(usuario, 'i');
+    if (acao) query.acao = new RegExp(acao, 'i');
+    if (dataInicio && dataFim) {
+      query.createdAt = { $gte: new Date(dataInicio), $lte: new Date(dataFim + 'T23:59:59') };
+    } else if (dataInicio) {
+      query.createdAt = { $gte: new Date(dataInicio) };
+    } else if (dataFim) {
+      query.createdAt = { $lte: new Date(dataFim + 'T23:59:59') };
+    }
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="logs-export-${new Date().toISOString().slice(0, 10)}.csv"`);
+
+    // Header CSV
+    res.write('Data e Hora,Usuário,Ação,Entidade,Nome da Entidade,Dispositivo\n');
+
+    const LogAcao = mongoose.model('LogAcao');
+    const cursor = LogAcao.find(query).sort({ createdAt: -1 }).cursor();
+
+    cursor.on('data', (doc) => {
+      const row = [
+        `"${new Date(doc.createdAt).toLocaleString('pt-BR')}"`,
+        `"${(doc.usuarioNome || '').replace(/"/g, '""')}"`,
+        `"${(doc.acao || '').replace(/"/g, '""')}"`,
+        `"${(doc.entidade || '').replace(/"/g, '""')}"`,
+        `"${(doc.entidadeNome || '').replace(/"/g, '""')}"`,
+        `"${(doc.dispositivo || '').replace(/"/g, '""')}"`
+      ].join(',');
+      res.write(row + '\n');
+    });
+
+    cursor.on('end', () => {
+      res.end();
+    });
+
+    cursor.on('error', (err) => {
+      console.error('Erro no cursor de logs:', err.message);
+      res.status(500).end('Erro ao exportar logs.');
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro no servidor ao exportar logs.' });
+  }
+});
+
 module.exports = router;

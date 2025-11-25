@@ -64,6 +64,21 @@
     </script>
     <div id="header-placeholder"></div>
 
+    <!-- Modal de confirmação reutilizável -->
+    <div id="confirmModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:8px; width:90%; max-width:520px; padding:1rem; box-shadow:0 8px 24px rgba(0,0,0,0.2);">
+            <h3 id="confirmModalTitle" style="margin-top:0; color:#007bff">Confirmação</h3>
+            <p id="confirmModalMessage">Mensagem...</p>
+            <div id="confirmTypedContainer" style="display:none; margin-top:0.5rem;">
+                <label style="font-size:0.9rem;">Digite para confirmar: <input id="confirmTypedInput" style="width:60%; margin-left:8px; padding:4px;" /></label>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:1rem;">
+                <button id="confirmCancelBtn" style="padding:6px 10px; border-radius:4px; border:none; background:#6c757d; color:white">Cancelar</button>
+                <button id="confirmOkBtn" style="padding:6px 10px; border-radius:4px; border:none; background:#007bff; color:white">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <h1 class="page-title">Central do Administrador</h1>
 
@@ -91,6 +106,7 @@
                     <button onclick="applyLogFilters()">Aplicar Filtros</button>
                     <button onclick="exportLogsCSV()">Exportar Logs (CSV)</button>
                     <button onclick="exportUsersCSV()" style="background:#28a745">Exportar Usuários (CSV)</button>
+                    <button onclick="exportStatsCSV()" style="background:#17a2b8">Exportar Estatísticas (CSV)</button>
                     <a href="logs.html"><button style="background:#6c757d">Ver todos os logs</button></a>
                 </div>
             </div>
@@ -151,6 +167,8 @@
             loadSystemStatus();
             loadAlerts();
             loadRecentLogs(); // Chama a nova função
+            loadLogUsers(); // Preenche select de usuários para filtro
+            loadStats(); // Carrega estatísticas resumidas
             loadBackups();
         });
 
@@ -184,6 +202,17 @@
                         <span>Uso de Disco (Backups)</span>
                         <span>${data.diskUsage.backups.megabytes} MB</span>
                     </div>
+                    <hr style="margin:8px 0; border:none; border-top:1px solid #eee;"/>
+                    <div class="widget-item"><span>Node</span><span>${data.system.nodeVersion}</span></div>
+                    <div class="widget-item"><span>Plataforma</span><span>${data.system.platform} / ${data.system.arch}</span></div>
+                    <div class="widget-item"><span>CPUs</span><span>${data.system.cpus.count} — ${data.system.cpus.model || 'n/a'}</span></div>
+                    <div class="widget-item"><span>Uptime (SO)</span><span>${Math.floor(data.system.osUptimeSeconds/3600)}h ${Math.floor((data.system.osUptimeSeconds%3600)/60)}m</span></div>
+                    <div class="widget-item"><span>Uptime (processo)</span><span>${Math.floor(data.system.processUptimeSeconds/3600)}h ${Math.floor((data.system.processUptimeSeconds%3600)/60)}m</span></div>
+                    <div class="widget-item"><span>Memória (total)</span><span>${data.system.memory.totalMB} MB</span></div>
+                    <div class="widget-item"><span>Memória (livre)</span><span>${data.system.memory.freeMB} MB</span></div>
+                    <div class="widget-item"><span>Memória usada</span><span>${data.system.memory.usedPercent}%</span></div>
+                    <div class="widget-item"><span>Processo RSS</span><span>${data.system.processMemory.rssMB} MB</span></div>
+                    <div class="widget-item"><span>Heap usado</span><span>${data.system.processMemory.heapUsedMB} MB</span></div>
                 `;
             } catch (error) {
                 widget.innerHTML = `<p style="color: red;">${error.message}</p>`;
@@ -249,12 +278,13 @@
             }
         }
 
-        // Carrega lista de usuários para o filtro de logs
+        // Carrega lista de usuários para o filtro de logs (com paginação se necessário)
         async function loadLogUsers() {
             try {
-                const response = await fetchWithAuth('/api/auth/admin/users');
-                if (!response.ok) return; // se falhar, mantemos apenas a opção 'Todos'
-                const users = await response.json();
+                const response = await fetchWithAuth('/api/auth/admin/users?limit=100&page=1');
+                if (!response.ok) return;
+                const data = await response.json();
+                const users = data.usuarios || data; // Compatibilidade com ambas respostas
                 const select = document.getElementById('filter-user');
                 users.forEach(u => {
                     const opt = document.createElement('option');
@@ -264,6 +294,85 @@
                 });
             } catch (err) {
                 console.warn('Não foi possível carregar usuários para filtro de logs:', err.message);
+            }
+        }
+
+        // Carrega estatísticas resumidas para exibição rápida
+        async function loadStats() {
+            try {
+                const response = await fetchWithAuth('/api/admin/dashboard/stats');
+                if (!response.ok) return;
+                const data = await response.json();
+
+                // Insere um pequeno resumo em Ações Rápidas (ou cria um espaço caso não exista)
+                let statsBox = document.getElementById('stats-summary');
+                if (!statsBox) {
+                    const widget = document.querySelector('.dashboard-grid');
+                    statsBox = document.createElement('div');
+                    statsBox.className = 'widget';
+                    statsBox.id = 'stats-summary';
+                    statsBox.innerHTML = '<h3>Estatísticas</h3><div id="stats-content">Carregando...</div>';
+                    widget.appendChild(statsBox);
+                }
+
+                const content = document.getElementById('stats-content');
+                // Monta HTML simples com usuários por role e empresas por estado
+                let html = '<div class="widget-item"><strong>Usuários por perfil</strong></div>';
+                data.usersByRole.forEach(r => {
+                    html += `<div class="widget-item"><span>${r.role || 'Sem role'}</span><span>${r.count}</span></div>`;
+                });
+
+                html += '<hr/>';
+                html += '<div class="widget-item"><strong>Empresas por estado</strong></div>';
+                data.companiesByState.forEach(s => {
+                    html += `<div class="widget-item"><span>${s.estado || 'N/I'}</span><span>${s.count}</span></div>`;
+                });
+
+                content.innerHTML = html;
+            } catch (err) {
+                console.warn('Não foi possível carregar estatísticas:', err.message);
+            }
+        }
+
+        // Exporta estatísticas em CSV
+        async function exportStatsCSV() {
+            try {
+                const response = await fetchWithAuth('/api/admin/dashboard/stats');
+                if (!response.ok) throw new Error('Falha ao buscar estatísticas.');
+                const data = await response.json();
+
+                const rows = [];
+                rows.push(['Tipo','Chave','Valor'].join(','));
+
+                // Usuários por role
+                if (data.usersByRole && data.usersByRole.length) {
+                    data.usersByRole.forEach(r => {
+                        const role = (r.role || '').toString().replace(/"/g, '""');
+                        rows.push(['usuarios_por_role', `"${role}"`, r.count].join(','));
+                    });
+                }
+
+                // Empresas por estado
+                if (data.companiesByState && data.companiesByState.length) {
+                    data.companiesByState.forEach(s => {
+                        const estado = (s.estado || '').toString().replace(/"/g, '""');
+                        rows.push(['empresas_por_estado', `"${estado}"`, s.count].join(','));
+                    });
+                }
+
+                const csvContent = rows.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const now = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+                a.download = `stats-export-${now}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                alert('Erro ao exportar estatísticas: ' + (err.message || 'erro desconhecido'));
             }
         }
 
@@ -303,101 +412,57 @@
             }
         }
 
-        // Exporta logs completos em CSV buscando da API de logs do admin
+        // Exporta logs completos em CSV usando streaming do servidor
         async function exportLogsCSV() {
             try {
-                // Busca logs usando os filtros aplicados
-                const params = new URLSearchParams();
                 const start = document.getElementById('filter-start').value;
                 const end = document.getElementById('filter-end').value;
                 const usuario = document.getElementById('filter-user').value;
                 const acao = document.getElementById('filter-action').value;
+
+                const params = new URLSearchParams();
                 if (usuario) params.append('usuario', document.getElementById('filter-user').selectedOptions[0].text);
                 if (acao) params.append('acao', acao);
                 if (start) params.append('dataInicio', start);
                 if (end) params.append('dataFim', end);
 
-                const response = await fetchWithAuth(`/api/auth/admin/logs?${params.toString()}`);
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.msg || 'Falha ao buscar logs para exportação.');
-                }
-                const logs = await response.json();
+                // Acessa o endpoint CSV direto (streaming)
+                const url = `/api/auth/admin/logs.csv?${params.toString()}`;
+                const response = await fetchWithAuth(url);
+                
+                if (!response.ok) throw new Error('Falha ao buscar logs para exportação.');
 
-                if (!logs || logs.length === 0) {
-                    alert('Nenhum log disponível para exportação.');
-                    return;
-                }
-
-                // Campos que vamos exportar
-                const headers = ['createdAt','usuarioNome','acao','entidade','entidadeNome','dispositivo'];
-                const csvRows = [];
-                csvRows.push(headers.join(','));
-
-                logs.forEach(log => {
-                    const row = [
-                        `"${new Date(log.createdAt).toLocaleString('pt-BR')}"`,
-                        `"${(log.usuarioNome||'').replace(/"/g,'""')}"`,
-                        `"${(log.acao||'').replace(/"/g,'""')}"`,
-                        `"${(log.entidade||'').replace(/"/g,'""')}"`,
-                        `"${(log.entidadeNome||'').replace(/"/g,'""')}"`,
-                        `"${(log.dispositivo||'').replace(/"/g,'""')}"`
-                    ];
-                    csvRows.push(row.join(','));
-                });
-
-                const csvContent = csvRows.join('\n');
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
+                const blob = await response.blob();
+                const downloadUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                const now = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+                a.href = downloadUrl;
+                const now = new Date().toISOString().slice(0, 10);
                 a.download = `logs-export-${now}.csv`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
-                URL.revokeObjectURL(url);
+                URL.revokeObjectURL(downloadUrl);
             } catch (error) {
                 alert(`Erro ao exportar logs: ${error.message}`);
             }
         }
 
-        // Exporta lista de usuários em CSV
+        // Exporta lista de usuários em CSV usando streaming do servidor
         async function exportUsersCSV() {
             try {
-                const response = await fetchWithAuth('/api/auth/admin/users');
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.msg || 'Falha ao buscar usuários para exportação.');
-                }
-                const users = await response.json();
-                if (!users || users.length === 0) {
-                    alert('Nenhum usuário encontrado para exportação.');
-                    return;
-                }
+                const response = await fetchWithAuth('/api/auth/admin/users.csv');
+                if (!response.ok) throw new Error('Falha ao buscar usuários para exportação.');
 
-                const headers = ['nome','email','role','dataRegistro'];
-                const rows = [headers.join(',')];
-                users.forEach(u => {
-                    const row = [
-                        `"${(u.nome||'').replace(/"/g,'""')}"`,
-                        `"${(u.email||'').replace(/"/g,'""')}"`,
-                        `"${(u.role||'').replace(/"/g,'""')}"`,
-                        `"${u.dataRegistro ? new Date(u.dataRegistro).toLocaleString('pt-BR') : ''}"`
-                    ];
-                    rows.push(row.join(','));
-                });
-
-                const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
+                const blob = await response.blob();
+                const downloadUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                const now = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+                a.href = downloadUrl;
+                const now = new Date().toISOString().slice(0, 10);
                 a.download = `users-export-${now}.csv`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
-                URL.revokeObjectURL(url);
+                URL.revokeObjectURL(downloadUrl);
             } catch (err) {
                 alert(`Erro ao exportar usuários: ${err.message}`);
             }
@@ -509,8 +574,8 @@
         }
 
         async function restaurarBackup(filename) {
-            const confirmacao = prompt(`AÇÃO PERIGOSA!\n\nVocê está prestes a substituir TODOS os dados atuais do sistema pelos dados do backup "${filename}".\n\nPara confirmar, digite "RESTAURAR" no campo abaixo:`);
-            if (confirmacao !== 'RESTAURAR') {
+            const confirmed = await openConfirmModal(`Você está prestes a substituir TODOS os dados atuais do sistema pelos dados do backup "${filename}". Esta ação é IRREVERSÍVEL.`, { requireTyped: true, expectedText: 'RESTAURAR', title: 'Restaurar Backup' });
+            if (!confirmed) {
                 alert('Restauração cancelada.');
                 return;
             }
@@ -548,8 +613,8 @@
                 return;
             }
 
-            const confirmacao = prompt(`AÇÃO PERIGOSA!\n\nVocê está prestes a substituir TODOS os dados atuais do sistema pelos dados do arquivo "${file.name}".\n\nPara confirmar, digite "RESTAURAR" no campo abaixo:`);
-            if (confirmacao !== 'RESTAURAR') {
+            const confirmed = await openConfirmModal(`Você está prestes a substituir TODOS os dados atuais do sistema pelos dados do arquivo "${file.name}". Esta ação é IRREVERSÍVEL.`, { requireTyped: true, expectedText: 'RESTAURAR', title: 'Restaurar Backup (Upload)' });
+            if (!confirmed) {
                 alert('Restauração cancelada.');
                 fileInput.value = ''; // Limpa o input de arquivo
                 return;
@@ -598,6 +663,56 @@
             } catch (error) {
                 alert(`Erro: ${error.message}`);
             }
+        }
+
+        // Função utilitária: abre modal de confirmação. Returns Promise<boolean>
+        function openConfirmModal(message, options = {}) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('confirmModal');
+                const titleEl = document.getElementById('confirmModalTitle');
+                const msgEl = document.getElementById('confirmModalMessage');
+                const typedContainer = document.getElementById('confirmTypedContainer');
+                const typedInput = document.getElementById('confirmTypedInput');
+                const btnOk = document.getElementById('confirmOkBtn');
+                const btnCancel = document.getElementById('confirmCancelBtn');
+
+                titleEl.textContent = options.title || 'Confirmação';
+                msgEl.textContent = message || '';
+
+                if (options.requireTyped) {
+                    typedContainer.style.display = 'block';
+                    typedInput.value = '';
+                } else {
+                    typedContainer.style.display = 'none';
+                }
+
+                modal.style.display = 'flex';
+
+                const cleanup = (result) => {
+                    modal.style.display = 'none';
+                    btnOk.removeEventListener('click', onOk);
+                    btnCancel.removeEventListener('click', onCancel);
+                    resolve(result);
+                };
+
+                const onOk = () => {
+                    if (options.requireTyped) {
+                        const expected = (options.expectedText || '').toString();
+                        if (typedInput.value.trim() === expected) {
+                            cleanup(true);
+                        } else {
+                            alert(`Texto de confirmação incorreto. Digite: ${expected}`);
+                        }
+                    } else {
+                        cleanup(true);
+                    }
+                };
+
+                const onCancel = () => cleanup(false);
+
+                btnOk.addEventListener('click', onOk);
+                btnCancel.addEventListener('click', onCancel);
+            });
         }
     </script>
 </body>

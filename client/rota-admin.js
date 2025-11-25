@@ -77,8 +77,7 @@ router.post('/backup/upload', auth, upload.single('backupFile'), async (req, res
     // O comando --drop limpa o banco de dados antes de restaurar. É uma operação destrutiva.
     const command = `${mongoRestorePath} --uri="${dbUri}" --archive="${filePath}" --gzip --drop`;
 
-    console.log('--- EXECUTANDO COMANDO DE RESTAURAÇÃO ---');
-    console.log(command);
+    // comando de restauração construído; não registrar em logs públicos
 
     exec(command, (error, stdout, stderr) => {
         // Limpa o arquivo temporário após a tentativa de restauração.
@@ -90,7 +89,7 @@ router.post('/backup/upload', auth, upload.single('backupFile'), async (req, res
             return res.status(500).json({ msg: `Erro ao executar a restauração. Detalhes: ${stderr || error.message}` });
         }
 
-        console.log(`Stdout: ${stdout}`);
+        // stdout do processo de restauração disponível para logs internos
         res.status(200).json({ msg: 'Banco de dados restaurado com sucesso a partir do backup!' });
     });
 });

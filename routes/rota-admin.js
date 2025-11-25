@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
 const { exec } = require('child_process'); // Para executar comandos do sistema (mongodump/mongorestore)
@@ -66,38 +67,61 @@ router.get('/dashboard/status', async (req, res) => {
             case 3: dbStatus = 'Desconectando'; break;
         }
 
-        // 2. Uso de espaço em disco pela pasta de uploads
+        // 2. Uso de espaço em disco pela pasta de uploads (assíncrono e em cache para evitar varreduras pesadas)
         const uploadsDir = path.join(__dirname, '../uploads');
         let diskUsage = 0;
-
-        const getDirSize = (dirPath) => {
-            let size = 0;
-            const files = fs.readdirSync(dirPath);
-            for (const file of files) {
-                const filePath = path.join(dirPath, file);
-                const stats = fs.statSync(filePath);
-                if (stats.isDirectory()) {
-                    size += getDirSize(filePath);
-                } else {
-                    size += stats.size;
-                }
-            }
-            return size;
-        };
-
-        if (fs.existsSync(uploadsDir)) {
-            diskUsage = getDirSize(uploadsDir);
-        }
-
-        // 3. Uso de espaço em disco pela pasta de backups
         let backupDiskUsage = 0;
-        if (fs.existsSync(backupDir)) {
-            backupDiskUsage = getDirSize(backupDir);
+
+        const CACHE_TTL_MS = 30 * 1000; // 30 segundos
+        if (!router._statusCache) router._statusCache = { ts: 0, diskUsage: 0, backupDiskUsage: 0 };
+
+        const now = Date.now();
+        if (router._statusCache.ts && (now - router._statusCache.ts) < CACHE_TTL_MS) {
+            diskUsage = router._statusCache.diskUsage;
+            backupDiskUsage = router._statusCache.backupDiskUsage;
+        } else {
+            const getDirSizeAsync = async (dirPath) => {
+                let total = 0;
+                try {
+                    const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+                    for (const entry of entries) {
+                        const entryPath = path.join(dirPath, entry.name);
+                        if (entry.isDirectory()) {
+                            total += await getDirSizeAsync(entryPath);
+                        } else {
+                            const stats = await fs.promises.stat(entryPath);
+                            total += stats.size;
+                        }
+                    }
+                } catch (e) {
+                    // Se o diretório sumir ou ocorrer erro, ignora e segue
+                }
+                return total;
+            };
+
+            try {
+                if (fs.existsSync(uploadsDir)) {
+                    diskUsage = await getDirSizeAsync(uploadsDir);
+                }
+                if (fs.existsSync(backupDir)) {
+                    backupDiskUsage = await getDirSizeAsync(backupDir);
+                }
+                router._statusCache = { ts: Date.now(), diskUsage, backupDiskUsage };
+            } catch (e) {
+                console.error('Erro ao calcular tamanho de diretórios:', e.message);
+            }
         }
 
         // 4. Contagem de entidades
         const totalUsuarios = await Usuario.countDocuments();
         const totalEmpresas = await Empresa.countDocuments();
+
+        // Dados do sistema
+        const totalMem = os.totalmem();
+        const freeMem = os.freemem();
+        const usedMem = totalMem - freeMem;
+
+        const processMem = process.memoryUsage();
 
         res.json({
             dbStatus: { status: dbStatus, state: dbState },
@@ -108,12 +132,57 @@ router.get('/dashboard/status', async (req, res) => {
             counts: {
                 usuarios: totalUsuarios,
                 empresas: totalEmpresas
+            },
+            system: {
+                nodeVersion: process.version,
+                platform: process.platform,
+                arch: process.arch,
+                osUptimeSeconds: os.uptime(),
+                processUptimeSeconds: process.uptime(),
+                cpus: { count: os.cpus().length, model: os.cpus()[0] ? os.cpus()[0].model : null },
+                memory: {
+                    totalBytes: totalMem,
+                    freeBytes: freeMem,
+                    usedBytes: usedMem,
+                    totalMB: (totalMem / (1024 * 1024)).toFixed(2),
+                    freeMB: (freeMem / (1024 * 1024)).toFixed(2),
+                    usedPercent: ((usedMem / totalMem) * 100).toFixed(2)
+                },
+                processMemory: {
+                    rssMB: (processMem.rss / (1024 * 1024)).toFixed(2),
+                    heapTotalMB: (processMem.heapTotal / (1024 * 1024)).toFixed(2),
+                    heapUsedMB: (processMem.heapUsed / (1024 * 1024)).toFixed(2)
+                }
             }
         });
 
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ msg: 'Erro no servidor ao buscar status do sistema.' });
+    }
+});
+
+// @route   GET api/admin/dashboard/stats
+// @desc    Estatísticas detalhadas: usuários por role e empresas por estado
+router.get('/dashboard/stats', async (req, res) => {
+    try {
+        // Usuários por perfil
+        const usersByRole = await Usuario.aggregate([
+            { $group: { _id: '$role', count: { $sum: 1 } } },
+            { $project: { role: '$_id', count: 1, _id: 0 } }
+        ]);
+
+        // Empresas por estado (endereco.estado)
+        const companiesByState = await Empresa.aggregate([
+            { $match: { 'endereco.estado': { $exists: true, $ne: '' } } },
+            { $group: { _id: '$endereco.estado', count: { $sum: 1 } } },
+            { $project: { estado: '$_id', count: 1, _id: 0 } }
+        ]);
+
+        res.json({ usersByRole, companiesByState });
+    } catch (err) {
+        console.error('Erro ao gerar estatísticas:', err.message);
+        res.status(500).json({ msg: 'Erro no servidor ao gerar estatísticas.' });
     }
 });
 
@@ -188,8 +257,7 @@ router.post('/backup/create', (req, res) => {
   // Esta é a correção crucial para o Windows.
   const command = `"${mongodumpExecutable}" --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip`;
 
-  console.log('--- EXECUTANDO COMANDO DE BACKUP ---');
-  console.log(command);
+    // comando construído; não expor em logs de produção
 
   // 3. Executa o comando.
   exec(command, (dumpError, stdout, stderr) => {
