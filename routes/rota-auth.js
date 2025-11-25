@@ -756,6 +756,26 @@ router.get('/admin/users.csv', [auth, adminAuth], async (req, res) => {
   }
 });
 
+// @route   GET api/auth/admin/online-users
+// @desc    Listar usuários online (ativos nos últimos 5 minutos)
+// @access  Private (Admin)
+router.get('/admin/online-users', [auth, adminAuth], async (req, res) => {
+  try {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    
+    const onlineUsers = await Usuario.find({
+      lastActivity: { $gte: fiveMinutesAgo }
+    })
+    .select('nome email role lastActivity')
+    .sort({ lastActivity: -1 });
+    
+    res.json(onlineUsers);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro no servidor ao buscar usuários online.' });
+  }
+});
+
 // @route   GET api/auth/admin/logs.csv
 // @desc    Exportar logs como CSV (streaming) com filtros opcionais
 // @access  Private (Admin)

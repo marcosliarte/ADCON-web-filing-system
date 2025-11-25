@@ -28,6 +28,10 @@ const UsuarioSchema = mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  lastActivity: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 // Hash da senha antes de salvar

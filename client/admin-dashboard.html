@@ -56,6 +56,17 @@
         .backup-actions .btn-download { background-color: #17a2b8; color: white; }
         .backup-actions .btn-restore { background-color: #ffc107; color: #212529; }
         .backup-actions .btn-delete { background-color: #dc3545; color: white; }
+        
+        /* Estilos para usuários online */
+        .online-user { display: flex; align-items: center; padding: 0.5rem; border-bottom: 1px solid #f1f1f1; }
+        .online-user:last-child { border-bottom: none; }
+        .online-indicator { width: 10px; height: 10px; background-color: #28a745; border-radius: 50%; margin-right: 10px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .user-info { flex: 1; }
+        .user-name { font-weight: 500; font-size: 0.95rem; }
+        .user-role { font-size: 0.8rem; color: #6c757d; }
+        .last-activity { font-size: 0.75rem; color: #6c757d; margin-top: 2px; }
+        #online-users-widget { max-height: 300px; overflow-y: auto; }
     </style>
 </head>
 <body style="display: none;">
@@ -119,6 +130,14 @@
                 </div>
             </div>
 
+            <!-- Widget de Usuários Online -->
+            <div class="widget">
+                <h3>Usuários Online</h3>
+                <div id="online-users-widget">
+                    <p>Carregando...</p>
+                </div>
+            </div>
+
             <!-- Widget de Ações Rápidas -->
             <div class="widget">
                 <h3>Ações Rápidas</h3>
@@ -170,6 +189,10 @@
             loadLogUsers(); // Preenche select de usuários para filtro
             loadStats(); // Carrega estatísticas resumidas
             loadBackups();
+            loadOnlineUsers(); // Carrega usuários online
+            
+            // Atualiza usuários online a cada 30 segundos
+            setInterval(loadOnlineUsers, 30000);
         });
 
         async function loadSystemStatus() {
@@ -331,6 +354,61 @@
                 content.innerHTML = html;
             } catch (err) {
                 console.warn('Não foi possível carregar estatísticas:', err.message);
+            }
+        }
+
+        // Carrega usuários online
+        async function loadOnlineUsers() {
+            const widget = document.getElementById('online-users-widget');
+            try {
+                const response = await fetchWithAuth('/api/auth/admin/online-users');
+                if (!response.ok) throw new Error('Falha ao carregar usuários online.');
+                const onlineUsers = await response.json();
+
+                if (onlineUsers.length === 0) {
+                    widget.innerHTML = '<p style="color: #6c757d; padding: 0.5rem;">Nenhum usuário online no momento.</p>';
+                    return;
+                }
+
+                let html = '';
+                onlineUsers.forEach(user => {
+                    const lastActivityDate = new Date(user.lastActivity);
+                    const now = new Date();
+                    const minutesAgo = Math.floor((now - lastActivityDate) / 60000);
+                    
+                    let activityText = '';
+                    if (minutesAgo < 1) {
+                        activityText = 'Agora mesmo';
+                    } else if (minutesAgo === 1) {
+                        activityText = 'Há 1 minuto';
+                    } else if (minutesAgo < 60) {
+                        activityText = `Há ${minutesAgo} minutos`;
+                    } else {
+                        const hoursAgo = Math.floor(minutesAgo / 60);
+                        activityText = hoursAgo === 1 ? 'Há 1 hora' : `Há ${hoursAgo} horas`;
+                    }
+
+                    const roleNames = {
+                        'admin': 'Administrador',
+                        'gerente': 'Gerente',
+                        'funcionario': 'Funcionário',
+                        'empresario': 'Empresário'
+                    };
+
+                    html += `
+                        <div class="online-user">
+                            <span class="online-indicator"></span>
+                            <div class="user-info">
+                                <div class="user-name">${user.nome}</div>
+                                <div class="user-role">${roleNames[user.role] || user.role}</div>
+                                <div class="last-activity">${activityText}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                widget.innerHTML = html;
+            } catch (error) {
+                widget.innerHTML = `<p style="color: red; padding: 0.5rem;">${error.message}</p>`;
             }
         }
 
