@@ -82,8 +82,15 @@
                 <div id="recent-logs-widget">
                     <p>Carregando logs...</p>
                 </div>
-                <div style="margin-top: 0.8rem; display:flex; gap:8px;">
+
+                <div style="margin-top: 0.8rem; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <label style="font-size:0.9rem;">De: <input type="date" id="filter-start" style="margin-left:6px"></label>
+                    <label style="font-size:0.9rem;">Até: <input type="date" id="filter-end" style="margin-left:6px"></label>
+                    <label style="font-size:0.9rem;">Usuário: <select id="filter-user" style="margin-left:6px"><option value="">Todos</option></select></label>
+                    <label style="font-size:0.9rem;">Ação/Texto: <input id="filter-action" placeholder="Buscar texto..." style="margin-left:6px"></label>
+                    <button onclick="applyLogFilters()">Aplicar Filtros</button>
                     <button onclick="exportLogsCSV()">Exportar Logs (CSV)</button>
+                    <button onclick="exportUsersCSV()" style="background:#28a745">Exportar Usuários (CSV)</button>
                     <a href="logs.html"><button style="background:#6c757d">Ver todos os logs</button></a>
                 </div>
             </div>
@@ -242,11 +249,75 @@
             }
         }
 
+        // Carrega lista de usuários para o filtro de logs
+        async function loadLogUsers() {
+            try {
+                const response = await fetchWithAuth('/api/auth/admin/users');
+                if (!response.ok) return; // se falhar, mantemos apenas a opção 'Todos'
+                const users = await response.json();
+                const select = document.getElementById('filter-user');
+                users.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u._id;
+                    opt.textContent = u.nome;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.warn('Não foi possível carregar usuários para filtro de logs:', err.message);
+            }
+        }
+
+        // Aplica filtros e carrega logs filtrados (mostra até 50 resultados)
+        async function applyLogFilters() {
+            const start = document.getElementById('filter-start').value;
+            const end = document.getElementById('filter-end').value;
+            const usuario = document.getElementById('filter-user').value;
+            const acao = document.getElementById('filter-action').value;
+
+            const params = new URLSearchParams();
+            if (usuario) params.append('usuario', document.getElementById('filter-user').selectedOptions[0].text);
+            if (acao) params.append('acao', acao);
+            if (start) params.append('dataInicio', start);
+            if (end) params.append('dataFim', end);
+
+            try {
+                const response = await fetchWithAuth(`/api/auth/admin/logs?${params.toString()}`);
+                const widget = document.getElementById('recent-logs-widget');
+                if (!response.ok) throw new Error('Falha ao carregar logs filtrados.');
+                const logs = await response.json();
+                if (!logs || logs.length === 0) {
+                    widget.innerHTML = '<p>Nenhum resultado para os filtros selecionados.</p>';
+                    return;
+                }
+
+                let html = '<ul class="log-list">';
+                logs.slice(0,50).forEach(log => {
+                    const deviceMatch = log.dispositivo ? log.dispositivo.match(/\(([^)]+)\)/) : null;
+                    const deviceInfo = deviceMatch && deviceMatch[1] ? deviceMatch[1].split(';').slice(0,2).join('; ') : 'Dispositivo não informado';
+                    html += `<li class="log-item"><span class="log-time">${new Date(log.createdAt).toLocaleString('pt-BR')}</span><div><span class="log-user">${log.usuarioNome}</span>: ${log.acao}</div><span class="log-device" title="${log.dispositivo||''}">${deviceInfo}</span></li>`;
+                });
+                html += '</ul>';
+                widget.innerHTML = html;
+            } catch (err) {
+                alert(err.message || 'Erro ao aplicar filtros.');
+            }
+        }
+
         // Exporta logs completos em CSV buscando da API de logs do admin
         async function exportLogsCSV() {
             try {
-                // Busca até 500 logs (rota suporta filtros via query)
-                const response = await fetchWithAuth('/api/auth/admin/logs');
+                // Busca logs usando os filtros aplicados
+                const params = new URLSearchParams();
+                const start = document.getElementById('filter-start').value;
+                const end = document.getElementById('filter-end').value;
+                const usuario = document.getElementById('filter-user').value;
+                const acao = document.getElementById('filter-action').value;
+                if (usuario) params.append('usuario', document.getElementById('filter-user').selectedOptions[0].text);
+                if (acao) params.append('acao', acao);
+                if (start) params.append('dataInicio', start);
+                if (end) params.append('dataFim', end);
+
+                const response = await fetchWithAuth(`/api/auth/admin/logs?${params.toString()}`);
                 if (!response.ok) {
                     const err = await response.json();
                     throw new Error(err.msg || 'Falha ao buscar logs para exportação.');
@@ -288,6 +359,47 @@
                 URL.revokeObjectURL(url);
             } catch (error) {
                 alert(`Erro ao exportar logs: ${error.message}`);
+            }
+        }
+
+        // Exporta lista de usuários em CSV
+        async function exportUsersCSV() {
+            try {
+                const response = await fetchWithAuth('/api/auth/admin/users');
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.msg || 'Falha ao buscar usuários para exportação.');
+                }
+                const users = await response.json();
+                if (!users || users.length === 0) {
+                    alert('Nenhum usuário encontrado para exportação.');
+                    return;
+                }
+
+                const headers = ['nome','email','role','dataRegistro'];
+                const rows = [headers.join(',')];
+                users.forEach(u => {
+                    const row = [
+                        `"${(u.nome||'').replace(/"/g,'""')}"`,
+                        `"${(u.email||'').replace(/"/g,'""')}"`,
+                        `"${(u.role||'').replace(/"/g,'""')}"`,
+                        `"${u.dataRegistro ? new Date(u.dataRegistro).toLocaleString('pt-BR') : ''}"`
+                    ];
+                    rows.push(row.join(','));
+                });
+
+                const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const now = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+                a.download = `users-export-${now}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                alert(`Erro ao exportar usuários: ${err.message}`);
             }
         }
 
