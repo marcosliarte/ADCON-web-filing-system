@@ -477,7 +477,10 @@ router.put('/admin/users/:id/role', [auth, adminAuth], async (req, res) => {
     }
 
     try {
-        const targetUser = await Usuario.findById(targetUserId);
+      console.log(`PUT /api/auth/admin/users/${targetUserId} chamado por ${req.usuario.id}`);
+      console.log('Payload recebido:', req.body);
+
+      const targetUser = await Usuario.findById(targetUserId);
         const modifierUser = await Usuario.findById(modifierUserId);
 
         if (!targetUser) {
@@ -500,6 +503,50 @@ router.put('/admin/users/:id/role', [auth, adminAuth], async (req, res) => {
         console.error(err.message);
         res.status(500).json({ msg: 'Erro no servidor ao atualizar perfil.' });
     }
+});
+
+// @route   PUT api/auth/admin/users/:id
+// @desc    Atualizar nome e email de um usuário (por admin/gerente)
+// @access  Private (Admin/Gerente)
+router.put('/admin/users/:id', [auth, adminAuth], async (req, res) => {
+  const { id: targetUserId } = req.params;
+  const { nome, email } = req.body;
+
+  if (!nome || !email) {
+    return res.status(400).json({ msg: 'Nome e email são obrigatórios.' });
+  }
+
+  try {
+    const targetUser = await Usuario.findById(targetUserId);
+    const modifierUser = await Usuario.findById(req.usuario.id);
+
+    if (!targetUser) return res.status(404).json({ msg: 'Usuário não encontrado.' });
+
+    // Gerente não pode editar admin
+    if (modifierUser.role === 'gerente' && targetUser.role === 'admin') {
+      return res.status(403).json({ msg: 'Acesso negado. Gerentes não podem editar administradores.' });
+    }
+
+    // Verifica se o email já está em uso por outro usuário
+    const existing = await Usuario.findOne({ email });
+    if (existing && existing._id.toString() !== targetUserId) {
+      return res.status(400).json({ msg: 'Email já está em uso por outro usuário.' });
+    }
+
+    targetUser.nome = nome;
+    targetUser.email = email;
+    await targetUser.save();
+
+    // REGISTRA O LOG
+    await registrarLogUsuario(req, 'Edição de Usuário', targetUser);
+
+    const userObj = targetUser.toObject();
+    delete userObj.senha;
+    res.json({ msg: 'Usuário atualizado com sucesso.', usuario: userObj });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro no servidor ao atualizar usuário.' });
+  }
 });
 
 // @route   GET api/auth/admin/logs

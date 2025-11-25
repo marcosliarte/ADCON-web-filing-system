@@ -179,24 +179,36 @@
                                 }
                             });
 
-                            let buttonsHtml = ''; // Inicia a string de botões
+                                // Cria botões via DOM para evitar problemas de escaping
+                                // Botão Editar (todos exceto self; gerente não edita admin)
+                                const editBtn = document.createElement('button');
+                                editBtn.className = 'action-btn';
+                                editBtn.textContent = 'Editar';
+                                editBtn.addEventListener('click', () => editUser(user));
+                                actionsCell.appendChild(editBtn);
 
-                            // Lógica para o botão de exclusão
-                            // Admin pode excluir, ou Gerente pode excluir funcionários/empresários
-                            if ( (currentUser.role === 'admin') || (isModifierManager && (user.role === 'funcionario' || user.role === 'empresario')) ) {
-                                buttonsHtml += `<button class="delete-btn action-btn" onclick="deleteUser('${user._id}')">Excluir</button>`;
-                            }
+                                // Lógica para o botão de exclusão
+                                if ( (currentUser.role === 'admin') || (isModifierManager && (user.role === 'funcionario' || user.role === 'empresario')) ) {
+                                    const delBtn = document.createElement('button');
+                                    delBtn.className = 'delete-btn action-btn';
+                                    delBtn.textContent = 'Excluir';
+                                    delBtn.addEventListener('click', () => deleteUser(user._id));
+                                    actionsCell.appendChild(delBtn);
+                                }
 
-                            // Apenas Admin vê os botões de Personificar e Resetar Senha.
-                            // Esta verificação deve ser separada.
-                            if (currentUser.role === 'admin') {
-                                buttonsHtml += `
-                                    <button class="action-btn impersonate-btn" onclick="impersonateUser('${user._id}')">Personificar</button>
-                                    <button class="action-btn" onclick="resetUserPassword('${user._id}')">Resetar Senha</button>
-                                `;
-                            }
+                                if (currentUser.role === 'admin') {
+                                    const impBtn = document.createElement('button');
+                                    impBtn.className = 'action-btn impersonate-btn';
+                                    impBtn.textContent = 'Personificar';
+                                    impBtn.addEventListener('click', () => impersonateUser(user._id));
+                                    actionsCell.appendChild(impBtn);
 
-                            actionsCell.innerHTML = buttonsHtml;
+                                    const resetBtn = document.createElement('button');
+                                    resetBtn.className = 'action-btn';
+                                    resetBtn.textContent = 'Resetar Senha';
+                                    resetBtn.addEventListener('click', () => resetUserPassword(user._id));
+                                    actionsCell.appendChild(resetBtn);
+                                }
                         }
                     });
 
@@ -334,6 +346,42 @@
                 createMessage.textContent = 'Erro de conexão com o servidor.';
             }
         });
+
+        async function editUser(user) {
+            // Não permite editar a si mesmo por este painel (faça via perfil)
+            if (user._id === currentUser._id) {
+                alert('Para editar seus próprios dados use a tela de perfil.');
+                return;
+            }
+
+            // Segerente não pode editar admin (checado no backend também)
+            if (currentUser.role === 'gerente' && user.role === 'admin') {
+                alert('Ação não permitida: gerente não pode editar administradores.');
+                return;
+            }
+
+            const novoNome = prompt('Novo nome:', user.nome);
+            if (novoNome === null) return; // cancelado
+            const novoEmail = prompt('Novo email:', user.email);
+            if (novoEmail === null) return;
+
+            try {
+                const response = await fetchWithAuth(`/api/auth/admin/users/${user._id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome: novoNome, email: novoEmail })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.msg || 'Erro ao atualizar usuário.');
+                }
+                alert('Usuário atualizado com sucesso.');
+                loadUsers();
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', async () => {
             await getAdminUser(); // Verifica se é admin
