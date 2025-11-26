@@ -90,7 +90,7 @@ app.use('/api/pagamentos', pagamentosRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notificacoes', notificacoesRoutes);
 app.use('/api/faturamento', faturamentoRoutes);
-app.use('/api/compartilhamento', compartilhamentoRoutes);
+// app.use('/api/compartilhamento', compartilhamentoRoutes); // Desativado - funcionalidade removida
 
 // -----------------------------
 //       ARQUIVOS ESTÁTICOS

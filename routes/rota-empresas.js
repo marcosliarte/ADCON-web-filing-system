@@ -33,6 +33,9 @@ const storage = multer.diskStorage({
     } else if (file.fieldname.startsWith('certidao_')) {
       // Agrupa todas as outras certidões em uma pasta
       subfolder = 'certidoes';
+    } else if (file.fieldname === 'inscricao_estadual_arquivo') {
+      // Inscrição Estadual vai para documentos_empresa
+      subfolder = 'documentos_empresa';
     }
     const uploadPath = path.join(__dirname, `../uploads/${subfolder}`);
     fs.mkdirSync(uploadPath, { recursive: true }); // Garante que o diretório exista
@@ -165,7 +168,7 @@ router.post(
         }
         if (req.files.inscricao_estadual_arquivo) {
           const file = req.files.inscricao_estadual_arquivo[0];
-          dadosEmpresa.documentos.inscricaoEstadual = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.inscricao_estadual_validade };
+          dadosEmpresa.documentos.inscricaoEstadual = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/documentos_empresa/${file.filename}`, dataValidade: req.body.inscricao_estadual_validade };
         }
         if (req.files.certidao_trabalhista_arquivo) {
           const file = req.files.certidao_trabalhista_arquivo[0];
@@ -524,7 +527,7 @@ router.put(
         }
         if (filesMap.inscricao_estadual_arquivo) {
             const file = filesMap.inscricao_estadual_arquivo;
-            empresa.documentos.inscricaoEstadual = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/certidoes/${file.filename}`, dataValidade: req.body.inscricao_estadual_validade };
+            empresa.documentos.inscricaoEstadual = { nomeArquivo: file.originalname, caminhoArquivo: `/uploads/documentos_empresa/${file.filename}`, dataValidade: req.body.inscricao_estadual_validade };
         }
         if (filesMap.certidao_trabalhista_arquivo) {
             const file = filesMap.certidao_trabalhista_arquivo;
