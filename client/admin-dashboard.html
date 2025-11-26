@@ -706,46 +706,73 @@
                 `Você está prestes a substituir TODOS os dados atuais do sistema pelos dados do arquivo "${file.name}".\n\n` +
                 `IMPORTANTE:\n` +
                 `• O banco de dados atual será SUBSTITUÍDO\n` +
-                `• Os arquivos de upload do backup serão MESCLADOS com os atuais\n` +
-                `• Arquivos atuais que não existem no backup serão PRESERVADOS\n\n` +
+                `• Os arquivos de upload do backup serão SUBSTITUÍDOS\n` +
+                `• Uma cópia da pasta uploads atual será criada como backup de segurança\n\n` +
                 `Esta ação é IRREVERSÍVEL para os dados do banco.`,
                 { requireTyped: true, expectedText: 'RESTAURAR', title: 'Restaurar Backup (Upload)' }
             );
             if (!confirmed) {
                 alert('Restauração cancelada.');
-                fileInput.value = ''; // Limpa o input de arquivo
+                fileInput.value = '';
                 return;
             }
 
-            statusDiv.innerHTML = `<p>Carregando e restaurando o arquivo "${file.name}"...</p>`;
+            statusDiv.innerHTML = `
+                <p style="color: #007bff;">
+                    <strong>Processando backup "${file.name}"...</strong><br>
+                    Tamanho: ${(file.size / (1024 * 1024)).toFixed(2)} MB<br>
+                    Por favor aguarde, este processo pode levar alguns minutos.
+                </p>
+            `;
 
             const formData = new FormData();
             formData.append('backupFile', file);
 
             try {
+                console.log('Enviando arquivo de backup:', file.name, 'Tamanho:', file.size);
+                
                 const response = await fetchWithAuth('/api/admin/backup/upload', {
                     method: 'POST',
                     body: formData,
                 });
 
-                // CORREÇÃO: Verifica se a resposta foi bem-sucedida ANTES de tentar ler como JSON.
+                console.log('Resposta recebida. Status:', response.status);
+
                 if (!response.ok) {
-                    // Se a resposta for um erro, tenta ler como texto para ver a mensagem real (que pode ser HTML).
-                    const errorText = await response.text();
-                    // O erro "Cannot POST /..." indica que a rota não existe no backend.
-                    throw new Error(errorText || 'Falha ao carregar o backup.');
+                    let errorMessage;
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (contentType && contentType.includes('application/json')) {
+                        const errorData = await response.json();
+                        errorMessage = errorData.msg || errorData.error || 'Erro desconhecido';
+                        console.error('Erro JSON:', errorData);
+                    } else {
+                        errorMessage = await response.text();
+                        console.error('Erro texto:', errorMessage);
+                    }
+                    
+                    throw new Error(errorMessage);
                 }
 
-                const result = await response.json(); // Agora só executa em caso de sucesso.
-                alert(result.msg);
-                window.location.reload();
+                const result = await response.json();
+                console.log('Backup restaurado com sucesso:', result);
+                
+                statusDiv.innerHTML = `<p style="color: green;"><strong>✓ ${result.msg}</strong></p>`;
+                
+                setTimeout(() => {
+                    alert(result.msg + '\n\nA página será recarregada para refletir as alterações.');
+                    window.location.reload();
+                }, 1500);
+                
             } catch (error) {
-                // Usa .textContent para exibir o erro como texto puro, evitando que o HTML seja renderizado.
-                const p = document.createElement('p');
-                p.style.color = 'red';
-                p.textContent = error.message;
-                statusDiv.innerHTML = '';
-                statusDiv.appendChild(p);
+                console.error('Erro ao carregar backup:', error);
+                
+                statusDiv.innerHTML = `
+                    <p style="color: red;">
+                        <strong>✗ Erro ao processar backup:</strong><br>
+                        ${error.message}
+                    </p>
+                `;
             } finally {
                 fileInput.value = '';
             }

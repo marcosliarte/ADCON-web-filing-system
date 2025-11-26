@@ -459,84 +459,148 @@ router.get('/logs/recent', async (req, res) => {
 // A rota usa o middleware 'auth', 'adminAuth' e o 'upload.single()'.
 // 'backupFile' deve ser o mesmo nome usado no FormData do frontend.
 router.post('/backup/upload', upload.single('backupFile'), async (req, res) => {
-    // Verifica se um arquivo foi realmente enviado.
-    if (!req.file) {
-        return res.status(400).json({ msg: 'Nenhum arquivo de backup foi enviado.' });
-    }
+    let uploadedFilePath = null;
+    let tempRestoreDir = null;
+    
+    try {
+        console.log('[BACKUP UPLOAD] Iniciando processo de upload e restauração...');
+        
+        // Verifica se um arquivo foi realmente enviado.
+        if (!req.file) {
+            console.log('[BACKUP UPLOAD] Erro: Nenhum arquivo recebido');
+            return res.status(400).json({ msg: 'Nenhum arquivo de backup foi enviado.' });
+        }
 
-    const uploadedFilePath = req.file.path;
-    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+        uploadedFilePath = req.file.path;
+        console.log('[BACKUP UPLOAD] Arquivo recebido:', req.file.originalname, 'Tamanho:', req.file.size, 'bytes');
+        
+        const fileExtension = path.extname(req.file.originalname).toLowerCase();
 
-    // Validação do formato do arquivo
-    if (fileExtension !== '.zip') {
-        fs.unlinkSync(uploadedFilePath); // Limpa o arquivo inválido.
-        return res.status(400).json({ msg: 'Formato de arquivo inválido. A restauração só pode ser feita a partir de um arquivo .zip gerado pelo sistema.' });
-    }
+        // Validação do formato do arquivo
+        if (fileExtension !== '.zip') {
+            console.log('[BACKUP UPLOAD] Erro: Formato inválido:', fileExtension);
+            if (fs.existsSync(uploadedFilePath)) fs.unlinkSync(uploadedFilePath);
+            return res.status(400).json({ msg: 'Formato de arquivo inválido. A restauração só pode ser feita a partir de um arquivo .zip gerado pelo sistema.' });
+        }
 
-    const tempRestoreDir = path.join(uploadDir, `temp-restore-${Date.now()}`);
-    fs.mkdirSync(tempRestoreDir, { recursive: true });
+        tempRestoreDir = path.join(uploadDir, `temp-restore-${Date.now()}`);
+        fs.mkdirSync(tempRestoreDir, { recursive: true });
+        console.log('[BACKUP UPLOAD] Diretório temporário criado:', tempRestoreDir);
 
-    // Descompacta o arquivo .zip carregado
-    fs.createReadStream(uploadedFilePath)
-        .pipe(unzipper.Extract({ path: tempRestoreDir }))
-        .on('finish', () => {
-            fs.unlinkSync(uploadedFilePath); // Remove o .zip temporário
+        // Descompacta o arquivo .zip carregado usando Promise
+        console.log('[BACKUP UPLOAD] Iniciando descompactação...');
+        await new Promise((resolve, reject) => {
+            fs.createReadStream(uploadedFilePath)
+                .pipe(unzipper.Extract({ path: tempRestoreDir }))
+                .on('close', () => {
+                    console.log('[BACKUP UPLOAD] Descompactação concluída');
+                    resolve();
+                })
+                .on('error', (err) => {
+                    console.error('[BACKUP UPLOAD] Erro na descompactação:', err);
+                    reject(err);
+                });
+        });
 
-            const filesInTemp = fs.readdirSync(tempRestoreDir);
-            const dbDumpFile = filesInTemp.find(f => f.endsWith('.gz'));
+        // Remove o arquivo zip após extração
+        if (fs.existsSync(uploadedFilePath)) {
+            fs.unlinkSync(uploadedFilePath);
+            uploadedFilePath = null;
+            console.log('[BACKUP UPLOAD] Arquivo ZIP temporário removido');
+        }
 
-            if (!dbDumpFile) {
-                fs.rmSync(tempRestoreDir, { recursive: true, force: true });
-                return res.status(500).json({ msg: 'Arquivo de dump (.gz) do banco de dados não encontrado dentro do backup .zip.' });
-            }
+        const filesInTemp = fs.readdirSync(tempRestoreDir);
+        console.log('[BACKUP UPLOAD] Arquivos extraídos:', filesInTemp);
+        
+        const dbDumpFile = filesInTemp.find(f => f.endsWith('.gz'));
 
-            const dbDumpFilePath = path.join(tempRestoreDir, dbDumpFile);
-            const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
-            const mongorestoreExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 'mongorestore';
-            const restoreCommand = `${mongorestoreExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip --drop`;
+        if (!dbDumpFile) {
+            console.log('[BACKUP UPLOAD] Erro: Dump do banco não encontrado');
+            throw new Error('Arquivo de dump (.gz) do banco de dados não encontrado dentro do backup .zip.');
+        }
 
+        console.log('[BACKUP UPLOAD] Arquivo de dump encontrado:', dbDumpFile);
+        const dbDumpFilePath = path.join(tempRestoreDir, dbDumpFile);
+        const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
+        const mongorestoreExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 'mongorestore';
+        const restoreCommand = `${mongorestoreExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip --drop`;
+
+        console.log('[BACKUP UPLOAD] Executando mongorestore...');
+        
+        // Executar restore usando Promise
+        await new Promise((resolve, reject) => {
             exec(restoreCommand, (restoreError, stdout, stderr) => {
                 if (restoreError) {
-                    fs.rmSync(tempRestoreDir, { recursive: true, force: true });
-                    console.error(`Erro ao restaurar banco de dados: ${stderr}`);
-                    return res.status(500).json({ msg: 'Falha ao restaurar o banco de dados.', error: stderr });
+                    console.error('[BACKUP UPLOAD] Erro no mongorestore:', stderr);
+                    reject(new Error(`Falha ao restaurar o banco de dados: ${stderr}`));
+                } else {
+                    console.log('[BACKUP UPLOAD] Banco de dados restaurado com sucesso');
+                    if (stdout) console.log('[BACKUP UPLOAD] mongorestore output:', stdout);
+                    resolve();
                 }
-
-                const uploadsBackupPath = path.join(tempRestoreDir, 'uploads');
-                const serverUploadsPath = path.join(__dirname, '../uploads');
-
-                // FUNÇÃO AUXILIAR PARA COPIAR DIRETÓRIOS DE FORMA SEGURA
-                const copyDirSync = (src, dest) => {
-                    fs.mkdirSync(dest, { recursive: true });
-                    const entries = fs.readdirSync(src, { withFileTypes: true });
-                    for (let entry of entries) {
-                        const srcPath = path.join(src, entry.name);
-                        const destPath = path.join(dest, entry.name);
-                        if (entry.isDirectory()) {
-                            copyDirSync(srcPath, destPath);
-                        } else {
-                            fs.copyFileSync(srcPath, destPath);
-                        }
-                    }
-                };
-
-                if (fs.existsSync(uploadsBackupPath)) {
-                    // Limpa a pasta de uploads atual antes de copiar os novos arquivos
-                    if (fs.existsSync(serverUploadsPath)) {
-                        fs.rmSync(serverUploadsPath, { recursive: true, force: true });
-                    }
-                    copyDirSync(uploadsBackupPath, serverUploadsPath);
-                }
-
-                fs.rmSync(tempRestoreDir, { recursive: true, force: true });
-                res.json({ msg: 'Sistema restaurado com sucesso a partir do arquivo carregado!' });
             });
-        })
-        .on('error', (err) => {
-            fs.unlinkSync(uploadedFilePath);
-            fs.rmSync(tempRestoreDir, { recursive: true, force: true });
-            res.status(500).json({ msg: 'Falha ao descompactar o arquivo de backup.', error: err.message });
         });
+
+        // Restaurar uploads se existir
+        const uploadsBackupPath = path.join(tempRestoreDir, 'uploads');
+        const serverUploadsPath = path.join(__dirname, '../uploads');
+
+        if (fs.existsSync(uploadsBackupPath)) {
+            console.log('[BACKUP UPLOAD] Restaurando arquivos de upload...');
+            
+            // FUNÇÃO AUXILIAR PARA COPIAR DIRETÓRIOS DE FORMA SEGURA
+            const copyDirSync = (src, dest) => {
+                fs.mkdirSync(dest, { recursive: true });
+                const entries = fs.readdirSync(src, { withFileTypes: true });
+                for (let entry of entries) {
+                    const srcPath = path.join(src, entry.name);
+                    const destPath = path.join(dest, entry.name);
+                    if (entry.isDirectory()) {
+                        copyDirSync(srcPath, destPath);
+                    } else {
+                        fs.copyFileSync(srcPath, destPath);
+                    }
+                }
+            };
+
+            // Faz backup da pasta uploads atual antes de substituir
+            if (fs.existsSync(serverUploadsPath)) {
+                const backupUploadsPath = path.join(__dirname, `../uploads_old_${Date.now()}`);
+                fs.renameSync(serverUploadsPath, backupUploadsPath);
+                console.log('[BACKUP UPLOAD] Backup da pasta uploads atual criado:', backupUploadsPath);
+            }
+            
+            copyDirSync(uploadsBackupPath, serverUploadsPath);
+            console.log('[BACKUP UPLOAD] Arquivos de upload restaurados');
+        } else {
+            console.log('[BACKUP UPLOAD] Nenhuma pasta uploads encontrada no backup');
+        }
+
+        // Limpar pasta temporária
+        if (tempRestoreDir && fs.existsSync(tempRestoreDir)) {
+            fs.rmSync(tempRestoreDir, { recursive: true, force: true });
+            console.log('[BACKUP UPLOAD] Pasta temporária removida');
+        }
+        
+        console.log('[BACKUP UPLOAD] Processo concluído com sucesso!');
+        res.json({ msg: 'Sistema restaurado com sucesso a partir do arquivo carregado!' });
+
+    } catch (error) {
+        console.error('[BACKUP UPLOAD] Erro no processo:', error);
+        
+        // Cleanup em caso de erro
+        if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+            try { fs.unlinkSync(uploadedFilePath); } catch (e) { console.error('Erro ao remover arquivo:', e); }
+        }
+        if (tempRestoreDir && fs.existsSync(tempRestoreDir)) {
+            try { fs.rmSync(tempRestoreDir, { recursive: true, force: true }); } catch (e) { console.error('Erro ao remover diretório:', e); }
+        }
+        
+        res.status(500).json({ 
+            msg: 'Erro ao processar o backup.', 
+            error: error.message 
+        });
+    }
 });
 
 module.exports = router;
