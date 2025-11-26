@@ -567,13 +567,13 @@
             const isIndividual = natureza === 'Individual';
             
             document.querySelectorAll('.label-socio-tipo').forEach(label => {
-                label.textContent = isIndividual ? 'Função' : 'Tipo';
+                label.textContent = isIndividual ? 'Titular da Empresa' : 'Sócio Administrador?';
             });
             
             document.querySelectorAll('.select-socio-tipo').forEach(select => {
                 const valorAtual = select.value;
                 if (isIndividual) {
-                    select.innerHTML = '<option value="sim">Titular</option>';
+                    select.innerHTML = '<option value="sim">Sim, é o Titular</option>';
                     select.value = 'sim';
                 } else {
                     select.innerHTML = '<option value="nao">Não</option><option value="sim">Sim</option>';
