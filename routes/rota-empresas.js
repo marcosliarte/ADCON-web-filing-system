@@ -71,6 +71,43 @@ const upload = multer({
   },
 });
 
+// Middleware para tratar erros do Multer
+const handleMulterError = (req, res, next) => {
+  // Gerar campos dinamicamente para até 50 contratos sociais
+  const contratoFields = Array.from({ length: 50 }, (_, i) => ({
+    name: `contrato_social[${i}][arquivo]`,
+    maxCount: 1
+  }));
+
+  const uploadFields = upload.fields([
+    { name: 'arquivo_cnpj', maxCount: 1 },
+    { name: 'certificado_digital', maxCount: 1 },
+    ...contratoFields, // Adiciona todos os campos de contratos dinamicamente
+    { name: 'alvara_arquivo', maxCount: 1 },
+    { name: 'certidao_prefeitura_arquivo', maxCount: 1 },
+    { name: 'certidao_receita_arquivo', maxCount: 1 },
+    { name: 'certidao_fgts_arquivo', maxCount: 1 },
+    { name: 'certidao_sefaz_arquivo', maxCount: 1 },
+    { name: 'inscricao_estadual_arquivo', maxCount: 1 },
+    { name: 'certidao_trabalhista_arquivo', maxCount: 1 },
+    { name: 'certidao_falencia_arquivo', maxCount: 1 },
+  ]);
+
+  uploadFields(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'UNEXPECTED_FIELD') {
+        return res.status(400).json({ 
+          msg: `Campo de arquivo inesperado: ${err.field}. Verifique se todos os contratos estão nomeados corretamente.` 
+        });
+      }
+      return res.status(400).json({ msg: `Erro no upload: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ msg: err.message });
+    }
+    next();
+  });
+};
+
 // @route   POST api/empresa
 // @desc    Cadastrar uma nova empresa com certidão
 // @access  Private (Admin ou Funcionário)
@@ -78,26 +115,7 @@ router.post(
   '/',
   [
     auth,
-    // Espera arquivos de múltiplos campos definidos no formulário
-    upload.fields([
-      { name: 'arquivo_cnpj', maxCount: 1 },
-      { name: 'certificado_digital', maxCount: 1 },
-      // Permite múltiplos arquivos para alterações contratuais
-      { name: 'contrato_social[0][arquivo]', maxCount: 1 },
-      { name: 'contrato_social[1][arquivo]', maxCount: 1 },
-      { name: 'contrato_social[2][arquivo]', maxCount: 1 },
-      { name: 'contrato_social[3][arquivo]', maxCount: 1 },
-      { name: 'contrato_social[4][arquivo]', maxCount: 1 }, // Adicione mais se precisar
-      // Novos campos de arquivo
-      { name: 'alvara_arquivo', maxCount: 1 },
-      { name: 'certidao_prefeitura_arquivo', maxCount: 1 },
-      { name: 'certidao_receita_arquivo', maxCount: 1 },
-      { name: 'certidao_fgts_arquivo', maxCount: 1 },
-      { name: 'certidao_sefaz_arquivo', maxCount: 1 },
-      { name: 'inscricao_estadual_arquivo', maxCount: 1 },
-      { name: 'certidao_trabalhista_arquivo', maxCount: 1 },
-      { name: 'certidao_falencia_arquivo', maxCount: 1 },
-    ]),
+    handleMulterError,
     check('nome_empresarial', 'Nome empresarial é obrigatório').not().isEmpty(),
   ],
   async (req, res) => {

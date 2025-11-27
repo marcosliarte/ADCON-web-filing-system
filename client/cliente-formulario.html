@@ -594,6 +594,10 @@
         }
 
         function adicionarAlteracaoContrato() {
+            if (contratoIndex >= 50) {
+                alert('Limite máximo de 50 contratos atingido. Se precisar adicionar mais, entre em contato com o suporte.');
+                return;
+            }
             const template = document.getElementById('contrato-template').innerHTML;
             const container = document.getElementById('contratos-container');
             const newContrato = document.createElement('div');

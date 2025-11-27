@@ -1145,8 +1145,8 @@
                     body: JSON.stringify({ empresaId, faturamentos })
                 });
 
-                if (!response.ok) {
-                    const error = await response.json();
+                if (!response || !response.ok) {
+                    const error = response ? await response.json() : { msg: 'Erro de conexão' };
                     throw new Error(error.msg || 'Erro ao salvar');
                 }
 

@@ -27,13 +27,13 @@ async function fetchWithAuth(url, options = {}) {
         if (response.status === 401 || response.status === 403) {
             localStorage.removeItem('token');
             window.location.replace('login.html');
-            return;
+            throw new Error('Não autenticado. Redirecionando para login...');
         }
 
         return response;
     } catch (error) {
         console.error('Erro de conexão:', error);
-        // Opcional: mostrar uma mensagem de erro de conexão na tela
+        throw error; // Propaga o erro para que seja tratado pelo código que chamou fetchWithAuth
     }
 }
 
