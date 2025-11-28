@@ -26,8 +26,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         inicializarFiltros();
         await carregarStatusMensalidades();
 
-        // Adiciona listeners aos elementos do modal
+        // Adiciona listeners aos elementos
         document.getElementById('modal-form').addEventListener('submit', handleFormSubmit);
+        
+        // Botão filtrar
+        document.querySelector('.filtros button').addEventListener('click', carregarStatusMensalidades);
+        
+        // Fechar modal
+        document.querySelector('.close-btn').addEventListener('click', fecharModal);
+        
         window.onclick = (event) => {
             const modal = document.getElementById('acao-modal');
             if (event.target == modal) fecharModal();
