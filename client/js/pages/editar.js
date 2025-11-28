@@ -73,6 +73,26 @@ async function loadEmpresa() {
             if (naturezaRadio) naturezaRadio.checked = true;
         }
 
+        // Tipo de empresa (matriz/filial)
+        if (data.tipo) {
+            const tipoRadio = document.querySelector(`input[name="tipo"][value="${data.tipo}"]`);
+            if (tipoRadio) {
+                tipoRadio.checked = true;
+                toggleMatrizFields();
+            }
+        }
+        
+        // Dados da matriz (se for filial)
+        if (data.tipo === 'filial' && data.matriz_id) {
+            if (typeof data.matriz_id === 'object' && data.matriz_id._id) {
+                setValue('matriz_id', data.matriz_id._id);
+                setValue('matriz_nome', data.matriz_id.nome);
+                setValue('matriz_cnpj', data.matriz_id.cnpj);
+            } else {
+                setValue('matriz_id', data.matriz_id);
+            }
+        }
+
         // Endereço
         if (data.endereco) {
             setValue('cep', data.endereco.cep);
@@ -256,6 +276,17 @@ function showMessage(text, type) {
 
 // === EVENT LISTENERS ===
 function setupEventListeners() {
+    // Tipo de empresa (matriz/filial)
+    document.querySelectorAll('input[name="tipo"]').forEach(radio => {
+        radio.addEventListener('change', toggleMatrizFields);
+    });
+    
+    // Botão buscar matriz
+    const btnBuscarMatriz = document.getElementById('btn-buscar-matriz');
+    if (btnBuscarMatriz) {
+        btnBuscarMatriz.addEventListener('click', buscarMatriz);
+    }
+    
     // Natureza jurídica
     document.querySelectorAll('input[name="natureza_juridica"]').forEach(radio => {
         radio.addEventListener('change', atualizarLabelsSocios);
@@ -323,6 +354,43 @@ function setupEventListeners() {
             submitBtn.textContent = 'Salvar Alterações';
         }
     });
+}
+
+// === TIPO DE EMPRESA E MATRIZ ===
+function toggleMatrizFields() {
+    const tipoFilial = document.getElementById('tipo_filial');
+    const matrizFieldsContainer = document.getElementById('matriz-fields-container');
+    
+    if (tipoFilial && matrizFieldsContainer) {
+        matrizFieldsContainer.style.display = tipoFilial.checked ? 'block' : 'none';
+    }
+}
+
+async function buscarMatriz() {
+    const cnpjMatriz = document.getElementById('matriz_cnpj').value.replace(/\D/g, '');
+    
+    if (!cnpjMatriz || cnpjMatriz.length !== 14) {
+        showMessage('Digite um CNPJ válido da matriz.', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetchWithAuth(`/api/empresas?cnpj=${cnpjMatriz}`);
+        const data = await response.json();
+        
+        if (data.empresas && data.empresas.length > 0) {
+            const matriz = data.empresas[0];
+            document.getElementById('matriz_nome').value = matriz.nome;
+            document.getElementById('matriz_id').value = matriz._id;
+            showMessage('Matriz encontrada com sucesso!', 'success');
+        } else {
+            showMessage('Matriz não encontrada. Você pode cadastrá-la sem vincular a uma matriz.', 'warning');
+            document.getElementById('matriz_nome').value = '';
+            document.getElementById('matriz_id').value = '';
+        }
+    } catch (error) {
+        showMessage('Erro ao buscar matriz: ' + error.message, 'error');
+    }
 }
 
 // === ACORDEÕES ===

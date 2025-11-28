@@ -16,6 +16,29 @@
             <button type="button" class="accordion-header">Dados da Empresa</button>
             <div class="accordion-content">
                 <div class="form-grid">
+                    <div class="form-group form-group-full">
+                        <label>Tipo de Empresa</label>
+                        <div class="radio-group">
+                            <input type="radio" id="tipo_matriz" name="tipo" value="matriz" checked> <label for="tipo_matriz">Matriz</label>
+                            <input type="radio" id="tipo_filial" name="tipo" value="filial"> <label for="tipo_filial">Filial</label>
+                        </div>
+                    </div>
+                    <!-- Seção para vincular à Matriz -->
+                    <div id="matriz-fields-container" style="display: none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="matriz_cnpj">CNPJ da Matriz (Opcional)</label>
+                                <input type="text" id="matriz_cnpj" name="matriz_cnpj" placeholder="Digite o CNPJ da matriz">
+                                <button type="button" id="btn-buscar-matriz" style="margin-top: 0.5rem; width: auto; padding: 0.5rem 1rem;">Buscar Matriz</button>
+                            </div>
+                            <div class="form-group">
+                                <label for="matriz_nome">Nome da Matriz</label>
+                                <input type="text" id="matriz_nome" name="matriz_nome" readonly style="background-color: #e9ecef;">
+                            </div>
+                            <!-- Campo oculto para armazenar o ID da matriz -->
+                            <input type="hidden" id="matriz_id" name="matriz_id">
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="cnpj">CNPJ</label>
                         <input type="text" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required>
