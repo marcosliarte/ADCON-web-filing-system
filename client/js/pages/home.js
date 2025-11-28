@@ -220,6 +220,81 @@ document.addEventListener('DOMContentLoaded', async () => {
         container.style.display = container.style.display === 'none' ? 'block' : 'none';
     });
 
+    // Helpers de validação de senha
+    const hasUpper = (s) => /[A-Z]/.test(s);
+    const hasLower = (s) => /[a-z]/.test(s);
+    const hasDigit = (s) => /\d/.test(s);
+    const hasSpecial = (s) => /[^\w\s]/.test(s);
+    const pwRulesEl = document.getElementById('pw-rules');
+    const pwMatchEl = document.getElementById('pw-match');
+    const pwBarsParent = document.querySelector('.strength-meter');
+    const btnSubmitSenha = document.getElementById('btnSubmitSenha');
+
+    function updatePwUI() {
+        const atual = document.getElementById('senhaAtual').value || '';
+        const nova = document.getElementById('novaSenha').value || '';
+        const conf = document.getElementById('confirmarNovaSenha').value || '';
+
+        const rules = {
+            len: nova.length >= 8,
+            upper: hasUpper(nova),
+            lower: hasLower(nova),
+            digit: hasDigit(nova),
+            special: hasSpecial(nova)
+        };
+
+        // Atualiza lista de regras
+        if (pwRulesEl) {
+            Array.from(pwRulesEl.querySelectorAll('li')).forEach((li) => {
+                const rule = li.getAttribute('data-rule');
+                const ok = !!rules[rule];
+                li.classList.remove('valid', 'invalid');
+                li.classList.add(ok ? 'valid' : 'invalid');
+            });
+        }
+
+        // Barra de força (0-4)
+        let score = 0;
+        score += rules.len ? 1 : 0;
+        score += rules.upper ? 1 : 0;
+        score += rules.lower ? 1 : 0;
+        score += (rules.digit || rules.special) ? 1 : 0; // compacta dígitos/especiais
+        score = Math.min(score, 4);
+        if (pwBarsParent) {
+            pwBarsParent.classList.remove('strength-1','strength-2','strength-3','strength-4');
+            if (score > 0) pwBarsParent.classList.add(`strength-${score}`);
+        }
+
+        // Match da confirmação
+        const matches = nova.length > 0 && nova === conf;
+        if (pwMatchEl) {
+            pwMatchEl.textContent = matches ? 'As senhas coincidem.' : (conf.length ? 'As senhas não coincidem.' : '');
+            pwMatchEl.style.color = matches ? '#0f766e' : '#b91c1c';
+        }
+
+        // Habilitar submit se tudo ok e nova != atual
+        const allOk = Object.values(rules).every(Boolean) && matches && (atual && nova && conf) && atual !== nova;
+        btnSubmitSenha.disabled = !allOk;
+    }
+
+    // Toggle de visibilidade de senha
+    document.querySelectorAll('.toggle-visibility').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            const input = document.getElementById(targetId);
+            if (!input) return;
+            const isPwd = input.type === 'password';
+            input.type = isPwd ? 'text' : 'password';
+            btn.textContent = isPwd ? 'Ocultar' : 'Mostrar';
+        });
+    });
+
+    // Atualizações reativas dos campos de senha
+    ['senhaAtual','novaSenha','confirmarNovaSenha'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updatePwUI);
+    });
+
     // Lógica para alterar senha
     document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -227,8 +302,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const novaSenha = document.getElementById('novaSenha').value;
         const confirmarNovaSenha = document.getElementById('confirmarNovaSenha').value;
 
-        if (novaSenha !== confirmarNovaSenha) {
-            showToast('As novas senhas não coincidem.', 'error');
+        if (btnSubmitSenha.disabled) {
+            showToast('Verifique os requisitos da senha e a confirmação.', 'error');
             return;
         }
 
@@ -243,6 +318,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const data = await response.json();
                 showToast(data.msg || 'Senha alterada com sucesso!', 'success');
                 this.reset();
+                updatePwUI();
                 setTimeout(() => {
                     document.getElementById('changePasswordContainer').style.display = 'none';
                 }, 1200);
@@ -256,13 +332,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Lógica para alterar email
+    const emailFormatMsg = document.getElementById('emailFormatMsg');
+    const emailMatchMsg = document.getElementById('emailMatchMsg');
+    const btnSubmitEmail = document.getElementById('btnSubmitEmail');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+
+    function updateEmailUI() {
+        const novoEmail = document.getElementById('novoEmail').value.trim();
+        const confirmarNovoEmail = document.getElementById('confirmarNovoEmail').value.trim();
+        const formatOk = emailRegex.test(novoEmail);
+        const matchOk = novoEmail.length > 0 && novoEmail === confirmarNovoEmail;
+
+        if (emailFormatMsg) {
+            emailFormatMsg.textContent = formatOk || !novoEmail ? '' : 'Formato de email inválido.';
+            emailFormatMsg.style.color = '#b91c1c';
+        }
+        if (emailMatchMsg) {
+            emailMatchMsg.textContent = matchOk || !confirmarNovoEmail ? '' : 'Emails não coincidem.';
+            emailMatchMsg.style.color = '#b91c1c';
+        }
+        btnSubmitEmail.disabled = !(formatOk && matchOk);
+    }
+
+    ['novoEmail','confirmarNovoEmail'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateEmailUI);
+    });
+
     document.getElementById('changeEmailForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const novoEmail = document.getElementById('novoEmail').value;
         const confirmarNovoEmail = document.getElementById('confirmarNovoEmail').value;
 
-        if (novoEmail !== confirmarNovoEmail) {
-            showToast('Os emails não coincidem.', 'error');
+        if (btnSubmitEmail.disabled) {
+            showToast('Verifique o formato e a confirmação do email.', 'error');
             return;
         }
 
@@ -278,6 +381,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showToast(data.msg || 'Email alterado com sucesso!', 'success');
                 document.getElementById('user-email').textContent = data.usuario.email;
                 this.reset();
+                updateEmailUI();
                 setTimeout(() => { 
                     document.getElementById('changeEmailContainer').style.display = 'none'; 
                 }, 1200);
@@ -323,4 +427,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+    // Inicializa estados de validação ao abrir a página
+    try { updatePwUI(); } catch (_) {}
+    try { updateEmailUI(); } catch (_) {}
 });

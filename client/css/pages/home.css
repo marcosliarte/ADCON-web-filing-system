@@ -233,6 +233,37 @@ body {
     box-shadow: var(--card-shadow);
 }
 
+/* Inputs e validações aprimoradas */
+.input-group { margin-bottom: 0.9rem; }
+.input-group label { display:block; font-weight:600; margin-bottom:0.35rem; color:#374151 }
+.input-with-action { position:relative; display:flex; align-items:center; }
+.input-with-action input { flex:1 }
+.toggle-visibility {
+    margin-left: 0.5rem;
+    background: #eef6ff;
+    border: 1px solid #d5e7ff;
+    color: #1E88E5;
+    border-radius: 6px;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.85rem;
+}
+.toggle-visibility:hover { background:#e2f0ff }
+.helper-text { display:block; margin-top:0.35rem; font-size:0.85rem; color:#6b7280 }
+
+.strength-meter { display:flex; gap:6px; margin-top:0.5rem }
+.strength-meter .bar { flex:1; height:6px; background:#e5e7eb; border-radius:4px; transition: background-color .2s }
+.strength-1 #pw-bar-1 { background:#ef4444 }
+.strength-2 #pw-bar-1, .strength-2 #pw-bar-2 { background:#f59e0b }
+.strength-3 #pw-bar-1, .strength-3 #pw-bar-2, .strength-3 #pw-bar-3 { background:#10b981 }
+.strength-4 #pw-bar-1, .strength-4 #pw-bar-2, .strength-4 #pw-bar-3, .strength-4 #pw-bar-4 { background:#059669 }
+
+.validation-list { list-style:none; padding-left:0; margin-top:0.5rem; display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:6px }
+.validation-list li { font-size:0.85rem; padding-left:22px; position:relative; color:#6b7280 }
+.validation-list li::before { content:'•'; position:absolute; left:8px; color:#9ca3af }
+.validation-list li.valid { color:#0f766e }
+.validation-list li.valid::before { content:'\2713'; color:#0ea5e9; left:4px }
+.validation-list li.invalid { color:#9ca3af }
+
 /* --- Estilos de Botões e Inputs --- */
 button {
     background-color: var(--primary);

@@ -70,33 +70,58 @@
         <div class="main-content">
             <div id="changePasswordContainer" class="form-card" style="display: none;">
                 <form id="changePasswordForm">
-                    <div style="margin-bottom: 0.5rem;">
+                    <div class="input-group">
                         <label for="senhaAtual">Senha Atual</label>
-                        <input type="password" id="senhaAtual" required>
+                        <div class="input-with-action">
+                            <input type="password" id="senhaAtual" autocomplete="current-password" required>
+                            <button type="button" class="toggle-visibility" aria-label="Mostrar/ocultar senha atual" data-target="senhaAtual">Mostrar</button>
+                        </div>
                     </div>
-                    <div style="margin-bottom: 0.5rem;">
+                    <div class="input-group">
                         <label for="novaSenha">Nova Senha</label>
-                        <input type="password" id="novaSenha" required>
+                        <div class="input-with-action">
+                            <input type="password" id="novaSenha" autocomplete="new-password" required>
+                            <button type="button" class="toggle-visibility" aria-label="Mostrar/ocultar nova senha" data-target="novaSenha">Mostrar</button>
+                        </div>
+                        <div class="strength-meter" aria-hidden="true">
+                            <div class="bar" id="pw-bar-1"></div>
+                            <div class="bar" id="pw-bar-2"></div>
+                            <div class="bar" id="pw-bar-3"></div>
+                            <div class="bar" id="pw-bar-4"></div>
+                        </div>
+                        <ul class="validation-list" id="pw-rules">
+                            <li data-rule="len">Mínimo de 8 caracteres</li>
+                            <li data-rule="upper">Letra maiúscula</li>
+                            <li data-rule="lower">Letra minúscula</li>
+                            <li data-rule="digit">Número</li>
+                            <li data-rule="special">Caractere especial (!@#$%…)</li>
+                        </ul>
                     </div>
-                    <div style="margin-bottom: 1rem;">
+                    <div class="input-group">
                         <label for="confirmarNovaSenha">Confirmar Nova Senha</label>
-                        <input type="password" id="confirmarNovaSenha" required>
+                        <div class="input-with-action">
+                            <input type="password" id="confirmarNovaSenha" autocomplete="new-password" required>
+                            <button type="button" class="toggle-visibility" aria-label="Mostrar/ocultar confirmar senha" data-target="confirmarNovaSenha">Mostrar</button>
+                        </div>
+                        <small id="pw-match" class="helper-text"></small>
                     </div>
-                    <button type="submit">Alterar Senha</button>
+                    <button type="submit" id="btnSubmitSenha" disabled>Alterar Senha</button>
                 </form>
                 <div id="passwordMessage" style="margin-top: 1rem;"></div>
             </div>
             <div id="changeEmailContainer" class="form-card" style="display: none;">
                 <form id="changeEmailForm">
-                    <div style="margin-bottom: 0.5rem;">
+                    <div class="input-group">
                         <label for="novoEmail">Novo Email</label>
-                        <input type="email" id="novoEmail" required>
+                        <input type="email" id="novoEmail" autocomplete="email" required>
+                        <small id="emailFormatMsg" class="helper-text"></small>
                     </div>
-                    <div style="margin-bottom: 1rem;">
+                    <div class="input-group">
                         <label for="confirmarNovoEmail">Confirmar Novo Email</label>
-                        <input type="email" id="confirmarNovoEmail" required>
+                        <input type="email" id="confirmarNovoEmail" autocomplete="email" required>
+                        <small id="emailMatchMsg" class="helper-text"></small>
                     </div>
-                    <button type="submit">Alterar Email</button>
+                    <button type="submit" id="btnSubmitEmail" disabled>Alterar Email</button>
                 </form>
                 <div id="emailMessage" style="margin-top: 1rem;"></div>
             </div>
