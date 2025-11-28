@@ -237,8 +237,9 @@ function exibirDadosEmpresa(empresa) {
         { tipo: 'certidaoSefaz', label: 'Certidão Negativa SEFAZ', campo: 'documentos.certidaoSefaz' },
         { tipo: 'inscricaoEstadual', label: 'Inscrição Estadual', campo: 'documentos.inscricaoEstadual' },
         { tipo: 'certidaoTrabalhista', label: 'Certidão Negativa Trabalhista', campo: 'documentos.certidaoTrabalhista' },
-        { tipo: 'certidaoFalencia', label: 'Certidão Negativa Falência', campo: 'documentos.certidaoFalencia' }
-    ];
+            { tipo: 'certidaoFalencia', label: 'Certidão Negativa Falência', campo: 'documentos.certidaoFalencia' },
+            { tipo: 'documentosDiversos', label: 'Documentos Diversos', campo: 'documentos.documentosDiversos', isArray: true, isDiverso: true }
+        ];
 
     if (documentosContainer) {
         documentosContainer.innerHTML = '';
@@ -249,7 +250,7 @@ function exibirDadosEmpresa(empresa) {
             if (item.condicao === false) return;
 
             if (item.isArray) {
-                // Arrays de documentos (contratos e balanços)
+                // Arrays de documentos (contratos, balanços e diversos)
                 const docArray = item.campo.split('.').reduce((obj, key) => obj && obj[key], empresa);
                 if (docArray && docArray.length > 0) {
                     // Se for balanço patrimonial, ordenar por ano decrescente
@@ -262,6 +263,9 @@ function exibirDadosEmpresa(empresa) {
                         if (item.isBalanco) {
                             // Para balanços, mostrar o ano ao invés do índice
                             labelComIndex = `${item.label} - ${doc.ano || 'Ano não informado'}`;
+                        } else if (item.isDiverso) {
+                            // Para documentos diversos, mostrar o nome do documento
+                            labelComIndex = doc.nomeDocumento || 'Documento sem nome';
                         } else {
                             // Para contratos, continuar mostrando o índice
                             labelComIndex = `${item.label} ${index + 1}`;

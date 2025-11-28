@@ -45,6 +45,15 @@ const BalancoPatrimonialSchema = new mongoose.Schema({
   dataUpload: { type: Date, default: Date.now },
 }, { _id: false });
 
+// Schema para Documentos Diversos
+const DocumentoDiversoSchema = new mongoose.Schema({
+  nomeDocumento: { type: String, required: true }, // Nome/descrição do documento
+  nomeArquivo: { type: String, required: true },
+  caminhoArquivo: { type: String, required: true },
+  dataValidade: { type: Date }, // Opcional - se tiver validade
+  dataUpload: { type: Date, default: Date.now },
+}, { _id: false });
+
 // Schema para Certidões com validade
 const CertidaoSchema = new mongoose.Schema({
   nomeArquivo: String,

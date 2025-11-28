@@ -6,6 +6,7 @@ const totalSteps = 3;
 let socioIndex = 0;
 let contratoIndex = 1;
 let balancoIndex = 0;
+let diversoIndex = 0;
 
 // === MÁSCARAS ===
 const maskCnpj = (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d)/, '$1-$2').slice(0, 18);
@@ -198,6 +199,19 @@ function adicionarBalancoPatrimonial() {
     balancoIndex++;
 }
 
+function adicionarDocumentoDiverso() {
+    if (diversoIndex >= 50) {
+        alert('Limite máximo de 50 documentos atingido. Se precisar adicionar mais, entre em contato com o suporte.');
+        return;
+    }
+    const template = document.getElementById('diverso-template').innerHTML;
+    const container = document.getElementById('diversos-container');
+    const newDiverso = document.createElement('div');
+    newDiverso.innerHTML = template.replace(/INDEX/g, diversoIndex);
+    container.appendChild(newDiverso);
+    diversoIndex++;
+}
+
 function toggleRegimeCasamento(select) {
     const regimeDiv = select.closest('.form-group').nextElementSibling;
     regimeDiv.style.display = select.value === 'casado' ? 'block' : 'none';
@@ -304,6 +318,12 @@ function setupEventListeners() {
     const btnAddBalanco = document.getElementById('btn-add-balanco');
     if (btnAddBalanco) {
         btnAddBalanco.addEventListener('click', adicionarBalancoPatrimonial);
+    }
+
+    // Adicionar documento diverso
+    const btnAddDiverso = document.getElementById('btn-add-diverso');
+    if (btnAddDiverso) {
+        btnAddDiverso.addEventListener('click', adicionarDocumentoDiverso);
     }
 
     // Navegação de etapas

@@ -313,6 +313,13 @@
                 <button type="button" class="btn-add" id="btn-add-balanco">+ Adicionar Balanço Patrimonial</button>
             </div>
 
+            <button type="button" class="accordion-header">Documentos Diversos</button>
+            <div class="accordion-content">
+                <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem;">Adicione outros documentos relevantes. Informe o nome do documento e, se aplicável, a data de validade para receber avisos de vencimento.</p>
+                <div id="diversos-container"></div>
+                <button type="button" class="btn-add" id="btn-add-diverso">+ Adicionar Documento</button>
+            </div>
+
             <!-- NAVEGAÇÃO E SUBMISSÃO -->
             <div class="navigation-buttons" style="margin-top: 2rem;">
                 <button type="button" class="btn-secondary">Cancelar</button>
@@ -458,7 +465,30 @@
         </div>
     </template>
 
-    <script src="shared.js"></script>
+    <!-- Template para documento diverso -->
+    <template id="diverso-template">
+        <div class="alteracao-card">
+            <button type="button" class="btn-remover" style="float: right;">Remover</button>
+            <h3>Documento Diverso</h3>
+            <div class="form-grid" style="align-items: end;">
+                <div class="form-group">
+                    <label>Nome do Documento *</label>
+                    <input type="text" name="documento_diverso[INDEX][nome]" placeholder="Ex: Procuração, Ata de Reunião, etc." required>
+                </div>
+                <div class="form-group">
+                    <label>Arquivo (PDF) *</label>
+                    <div class="file-info"></div>
+                    <input type="file" name="documento_diverso[INDEX][arquivo]" accept=".pdf" required>
+                </div>
+                <div class="form-group">
+                    <label>Data de Validade (Opcional)</label>
+                    <input type="date" name="documento_diverso[INDEX][validade]" placeholder="Deixe em branco se não houver">
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script type="module" src="js/pages/editar.js"></script>
     <script src="js/pages/editar.js"></script>
 </body>
 </html>

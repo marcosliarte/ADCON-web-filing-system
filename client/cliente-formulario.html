@@ -283,6 +283,16 @@
                 <button type="button" id="btn-add-balanco" class="btn-add">+ Adicionar Balanço Patrimonial</button>
             </div>
 
+            <!-- DOCUMENTOS DIVERSOS -->
+            <div class="form-section">
+                <h3>Documentos Diversos (Opcional)</h3>
+                <p>Adicione outros documentos relevantes. Informe o nome do documento e, se aplicável, a data de validade para receber avisos de vencimento.</p>
+                <div id="diversos-container">
+                    <!-- Documentos diversos serão adicionados dinamicamente aqui -->
+                </div>
+                <button type="button" id="btn-add-diverso" class="btn-add">+ Adicionar Documento</button>
+            </div>
+
             <!-- NAVEGAÇÃO E SUBMISSÃO -->
             <div class="navigation-buttons">
                 <button type="button" id="prevBtn" class="btn-secondary">Anterior</button>
@@ -426,6 +436,28 @@
                 <div class="form-group">
                     <label>Ano</label>
                     <input type="text" name="balanco_patrimonial[INDEX][ano]" placeholder="Ex: 2024" maxlength="4" required>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Template para documento diverso -->
+    <template id="diverso-template">
+        <div class="alteracao-card">
+            <button type="button" class="btn-remover" style="float: right;">Remover</button>
+            <h3>Documento Diverso</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nome do Documento *</label>
+                    <input type="text" name="documento_diverso[INDEX][nome]" placeholder="Ex: Procuração, Ata de Reunião" required>
+                </div>
+                <div class="form-group">
+                    <label>Arquivo PDF *</label>
+                    <input type="file" name="documento_diverso[INDEX][arquivo]" accept=".pdf" required>
+                </div>
+                <div class="form-group">
+                    <label>Data de Validade (Opcional)</label>
+                    <input type="date" name="documento_diverso[INDEX][validade]">
                 </div>
             </div>
         </div>

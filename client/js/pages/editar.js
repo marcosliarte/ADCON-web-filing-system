@@ -175,6 +175,18 @@ async function loadEmpresa() {
             });
         }
 
+        // Documentos Diversos
+        console.log('Carregando documentos diversos:', data.documentos?.documentosDiversos);
+        if (data.documentos && data.documentos.documentosDiversos && data.documentos.documentosDiversos.length > 0) {
+            data.documentos.documentosDiversos.forEach(documento => {
+                try {
+                    adicionarDocumentoDiverso(documento);
+                } catch (err) {
+                    console.error('Erro ao adicionar documento diverso:', err, documento);
+                }
+            });
+        }
+
         atualizarLabelsSocios();
         console.log('Empresa carregada com sucesso!');
     } catch (error) {
@@ -351,7 +363,13 @@ function setupEventListeners() {
     // Adicionar balanço patrimonial
     const btnAddBalanco = document.getElementById('btn-add-balanco');
     if (btnAddBalanco) {
-        btnAddBalanco.addEventListener('click', () => adicionarBalancoPatrimonial());
+        btnAddBalanco.addEventListener('click', adicionarBalancoPatrimonial);
+    }
+
+    // Adicionar documento diverso
+    const btnAddDiverso = document.getElementById('btn-add-diverso');
+    if (btnAddDiverso) {
+        btnAddDiverso.addEventListener('click', adicionarDocumentoDiverso);
     }
 
     // Botão cancelar

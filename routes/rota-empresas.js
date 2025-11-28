@@ -30,6 +30,10 @@ const storage = multer.diskStorage({
       subfolder = 'certificados';
     } else if (file.fieldname === 'alvara_arquivo') {
       subfolder = 'alvaras';
+    } else if (file.fieldname.startsWith('balanco_patrimonial')) {
+      subfolder = 'balancos';
+    } else if (file.fieldname.startsWith('documento_diverso')) {
+      subfolder = 'documentos_diversos';
     } else if (file.fieldname.startsWith('certidao_')) {
       // Agrupa todas as outras certidões em uma pasta
       subfolder = 'certidoes';
@@ -85,11 +89,18 @@ const handleMulterError = (req, res, next) => {
     maxCount: 1
   }));
 
+  // Gerar campos dinamicamente para até 50 documentos diversos
+  const diversoFields = Array.from({ length: 50 }, (_, i) => ({
+    name: `documento_diverso[${i}][arquivo]`,
+    maxCount: 1
+  }));
+
   const uploadFields = upload.fields([
     { name: 'arquivo_cnpj', maxCount: 1 },
     { name: 'certificado_digital', maxCount: 1 },
     ...contratoFields, // Adiciona todos os campos de contratos dinamicamente
     ...balancoFields, // Adiciona todos os campos de balanços dinamicamente
+    ...diversoFields, // Adiciona todos os campos de documentos diversos dinamicamente
     { name: 'alvara_arquivo', maxCount: 1 },
     { name: 'certidao_prefeitura_arquivo', maxCount: 1 },
     { name: 'certidao_receita_arquivo', maxCount: 1 },
@@ -244,6 +255,32 @@ router.post(
           });
         }
       }
+
+          // Processa os documentos diversos
+          if (req.body.documento_diverso) {
+            const diversosInfo = req.body.documento_diverso; // Array de {nome, validade}
+
+            diversosInfo.forEach((info, index) => {
+              const file = req.files[`documento_diverso[${index}][arquivo]`]?.[0];
+            
+              // Só adiciona se houver arquivo e nome
+              if (file && info.nome) {
+                const newDiverso = {
+                  nomeDocumento: info.nome,
+                  nomeArquivo: file.originalname,
+                  caminhoArquivo: `/uploads/documentos_diversos/${file.filename}`,
+                };
+              
+                // Adiciona validade se fornecida
+                if (info.validade) {
+                  newDiverso.dataValidade = info.validade;
+                }
+              
+                dadosEmpresa.documentos.documentosDiversos.push(newDiverso);
+              }
+            });
+          }
+        }
 
       const novaEmpresa = new Empresa(dadosEmpresa);
 
@@ -548,6 +585,36 @@ router.put(
       } else {
         empresa.documentos.balancosPatrimoniais = []; // Limpa se nenhum balanço for enviado
       }
+
+        // Lógica para atualizar/adicionar documentos diversos
+        if (req.body.documento_diverso) {
+          // Garante que documento_diverso seja sempre um array
+          const diversosInfo = Array.isArray(req.body.documento_diverso) ? req.body.documento_diverso : [req.body.documento_diverso];
+
+          empresa.documentos.documentosDiversos = diversosInfo
+            .map((diversoInfo, index) => {
+              const file = filesMap[`documento_diverso[${index}][arquivo]`];
+              // Pega o documento existente pelo mesmo índice para manter o arquivo se não for alterado
+              const diversoExistente = empresa.documentos.documentosDiversos?.[index] || {};
+
+              const documento = {
+                nomeDocumento: diversoInfo.nome,
+                nomeArquivo: file ? file.originalname : diversoExistente.nomeArquivo,
+                caminhoArquivo: file ? `/uploads/documentos_diversos/${file.filename}` : diversoExistente.caminhoArquivo,
+              };
+
+              // Adiciona validade se fornecida
+              if (diversoInfo.validade) {
+                documento.dataValidade = diversoInfo.validade;
+              }
+
+              return documento;
+            })
+            // Remove entradas vazias (sem nome ou arquivo)
+            .filter(d => d.nomeDocumento && d.nomeArquivo);
+        } else {
+          empresa.documentos.documentosDiversos = []; // Limpa se nenhum documento for enviado
+        }
 
 
       // A lógica de upload de novos arquivos e remoção de antigos na edição
