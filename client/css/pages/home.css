@@ -1,0 +1,322 @@
+/* --- Reset e Estilos Base --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root{
+    --primary: #007bff;
+    --danger: #dc3545;
+    --muted: #6c757d;
+    --bg: #f4f7f6;
+    --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    background-color: #f4f7f6;
+    color: #333a40;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+/* --- Cabeçalho --- */
+.header {
+    background-color: var(--primary);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.header .user-actions {
+    display: flex;
+    align-items: center;
+}
+
+/* --- Dropdown do Usuário --- */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+.dropdown-toggle {
+    background-color: transparent;
+    border: none;
+    color: white;
+    padding: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    border-radius: 5px;
+    overflow: hidden;
+}
+.dropdown-content a {
+    color: #333a40;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.dropdown-content a:hover { background-color: #f1f1f1; }
+.dropdown.show .dropdown-content { display: block; }
+.show { display: block; }
+
+/* --- Layout Principal --- */
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    max-width: 1200px;
+    width: 100%;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* --- Barra Lateral (Sidebar) --- */
+.sidebar {
+    flex: 1 1 280px; /* Flex-grow, flex-shrink, flex-basis */
+    background-color: #ffffff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    align-self: flex-start; /* Alinha ao topo */
+}
+
+.profile-pic-container {
+    position: relative;
+    width: 120px;
+    margin: 0 auto 1rem auto;
+}
+
+.profile-pic-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.profile-pic-actions span {
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: transform 0.2s ease;
+}
+
+.profile-pic-actions span:hover {
+    transform: scale(1.2);
+}
+
+.sidebar .profile-pic {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin: 0 auto 1rem auto;
+    display: block;
+    object-fit: cover;
+    border: 4px solid #007bff;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+}
+
+.sidebar h2 {
+    text-align: center;
+    margin-top: 0.5rem;
+    color: #007bff;
+    font-size: 1.4rem;
+}
+
+.sidebar p {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+    text-align: center;
+    word-break: break-all;
+}
+
+.sidebar p strong {
+    color: #495057;
+}
+
+.sidebar a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+}
+.sidebar a:hover {
+    text-decoration: underline;
+}
+
+/* --- Conteúdo Principal --- */
+.main-content {
+    flex: 3 1 600px; /* Ocupa mais espaço */
+    flex-grow: 1; /* Faz esta área crescer para empurrar o rodapé para baixo */
+}
+
+.main-content h2 {
+    color: #007bff;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* --- NOVO: Painel de Funcionalidades (Dashboard) --- */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.dashboard-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.15);
+}
+.dashboard-card .card-icon { font-size: 3rem; margin-bottom: 1rem; color: #007bff; }
+.dashboard-card h3 { color: #007bff; margin-bottom: 0.5rem; }
+.dashboard-card p { font-size: 0.9rem; color: #6c757d; }
+
+/* --- Cards e Formulários --- */
+.card, .form-card {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* --- Estilos de Botões e Inputs --- */
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    margin-right: 0.5rem;
+}
+button:hover {
+    background-color: #0056b3;
+}
+button:active {
+    transform: scale(0.98);
+}
+#deletePicButton, .header .user-actions button {
+    background-color: #dc3545;
+}
+#deletePicButton:hover, .header .user-actions button:hover {
+    background-color: #c82333;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+input[type="password"], input[type="email"] {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    font-size: 1rem;
+    margin-top: 0.25rem;
+}
+input[type="password"]:focus, input[type="email"]:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+/* --- Rodapé --- */
+.footer {
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    margin-top: auto;
+    font-size: 0.9rem;
+}
+
+/* --- Media Queries para Responsividade --- */
+@media (max-width: 992px) {
+    .container {
+        flex-direction: column;
+    }
+    .sidebar {
+        align-self: stretch; /* Ocupa a largura total */
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    .container {
+        margin: 1rem auto;
+    }
+    .card, .form-card {
+        padding: 1rem;
+    }
+}
+
+/* Estilos para a lista de configurações na sidebar */
+.sidebar .settings-list {
+    list-style: none;
+    padding: 0;
+}
+.sidebar .settings-list li a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+/* --- SKELETONS --- */
+.skeleton { background: linear-gradient(90deg,#eee,#f6f6f6,#eee); background-size:200% 100%; animation: shimmer 1.2s infinite; color: transparent !important; }
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Role badge */
+.role-badge { display:inline-block; background:rgba(0,0,0,0.06); color:var(--muted); padding:0.18rem 0.5rem; border-radius:12px; font-size:0.85rem; margin-left:8px }
+
+/* Toasts (fallback styling if shared.js not loaded yet) */
+#toast-container .toast { font-size:0.95rem }
