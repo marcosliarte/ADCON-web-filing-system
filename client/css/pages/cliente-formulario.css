@@ -1,0 +1,98 @@
+/* Importar estilos comuns */
+@import url('common-page.css');
+
+/* ============================================
+   CLIENTE-FORMULARIO.HTML - Estilos Específicos
+   ============================================ */
+
+/* Container principal com largura menor */
+.container {
+    max-width: 900px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Sistema de etapas (steps) */
+.step {
+    display: none;
+}
+
+.step.active {
+    display: block;
+}
+
+/* Radio groups */
+.radio-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.radio-group input[type="radio"],
+.radio-group input[type="checkbox"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.radio-group label {
+    font-weight: normal;
+    margin-right: 0.5rem;
+}
+
+/* Navegação entre steps */
+.navigation-buttons {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Botões variados */
+.btn-add {
+    background-color: #28a745;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+
+.btn-add:hover {
+    background-color: #218838;
+}
+
+.btn-remover {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-remover:hover {
+    background-color: #c82333;
+}
+
+/* Cards de sócios e alterações */
+.socio-card,
+.alteracao-card {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 1rem;
+    margin-top: 1rem;
+    background-color: #f8f9fa;
+}
+
+.socio-card h3,
+.alteracao-card h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 0.5rem;
+}
+
+/* Mensagens de status */
+#mensagem {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 5px;
+    text-align: center;
+    display: none;
+}

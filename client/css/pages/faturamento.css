@@ -1,0 +1,545 @@
+/* ============================================
+   FATURAMENTO.HTML - Estilos Específicos
+   ============================================ */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* Estilos do cabeçalho */
+.header {
+    background-color: #007bff;
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
+    background-color: transparent;
+    border: none;
+    color: white;
+    padding: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: #333a40;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dropdown-content a:hover {
+    background-color: #f1f1f1;
+}
+
+.dropdown.show .dropdown-content {
+    display: block;
+}
+
+.show {
+    display: block;
+}
+
+/* Conteúdo da página */
+.page-content {
+    padding: 2rem;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #007bff;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.back-btn {
+    display: inline-block;
+    margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: #6c757d;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+.back-btn:hover {
+    background-color: #5a6268;
+}
+
+/* Seção de formulário */
+.form-section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+select,
+input[type="month"],
+input[type="number"],
+input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+/* Autocomplete de empresas */
+#empresa-search-wrapper {
+    position: relative;
+}
+
+#empresa-search {
+    margin-bottom: 0;
+}
+
+#empresa-search:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none;
+}
+
+.autocomplete-list.active {
+    display: block;
+}
+
+.autocomplete-item {
+    padding: 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.autocomplete-item:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-empty {
+    padding: 0.75rem;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* Intervalo de datas */
+.date-range {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Botões */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* Área de impressão */
+.print-area {
+    display: none;
+    margin-top: 2rem;
+    padding: 2rem;
+    background: white;
+    border: 1px solid #dee2e6;
+}
+
+.print-area.active {
+    display: block;
+}
+
+.print-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.print-header h2 {
+    color: white;
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.print-header .periodo {
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+    opacity: 0.95;
+}
+
+/* Informações da empresa */
+.empresa-info {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-left: 4px solid #007bff;
+    border-radius: 4px;
+}
+
+.empresa-info p {
+    margin: 0.5rem 0;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.empresa-info strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+/* Tabela de faturamento */
+.faturamento-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+}
+
+.faturamento-table th,
+.faturamento-table td {
+    padding: 0.75rem;
+    border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+.faturamento-table th {
+    background-color: #007bff;
+    color: white;
+    font-weight: 600;
+}
+
+.faturamento-table tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.faturamento-table input[type="number"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.total-row {
+    background-color: #e9ecef !important;
+    font-weight: 700;
+}
+
+/* Seção de assinaturas */
+.signature-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.signature-box {
+    margin-top: 3rem;
+    text-align: center;
+}
+
+.signature-line {
+    border-top: 2px solid #333;
+    width: 400px;
+    margin: 0 auto 0.5rem;
+}
+
+.signature-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.signature-role {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* Estados de carregamento e mensagens */
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.error {
+    color: #dc3545;
+    padding: 1rem;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.success {
+    color: #155724;
+    padding: 1rem;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+/* Estilos de Impressão */
+@media print {
+    .header {
+        display: none !important;
+    }
+
+    body {
+        background: white;
+        padding: 0;
+        margin: 0;
+    }
+
+    .page-content {
+        padding: 0;
+    }
+
+    .container {
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    h1,
+    .back-btn,
+    .form-section,
+    .actions,
+    .error,
+    .success {
+        display: none !important;
+    }
+
+    .print-area {
+        display: block !important;
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .print-header {
+        margin-bottom: 1.5rem;
+        padding: 1.2rem;
+        background: #333 !important;
+        border-radius: 0;
+        box-shadow: none;
+        border: 3px solid #333;
+        page-break-after: avoid;
+    }
+
+    .print-header h2 {
+        color: white !important;
+        font-size: 1.6rem;
+        margin-bottom: 0.5rem;
+        text-shadow: none;
+    }
+
+    .print-header .periodo {
+        color: white !important;
+        font-size: 1rem;
+        margin-top: 0.3rem;
+        opacity: 1;
+    }
+
+    .empresa-info {
+        margin-bottom: 1.2rem;
+        padding: 1rem;
+        page-break-after: avoid;
+    }
+
+    .empresa-info p {
+        margin: 0.35rem 0;
+        font-size: 1rem;
+        line-height: 1.5;
+        color: #000 !important;
+    }
+
+    .empresa-info strong {
+        font-weight: 700 !important;
+        color: #000 !important;
+    }
+
+    .faturamento-table {
+        margin-bottom: 1rem;
+        page-break-inside: auto;
+    }
+
+    .faturamento-table th,
+    .faturamento-table td {
+        padding: 0.4rem;
+        font-size: 0.85rem;
+        color: #000 !important;
+    }
+
+    .faturamento-table th {
+        font-weight: 700 !important;
+    }
+
+    .faturamento-table input[type="text"],
+    .faturamento-table .input-valor {
+        border: none;
+        background: transparent;
+        padding: 0;
+        font-size: 0.85rem;
+    }
+
+    .faturamento-table tr {
+        page-break-inside: avoid;
+    }
+
+    .signature-section {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        page-break-inside: avoid;
+    }
+
+    .signature-box {
+        margin-top: 1.5rem;
+    }
+
+    .signature-line {
+        width: 300px;
+    }
+
+    .signature-name,
+    .signature-role {
+        font-size: 0.85rem;
+        color: #000 !important;
+        font-weight: 600 !important;
+    }
+
+    @page {
+        margin: 1.5cm;
+        size: A4;
+    }
+}
