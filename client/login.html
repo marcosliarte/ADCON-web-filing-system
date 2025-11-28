@@ -28,49 +28,6 @@
         </p>
     </div>
 
-<<<<<<< HEAD
-    <script>
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('error-message');
-
-            // Constrói a URL da API dinamicamente, forçando o protocolo HTTP.
-            // window.location.hostname pega o IP (ex: 192.168.1.10) ou 'localhost' da barra de endereço.
-            const apiUrl = `http://${window.location.hostname}:3000/api/auth/login`;
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, senha: password })
-                });
-
-                const data = await response.json();
-                console.log('Resposta do servidor:', data); // Adicionado para debug
-
-                if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    window.location.href = 'home.html'; // Redireciona para a nova página inicial
-                } else {
-                    let errorText = data.msg || 'Erro ao fazer login.';
-                    if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-                        errorText = data.errors[0].msg; // Pega a primeira mensagem de erro
-                    }
-                    errorMessage.textContent = errorText;
-                    errorMessage.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Erro na requisição:', error); // Adicionado para debug
-                errorMessage.textContent = 'Erro de conexão com o servidor.';
-                errorMessage.style.display = 'block';
-
-            }
-        });
-    </script>
-=======
     <script src="js/pages/login.js"></script>
->>>>>>> refactor
 </body>
 </html>
