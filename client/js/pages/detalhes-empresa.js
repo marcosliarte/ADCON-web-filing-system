@@ -40,7 +40,9 @@ async function carregarDadosEmpresa() {
         const response = await fetchWithAuth(`/api/empresas/${empresaId}`);
 
         if (!response || !response.ok) {
-            throw new Error('Erro ao carregar dados da empresa');
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Erro na resposta:', response.status, errorData);
+            throw new Error(errorData.msg || errorData.message || `Erro ${response.status} ao carregar dados da empresa`);
         }
 
         empresaAtual = await response.json();
@@ -48,7 +50,7 @@ async function carregarDadosEmpresa() {
         mostrarConteudo();
     } catch (error) {
         console.error('Erro ao carregar empresa:', error);
-        mostrarErro('Erro ao carregar dados da empresa.');
+        mostrarErro(`Erro ao carregar dados da empresa: ${error.message}`);
     } finally {
         mostrarLoading(false);
     }

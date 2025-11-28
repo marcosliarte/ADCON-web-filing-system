@@ -304,11 +304,9 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Empresa não encontrada' });
     }
 
-    const usuarioLogado = await Usuario.findById(req.usuario.id);
-    if (usuarioLogado.role === 'empresario' && empresa.ownerId.toString() !== req.usuario.id) {
-      return res.status(403).json({ msg: 'Acesso negado. Você não tem permissão para visualizar esta empresa.' });
-    }
-
+    // Nota: Empresas não têm campo ownerId, acesso é controlado apenas por role
+    // Empresários podem ver todas as empresas (conforme regras de negócio atuais)
+    
     // Renomeia 'matriz_id' para 'matriz' para clareza no frontend
     empresa.matriz = empresa.matriz_id || null;
     // Busca as filiais SE a empresa for uma matriz
