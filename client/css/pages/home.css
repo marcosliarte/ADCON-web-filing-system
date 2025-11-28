@@ -6,17 +6,19 @@
 }
 
 :root{
-    --primary: #007bff;
+    --primary: #3BA3FF; /* azul claro */
+    --primary-600: #1E88E5; /* hover mais escuro */
     --danger: #dc3545;
     --muted: #6c757d;
-    --bg: #f4f7f6;
-    --card-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    --bg: #f7fbff; /* fundo azulado bem claro */
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --border: #e9eef5;
 }
 
 body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     margin: 0;
-    background-color: #f4f7f6;
+    background-color: var(--bg);
     color: #333a40;
     display: flex;
     flex-direction: column;
@@ -32,7 +34,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -103,26 +105,35 @@ body {
     background-color: #ffffff;
     padding: 1.5rem;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border);
     align-self: flex-start; /* Alinha ao topo */
+}
+
+/* Cabeçalho do perfil (avatar à esquerda, info à direita) */
+.profile-header {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
 }
 
 .profile-pic-container {
     position: relative;
-    width: 120px;
-    margin: 0 auto 1rem auto;
+    width: 72px;
+    margin: 0;
 }
 
 .profile-pic-actions {
     display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-top: 0.5rem;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
 }
 
 .profile-pic-actions span {
     cursor: pointer;
-    font-size: 1.2rem;
+    font-size: 1rem;
     transition: transform 0.2s ease;
 }
 
@@ -131,27 +142,27 @@ body {
 }
 
 .sidebar .profile-pic {
-    width: 120px;
-    height: 120px;
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
-    margin: 0 auto 1rem auto;
+    margin: 0;
     display: block;
     object-fit: cover;
-    border: 4px solid #007bff;
-    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+    border: 2px solid var(--primary);
+    box-shadow: none;
 }
 
 .sidebar h2 {
-    text-align: center;
-    margin-top: 0.5rem;
-    color: #007bff;
-    font-size: 1.4rem;
+    text-align: left;
+    margin: 0;
+    color: var(--primary-600);
+    font-size: 1.2rem;
 }
 
 .sidebar p {
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
     font-size: 0.95rem;
-    text-align: center;
+    text-align: left;
     word-break: break-all;
 }
 
@@ -160,12 +171,13 @@ body {
 }
 
 .sidebar a {
-    color: #007bff;
+    color: var(--primary-600);
     text-decoration: none;
     font-weight: 500;
 }
 .sidebar a:hover {
-    text-decoration: underline;
+    text-decoration: none;
+    color: var(--primary);
 }
 
 /* --- Conteúdo Principal --- */
@@ -175,8 +187,8 @@ body {
 }
 
 .main-content h2 {
-    color: #007bff;
-    border-bottom: 2px solid #007bff;
+    color: var(--primary-600);
+    border-bottom: 2px solid var(--primary);
     padding-bottom: 0.5rem;
     margin-bottom: 1.5rem;
 }
@@ -192,36 +204,38 @@ body {
     background-color: #ffffff;
     border-radius: 8px;
     padding: 1.5rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border);
     text-decoration: none;
     color: inherit;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    text-align: center;
+    align-items: flex-start;
+    text-align: left;
 }
 .dashboard-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+    border-color: #d9e7ff;
 }
-.dashboard-card .card-icon { font-size: 3rem; margin-bottom: 1rem; color: #007bff; }
-.dashboard-card h3 { color: #007bff; margin-bottom: 0.5rem; }
+.dashboard-card .card-icon { display:none; }
+.dashboard-card h3 { color: var(--primary-600); margin-bottom: 0.35rem; font-weight: 600; }
 .dashboard-card p { font-size: 0.9rem; color: #6c757d; }
 
 /* --- Cards e Formulários --- */
 .card, .form-card {
     background-color: white;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 1.5rem;
     margin-bottom: 1rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: var(--card-shadow);
 }
 
 /* --- Estilos de Botões e Inputs --- */
 button {
-    background-color: #007bff;
+    background-color: var(--primary);
     color: white;
     border: none;
     padding: 0.6rem 1.2rem;
@@ -233,17 +247,14 @@ button {
     margin-right: 0.5rem;
 }
 button:hover {
-    background-color: #0056b3;
+    background-color: var(--primary-600);
 }
 button:active {
     transform: scale(0.98);
 }
-#deletePicButton, .header .user-actions button {
-    background-color: #dc3545;
-}
-#deletePicButton:hover, .header .user-actions button:hover {
-    background-color: #c82333;
-}
+/* Botões de ação específicos */
+#deletePicButton { background-color: #dc3545; }
+#deletePicButton:hover { background-color: #c82333; }
 
 input[type="file"] {
     display: none;
@@ -265,12 +276,13 @@ input[type="password"]:focus, input[type="email"]:focus {
 
 /* --- Rodapé --- */
 .footer {
-    background-color: #343a40;
-    color: white;
+    background-color: #ffffff;
+    color: #6c757d;
     text-align: center;
     padding: 1rem;
     margin-top: auto;
     font-size: 0.9rem;
+    border-top: 1px solid var(--border);
 }
 
 /* --- Media Queries para Responsividade --- */

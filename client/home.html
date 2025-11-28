@@ -35,18 +35,22 @@
 
     <div class="container">
         <div class="sidebar">
-            <div class="profile-pic-container">
-                <img src="/uploads/profile-pics/no-profile.png" alt="Foto de Perfil" class="profile-pic" id="profile-pic">
-                <div class="profile-pic-actions">
-                    <span id="editPicIcon" title="Alterar foto" onclick="document.getElementById('profilePicInput').click()">✏️</span>
-                    <span id="savePicIcon" title="Salvar foto" style="display: none;" onclick="saveProfilePic()">✔️</span>
-                    <span id="deletePicIcon" title="Remover foto" style="display: none;" onclick="deleteProfilePic()">🗑️</span>
+            <div class="profile-header">
+                <div class="profile-pic-container">
+                    <img src="/uploads/profile-pics/no-profile.png" alt="Foto de Perfil" class="profile-pic" id="profile-pic">
+                    <div class="profile-pic-actions">
+                        <span id="editPicIcon" title="Alterar foto" onclick="document.getElementById('profilePicInput').click()">✏️</span>
+                        <span id="savePicIcon" title="Salvar foto" style="display: none;" onclick="saveProfilePic()">✔️</span>
+                        <span id="deletePicIcon" title="Remover foto" style="display: none;" onclick="deleteProfilePic()">🗑️</span>
+                    </div>
+                    <input type="file" id="profilePicInput" style="display: none;" accept="image/png, image/jpeg, image/gif">
                 </div>
-                <input type="file" id="profilePicInput" style="display: none;" accept="image/png, image/jpeg, image/gif">
+                <div class="profile-info">
+                    <h2 id="user-name" class="skeleton"></h2>
+                    <p><strong>Email:</strong> <span id="user-email" class="skeleton"></span></p>
+                    <p><strong>Perfil:</strong> <span id="user-role" class="role-badge skeleton"></span></p>
+                </div>
             </div>
-            <h2 id="user-name" class="skeleton"></h2>
-            <p><strong>Email:</strong> <span id="user-email" class="skeleton"></span></p>
-            <p><strong>Perfil:</strong> <span id="user-role" class="role-badge skeleton"></span></p>
             <hr style="margin: 1.5rem 0;">
             <h3>Navegação Rápida</h3>
             <div class="card" id="admin-links" style="display: none;">
@@ -107,70 +111,59 @@
             </div>
             <div class="dashboard-grid" id="dashboard-grid">
                 <a href="empresas.html" class="dashboard-card">
-                    <div class="card-icon">🏢</div>
                     <h3>Gerenciar Empresas</h3>
                     <p>Visualize, edite e gerencie todas as empresas cadastradas.</p>
                 </a>
 
                 <a href="cliente-formulario.html" class="dashboard-card" id="card-cadastrar-empresa" style="display: none;">
-                    <div class="card-icon">➕</div>
                     <h3>Cadastrar Empresa</h3>
                     <p>Adicione uma nova empresa ao sistema com todos os seus dados.</p>
                 </a>
 
                 <a href="mensalidades.html" class="dashboard-card" id="card-gerenciar-mensalidades" style="display: none;">
-                    <div class="card-icon">💰</div>
                     <h3>Gerenciar Mensalidades</h3>
                     <p>Controle pagamentos, gere mensalidades e veja o status financeiro.</p>
                 </a>
 
                 <a href="relatorios.html" class="dashboard-card" id="card-ver-relatorios" style="display: none;">
-                    <div class="card-icon">📊</div>
                     <h3>Ver Relatórios</h3>
                     <p>Acesse relatórios financeiros detalhados, mensais e anuais.</p>
                 </a>
 
                 <a href="configuracao-empresa.html" class="dashboard-card" id="card-config-empresa" style="display: none;">
-                    <div class="card-icon">⚙️</div>
                     <h3>Configurar Empresa</h3>
                     <p>Gerencie os dados cadastrais da sua própria empresa.</p>
                 </a>
 
                 <a href="funcionarios-pagamentos.html" class="dashboard-card" id="card-gerenciar-funcionarios" style="display: none;">
-                    <div class="card-icon">💵</div>
                     <h3>Minha Folha de Pagamento</h3>
                     <p>Gerencie funcionários, descontos e realize pagamentos mensais.</p>
                 </a>
 
                 <a href="admin-dashboard.html" class="dashboard-card" id="card-central-admin" style="display: none;">
-                    <div class="card-icon">👑</div>
                     <h3>Central do Admin</h3>
                     <p>Acesse o dashboard de saúde do sistema, logs e gerenciamento de usuários.</p>
                 </a>
 
                 <a href="meus-pagamentos.html" class="dashboard-card" id="card-meus-pagamentos" style="display: none;">
-                    <div class="card-icon">💳</div>
                     <h3>Meus Pagamentos</h3>
                     <p>Acompanhe seu histórico de pagamentos e gere recibos.</p>
                 </a>
 
                 <!-- CARD DOCUMENTOS A VENCER -->
                 <a href="documentos-vencendo.html" class="dashboard-card" id="card-documentos-vencer" style="display: none;">
-                    <div class="card-icon">🗓️</div>
                     <h3>Documentos a Vencer</h3>
                     <p>Monitore os documentos e certificados que estão próximos do vencimento.</p>
                 </a>
 
                 <!-- CARD FATURAMENTO -->
                 <a href="faturamento.html" class="dashboard-card" id="card-faturamento" style="display: none;">
-                    <div class="card-icon">📊</div>
                     <h3>Faturamento</h3>
                     <p>Gere relatórios de faturamento mensal das empresas cadastradas.</p>
                 </a>
 
                 <!-- CARD ALTERAÇÃO DE EMPRESA -->
                 <a href="#" class="dashboard-card" id="card-alteracao-empresa" style="display: none;" onclick="event.preventDefault(); alert('Funcionalidade em desenvolvimento');">
-                    <div class="card-icon">🔄</div>
                     <h3>Alteração de Empresa</h3>
                     <p>Gerencie e atualize as informações das empresas cadastradas.</p>
                 </a>
