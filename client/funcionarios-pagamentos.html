@@ -4,13 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Funcionários e Pagamentos - ADCON</title>
+    <script src="shared.js"></script>
     <link rel="stylesheet" href="css/pages/funcionarios-pagamentos.css">
 </head>
-<body>
+<body style="display: none;">
+    <script>
+        if (localStorage.getItem('token')) {
+            document.body.style.display = 'block';
+        } else {
+            window.location.replace('login.html');
+        }
+    </script>
 
     <div id="header-placeholder"></div>
 
     <div class="container">
+        <a href="home.html" class="back-btn">← Voltar</a>
         <h2>Gestão de Funcionários</h2>
 
         <!-- Formulário de Cadastro/Edição -->
@@ -43,15 +52,14 @@
                         </select>
                     </div>
                 </div>
-                <div class="form-group-full" style="margin-top: 1.5rem;">
+                <div class="form-group-full">
                     <label>Descontos Fixos Recorrentes:</label>
                     <div id="descontos-container"></div>
-                    <button type="button" id="btn-add-desconto" class="btn-secondary" style="margin-top: 0.5rem;">+ Adicionar Desconto</button>
-                    <button type="button" id="btn-add-desconto" class="btn" style="margin-top: 0.5rem;">+ Adicionar Desconto</button>
+                    <button type="button" id="btn-add-desconto" class="btn-secondary">+ Adicionar Desconto</button>
                 </div>
                 <div class="action-buttons">
                     <button type="submit" id="btn-salvar-funcionario" class="btn">Cadastrar</button>
-                    <button type="button" id="btn-cancelar-edicao" class="btn-secondary" style="display: none;">Cancelar Edição</button>
+                    <button type="button" id="btn-cancelar-edicao" class="btn-secondary hidden">Cancelar Edição</button>
                 </div>
             </form>
         </div>
@@ -94,7 +102,7 @@
                     </div>
                 </div>
                 <div id="demonstrativo-corpo"></div>
-                <div id="demonstrativo-historico" style="margin-top: 2rem;">
+                <div id="demonstrativo-historico">
                     <h4>Histórico de Pagamentos</h4>
                     <ul id="lista-historico-pagamentos"></ul>
                 </div>
@@ -105,19 +113,18 @@
     <!-- Template para um único campo de desconto -->
     <template id="discount-template">
         <div class="discount-item">
-            <div class="form-group" style="flex: 1;">
+            <div class="form-group">
                 <label for="desconto-descricao-INDEX">Descrição:</label>
                 <input type="text" id="desconto-descricao-INDEX" name="descontos[INDEX][descricao]" required>
             </div>
-            <div class="form-group" style="flex: 1;">
+            <div class="form-group">
                 <label for="desconto-valor-INDEX">Valor (R$):</label>
                 <input type="number" id="desconto-valor-INDEX" name="descontos[INDEX][valor]" step="0.01" required>
             </div>
-            <button type="button" class="btn-secondary" onclick="removeDiscountField(this)" style="background-color: #dc3545; margin-top: 0;">Remover</button>
+            <button type="button" class="btn-remove" onclick="removeDiscountField(this)">Remover</button>
         </div>
     </template>
 
-    <script src="shared.js"></script>
     <script src="js/pages/funcionarios-pagamentos.js"></script>
 
     <script>

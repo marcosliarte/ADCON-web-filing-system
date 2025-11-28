@@ -1,76 +1,12 @@
-/* Importar estilos base do sistema */
+/* Importar estilos base e comuns */
 @import url('../style.css');
+@import url('/css/pages/common-page.css');
 
 /* ============================================
-   FUNCIONARIOS-PAGAMENTOS.HTML - Estilos Específicos
+   FUNCIONARIOS-PAGAMENTOS - Estilos Específicos
    ============================================ */
 
-/* --- ESTILOS DO HEADER (necessários para esta página) --- */
-.header {
-    background-color: #007bff;
-    color: white;
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.header h1 {
-    margin: 0;
-    font-size: 1.5rem;
-}
-
-.dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-.dropdown-toggle {
-    background-color: transparent;
-    border: none;
-    color: white;
-    padding: 0.5rem;
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-}
-
-.dropdown-content {
-    display: none;
-    position: absolute;
-    right: 0;
-    background-color: white;
-    min-width: 180px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1;
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-.dropdown-content a {
-    color: #333a40;
-    padding: 12px 16px;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.dropdown-content a:hover {
-    background-color: #f1f1f1;
-}
-
-.dropdown.show .dropdown-content {
-    display: block;
-}
-
-.show {
-    display: block;
-}
-
-/* --- CORREÇÃO DE DESIGN: Estilos para o Modal --- */
+/* --- MODAL --- */
 .modal {
     display: none; /* Oculto por padrão */
     position: fixed; /* Fica sobre todo o conteúdo */
@@ -106,114 +42,49 @@
     margin-bottom: 5px;
 }
 
-/* --- ESTILOS PADRONIZADOS COM OUTRAS PÁGINAS --- */
-
-/* Títulos padronizados */
-h1, h2 {
-    color: #007bff;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1.5rem;
+.discount-item .form-group {
+    flex: 1;
 }
 
-h3 {
-    color: #495057;
-    margin-bottom: 1rem;
-}
-
-/* Container principal */
-.container {
-    max-width: 1200px;
-    margin: 2rem auto;
-    background-color: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-}
-
-/* Cards padronizados */
-.card {
-    background-color: white;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* Botões padronizados */
-.btn {
-    background-color: #007bff;
+/* Botão de remover desconto */
+.btn-remove {
+    background-color: #dc3545;
     color: white;
     border: none;
-    padding: 0.8rem 1.5rem;
+    padding: 0.8rem 1rem;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.9rem;
     transition: background-color 0.2s;
+    margin-top: 0;
+    align-self: flex-end;
 }
 
-.btn:hover {
-    background-color: #0056b3;
+.btn-remove:hover {
+    background-color: #c82333;
 }
 
-.btn-secondary {
-    background-color: #6c757d;
-    color: white;
-    border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.2s;
-}
-
-.btn-secondary:hover {
-    background-color: #5a6268;
-}
-
-.btn-sm {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.875rem;
-}
-
-/* Botões de ação */
-.action-buttons {
+/* Form group full width */
+.form-group-full {
     margin-top: 1.5rem;
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
 }
 
-/* Tabelas padronizadas */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
+.form-group-full label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
 }
 
-th, td {
-    border: 1px solid #dee2e6;
-    padding: 12px;
-    text-align: left;
-    vertical-align: middle;
+#descontos-container {
+    margin-bottom: 0.5rem;
 }
 
-th {
-    background-color: #e9ecef;
-    font-weight: 600;
-    color: #495057;
+/* Hidden utility */
+.hidden {
+    display: none !important;
 }
 
-tbody tr:nth-child(even) {
-    background-color: #f8f9fa;
-}
-
-tbody tr:hover {
-    background-color: #e9ecef;
-}
-
-/* Modal padronizado */
+/* --- ESTILOS ESPECÍFICOS DA PÁGINA --- */
 .modal-content {
     background-color: white;
     margin: 10% auto;
@@ -301,36 +172,21 @@ tbody tr:hover {
     background-color: #f8f9fa;
 }
 
+#demonstrativo-historico {
+    margin-top: 2rem;
+}
+
+#demonstrativo-historico h4 {
+    color: #495057;
+    margin-bottom: 1rem;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
-    .container {
-        margin: 1rem;
-        padding: 1rem;
-    }
-
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .action-buttons {
-        flex-direction: column;
-    }
-
-    .action-buttons button {
-        width: 100%;
-    }
-
-    table {
-        font-size: 0.875rem;
-    }
-
-    th, td {
-        padding: 8px;
-    }
-
     .modal-content {
         width: 95%;
         padding: 1rem;
+        margin: 5% auto;
     }
 
     .periodo-selector {
@@ -341,5 +197,15 @@ tbody tr:hover {
     .periodo-selector select,
     .periodo-selector input {
         width: 100%;
+    }
+
+    .discount-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn-remove {
+        align-self: stretch;
+        margin-top: 0.5rem;
     }
 }
