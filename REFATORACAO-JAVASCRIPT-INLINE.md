@@ -17,19 +17,10 @@ Remover todo JavaScript inline (onclick, onchange, onsubmit, etc.) dos arquivos 
 
 Nenhum arquivo em progresso no momento.
 
-### 📋 Pendente (60 ocorrências restantes)
-
-#### Alta Prioridade (páginas administrativas)
-
-Todas as páginas de alta prioridade foram concluídas! ✅
+### 📋 Pendente (47 ocorrências restantes)
 
 #### Média Prioridade (formulários complexos)
-- [ ] `cliente-formulario.html` - 10 ocorrências
-  - Toggle matriz/filial
-  - Adicionar sócio/alteração
-  - Navegação de etapas
-  - Remoção de itens
-  - Regime de casamento
+- [x] `cliente-formulario.html` + `cliente-formulario.js` - 13 ocorrências removidas ✅
 
 - [ ] `editar.html` - 10 ocorrências
   - Similar ao cliente-formulario

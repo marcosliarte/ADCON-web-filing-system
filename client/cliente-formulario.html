@@ -19,8 +19,8 @@
                     <div class="form-group form-group-full">
                         <label>Tipo de Empresa</label>
                         <div class="radio-group">
-                            <input type="radio" id="tipo_matriz" name="tipo" value="matriz" checked onchange="toggleMatrizSelect()"> <label for="tipo_matriz">Matriz</label>
-                            <input type="radio" id="tipo_filial" name="tipo" value="filial" onchange="toggleMatrizSelect()"> <label for="tipo_filial">Filial</label>
+                            <input type="radio" id="tipo_matriz" name="tipo" value="matriz" checked> <label for="tipo_matriz">Matriz</label>
+                            <input type="radio" id="tipo_filial" name="tipo" value="filial"> <label for="tipo_filial">Filial</label>
                         </div>
                     </div>
                     <!-- Nova seção para dados da Matriz -->
@@ -29,7 +29,7 @@
                             <div class="form-group">
                                 <label for="matriz_cnpj">CNPJ da Matriz (Opcional)</label>
                                 <input type="text" id="matriz_cnpj" name="matriz_cnpj" placeholder="Digite o CNPJ da matriz">
-                                <button type="button" onclick="buscarMatrizPeloBotao()" style="margin-top: 0.5rem; width: auto; padding: 0.5rem 1rem;">Buscar</button>
+                                <button type="button" style="margin-top: 0.5rem; width: auto; padding: 0.5rem 1rem;">Buscar</button>
                             </div>
                             <div class="form-group">
                                 <label for="matriz_nome">Nome da Matriz</label>
@@ -87,9 +87,9 @@
                     <div class="form-group">
                         <label>Natureza Jurídica</label>
                         <div class="radio-group">
-                            <div class="radio-item"><input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" onchange="atualizarLabelsSocios()" required> <label for="natureza_individual">Individual</label></div>
-                            <div class="radio-item"><input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada" onchange="atualizarLabelsSocios()"> <label for="natureza_limitada">Limitada</label></div>
-                            <div class="radio-item"><input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros" onchange="atualizarLabelsSocios()"> <label for="natureza_outros">Outros</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required> <label for="natureza_individual">Individual</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada"> <label for="natureza_limitada">Limitada</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros"> <label for="natureza_outros">Outros</label></div>
                         </div>
                     </div>
                     <div class="form-group">
@@ -157,7 +157,7 @@
                 <div id="socios-container">
                     <!-- Cards de sócios serão inseridos aqui -->
                 </div>
-                <button type="button" class="btn-add" onclick="adicionarSocio()">+ Adicionar Sócio</button>
+                <button type="button" class="btn-add">+ Adicionar Sócio</button>
             </div>
 
             <!-- ETAPA 3: DOCUMENTOS -->
@@ -270,13 +270,13 @@
                         </div>
                     </div>
                 </div>
-                <button type="button" class="btn-add" onclick="adicionarAlteracaoContrato()">+ Adicionar Alteração Contratual</button>
+                <button type="button" class="btn-add">+ Adicionar Alteração Contratual</button>
             </div>
 
             <!-- NAVEGAÇÃO E SUBMISSÃO -->
             <div class="navigation-buttons">
-                <button type="button" id="prevBtn" class="btn-secondary" onclick="mudarEtapa(-1)">Anterior</button>
-                <button type="button" id="nextBtn" onclick="mudarEtapa(1)">Próximo</button>
+                <button type="button" id="prevBtn" class="btn-secondary">Anterior</button>
+                <button type="button" id="nextBtn">Próximo</button>
                 <button type="submit" id="submitBtn" style="display:none;">Finalizar Cadastro</button>
             </div>
         </form>
@@ -286,7 +286,7 @@
     <!-- Template para o card de sócio -->
     <template id="socio-template">
         <div class="socio-card">
-            <button type="button" class="btn-remover" style="float: right;" onclick="this.closest('.socio-card').remove()">Remover</button>
+            <button type="button" class="btn-remover" style="float: right;">Remover</button>
             <h3>Dados do Sócio</h3>
             <div class="form-grid">
                 <div class="form-group form-group-full">
@@ -329,7 +329,7 @@
                 </div>
                 <div class="form-group">
                     <label>Estado Civil</label>
-                    <select name="socios[INDEX][estado_civil]" onchange="toggleRegimeCasamento(this)" required>
+                    <select name="socios[INDEX][estado_civil]" required>
                         <option value="solteiro">Solteiro(a)</option>
                         <option value="casado">Casado(a)</option>
                         <option value="uniao_estavel">União Estável</option>
@@ -384,7 +384,7 @@
     <!-- Template para alteração de contrato -->
     <template id="contrato-template">
         <div class="alteracao-card">
-            <button type="button" class="btn-remover" style="float: right;" onclick="this.closest('.alteracao-card').remove()">Remover</button>
+            <button type="button" class="btn-remover" style="float: right;">Remover</button>
             <h3>Alteração Contratual</h3>
             <div class="form-grid">
                 <div class="form-group">
@@ -403,361 +403,14 @@
         </div>
     </template>
 
-    <script src="shared.js"></script>
     <script>
-        // Garante que o corpo da página só seja exibido se o usuário estiver logado
         if (localStorage.getItem('token')) {
             document.body.style.display = 'block';
         } else {
             window.location.replace('login.html');
         }
-
-        let currentStep = 1;
-        const totalSteps = 3;
-        let socioIndex = 0;
-        let contratoIndex = 1;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // Adicionado para carregar o cabeçalho
-            (async () => {
-                const response = await fetchWithAuth('/api/auth');
-                if (response) {
-                    const usuario = await response.json();
-                    createHeader('header-placeholder', usuario);
-                }
-            })();
-
-            showStep(currentStep);
-            toggleMatrizSelect(); // Garante o estado inicial correto
-            adicionarSocio(); // Adiciona o primeiro sócio por padrão
-            atualizarLabelsSocios(); // Atualiza labels iniciais
-
-            // Aplica máscaras aos campos iniciais
-            setupInitialMasks();
-            // Ativa a funcionalidade do acordeão
-            setupAccordion();
-
-            // Listener para busca de CEP da empresa
-            document.getElementById('cep').addEventListener('blur', async (e) => {
-                const cep = e.target.value.replace(/\D/g, '');
-                if (cep.length === 8) {
-                    const data = await fetchCep(cep);
-                    if (data) {
-                        document.getElementById('rua').value = data.logradouro;
-                        document.getElementById('bairro').value = data.bairro;
-                        document.getElementById('cidade').value = data.localidade;
-                        document.getElementById('estado').value = data.uf;
-                    }
-                }
-            });
-
-        });
-
-        async function loadMatrizes() {
-            const select = document.getElementById('matriz_id');
-            select.innerHTML = '<option value="">Carregando matrizes...</option>';
-            try {
-                // Busca apenas empresas que são matrizes
-                const response = await fetchWithAuth(`/api/empresas?tipo=matriz&limite=1000`);
-                if (!response.ok) throw new Error('Falha ao carregar empresas matriz.');
-
-                const data = await response.json();
-                select.innerHTML = '<option value="">Nenhuma / Matriz não cadastrada</option>'; // Opção padrão
-
-                if (data.docs && data.docs.length > 0) {
-                    data.docs.forEach(empresa => {
-                        const option = document.createElement('option');
-                        option.value = empresa._id;
-                        option.textContent = `${empresa.nome} (${formatarCNPJ(empresa.cnpj)})`;
-                        select.appendChild(option);
-                    });
-                } else {
-                    select.innerHTML = '<option value="">Nenhuma empresa matriz encontrada</option>';
-                }
-            } catch (error) {
-                console.error(error);
-                select.innerHTML = '<option value="">Erro ao carregar</option>';
-            }
-        }
-
-        function showStep(step) {
-            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-            document.getElementById(`step-${step}`).classList.add('active');
-
-            document.getElementById('prevBtn').style.display = step === 1 ? 'none' : 'inline-block';
-            document.getElementById('nextBtn').style.display = step === totalSteps ? 'none' : 'inline-block';
-            document.getElementById('submitBtn').style.display = step === totalSteps ? 'inline-block' : 'none';
-        }
-
-        function mudarEtapa(n) {
-            // Validação antes de avançar
-            if (n > 0 && !validateStep(currentStep)) {
-                alert('Por favor, preencha todos os campos obrigatórios antes de avançar.');
-                return;
-            }
-            currentStep += n;
-            showStep(currentStep);
-        }
-
-        function validateStep(step) {
-            const currentStepDiv = document.getElementById(`step-${step}`);
-            const inputs = currentStepDiv.querySelectorAll('input[required], select[required]');
-            for (const input of inputs) {
-                if (!input.value.trim()) {
-                    input.style.borderColor = 'red';
-                    return false;
-                }
-                input.style.borderColor = '#ccc';
-            }
-            return true;
-        }
-
-        function atualizarLabelsSocios() {
-            const natureza = document.querySelector('input[name="natureza_juridica"]:checked')?.value;
-            const isIndividual = natureza === 'Individual';
-            
-            document.querySelectorAll('.label-socio-tipo').forEach(label => {
-                label.textContent = isIndividual ? 'Titular da Empresa' : 'Sócio Administrador?';
-            });
-            
-            document.querySelectorAll('.select-socio-tipo').forEach(select => {
-                const valorAtual = select.value;
-                if (isIndividual) {
-                    select.innerHTML = '<option value="sim">Sim, é o Titular</option>';
-                    select.value = 'sim';
-                } else {
-                    select.innerHTML = '<option value="nao">Não</option><option value="sim">Sim</option>';
-                    select.value = valorAtual;
-                }
-            });
-        }
-
-        function adicionarSocio() {
-            const template = document.getElementById('socio-template').innerHTML;
-            const container = document.getElementById('socios-container');
-            const newSocio = document.createElement('div');
-            newSocio.innerHTML = template.replace(/INDEX/g, socioIndex);
-            container.appendChild(newSocio);
-            applyMasks(newSocio);
-            socioIndex++;
-            atualizarLabelsSocios();
-        }
-
-        function adicionarAlteracaoContrato() {
-            if (contratoIndex >= 50) {
-                alert('Limite máximo de 50 contratos atingido. Se precisar adicionar mais, entre em contato com o suporte.');
-                return;
-            }
-            const template = document.getElementById('contrato-template').innerHTML;
-            const container = document.getElementById('contratos-container');
-            const newContrato = document.createElement('div');
-            newContrato.innerHTML = template.replace(/INDEX/g, contratoIndex);
-            container.appendChild(newContrato);
-            contratoIndex++;
-        }
-
-        function toggleMatrizSelect() {
-            const tipo = document.querySelector('input[name="tipo"]:checked').value;
-            const container = document.getElementById('matriz-fields-container');
-            const matrizCnpjInput = document.getElementById('matriz_cnpj');
-
-            if (tipo === 'filial') {
-                container.style.display = 'grid'; // Correção: Usar 'grid' para exibir corretamente
-                // Não é obrigatório, como solicitado
-            } else {
-                container.style.display = 'none';
-            }
-        }
-
-        async function buscarMatrizPeloBotao() {
-            const cnpjInput = document.getElementById('matriz_cnpj');
-            const cnpj = cnpjInput.value.replace(/\D/g, '');
-            await buscarMatrizPorCnpj(cnpj);
-        }
-
-        async function buscarMatrizPorCnpj(cnpj) {
-            const nomeInput = document.getElementById('matriz_nome');
-            const matrizIdInput = document.getElementById('matriz_id'); // Agora busca pelo ID correto
-
-            if (cnpj.length !== 14) {
-                alert('Por favor, digite um CNPJ válido com 14 dígitos.');
-                nomeInput.readOnly = false;
-                nomeInput.placeholder = 'Digite o nome da matriz manualmente';
-                nomeInput.style.backgroundColor = 'white';
-                if (matrizIdInput) matrizIdInput.value = '';
-                return;
-            }
-
-            try {
-                const response = await fetchWithAuth(`/api/empresas/cnpj/${cnpj}`);
-                if (response && response.ok) {
-                    const empresa = await response.json();
-                    nomeInput.value = empresa.nome;
-                    nomeInput.placeholder = '';
-                    nomeInput.readOnly = true;
-                    nomeInput.style.backgroundColor = '#e9ecef';
-                    if (matrizIdInput) matrizIdInput.value = empresa._id;
-                } else {
-                    // Se não encontrar, permite a digitação manual
-                    nomeInput.value = ''; // Limpa o campo para digitação
-                    nomeInput.placeholder = 'Matriz não encontrada. Digite o nome aqui.';
-                    nomeInput.readOnly = false;
-                    nomeInput.style.backgroundColor = 'white';
-                    if (matrizIdInput) matrizIdInput.value = '';
-                }
-            } catch (error) {
-                console.error('Erro ao buscar matriz por CNPJ:', error);
-                nomeInput.value = 'Erro ao buscar. Tente novamente.';
-                nomeInput.readOnly = true;
-                nomeInput.style.backgroundColor = '#e9ecef';
-                if (matrizIdInput) matrizIdInput.value = '';
-            }
-        }
-
-        function toggleRegimeCasamento(select) {
-            const regimeDiv = select.closest('.form-group').nextElementSibling;
-            regimeDiv.style.display = select.value === 'casado' ? 'block' : 'none';
-        }
-
-        async function fetchCep(cep) {
-            try {
-                // Alterado para usar a rota de proxy segura no nosso backend
-                const response = await fetchWithAuth(`/api/empresas/cep/${cep}`);
-                if (!response || !response.ok) throw new Error('CEP não encontrado ou falha na consulta.');
-                const data = await response.json();
-                if (data.erro) throw new Error('CEP inválido');
-                return data;
-            } catch (error) {
-                alert(error.message);
-                return null;
-            }
-        }
-
-        async function buscarCepSocio(cepInput) {
-            const cep = cepInput.value.replace(/\D/g, '');
-            if (cep.length === 8) {
-                const data = await fetchCep(cep);
-                if (data) {
-                    const socioCard = cepInput.closest('.socio-card');
-                    socioCard.querySelector('input[name$="[endereco][rua]"]').value = data.logradouro;
-                    socioCard.querySelector('input[name$="[endereco][bairro]"]').value = data.bairro;
-                    socioCard.querySelector('input[name$="[endereco][cidade]"]').value = data.localidade;
-                    socioCard.querySelector('input[name$="[endereco][estado]"]').value = data.uf;
-                }
-            }
-        }
-
-        // --- LÓGICA DA API VIACEP ---
-        document.getElementById('cep').addEventListener('blur', async (e) => {
-            const cep = e.target.value.replace(/\D/g, ''); // Remove caracteres não numéricos
-            if (cep.length === 8) {
-                const data = await fetchCep(cep);
-                if (data) {
-                    document.getElementById('rua').value = data.logradouro;
-                    document.getElementById('bairro').value = data.bairro;
-                    document.getElementById('cidade').value = data.localidade;
-                    document.getElementById('estado').value = data.uf;
-                    document.getElementById('numero').focus(); // Move o foco para o campo de número
-                }
-            }
-        });
-
-        // --- MÁSCARAS ---
-        function formatInput(input, maskFunction) {
-            input.addEventListener('input', (e) => {
-                e.target.value = maskFunction(e.target.value);
-            });
-        }
-
-        const maskCnpj = (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d)/, '$1-$2').slice(0, 18);
-        const maskCpf = (value) => value.replace(/\D/g, '').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2').slice(0, 14);
-        const maskCep = (value) => value.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 9);
-        const maskPhone = (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2').slice(0, 15);
-        const maskCnae = (value) => value.replace(/\D/g, '').replace(/^(\d{4})(\d)/, '$1-$2').replace(/-(\d{1})(\d)/, '-$1/$2').slice(0, 9); // Formato correto: 4712-1/00
-        const maskCurrency = (value) => {
-            let v = value.replace(/\D/g, '');
-            v = (v / 100).toFixed(2) + '';
-            v = v.replace(".", ",");
-            v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-            return 'R$ ' + v;
-        };
-
-        // --- LÓGICA DA API CNAE ---
-        document.getElementById('atividade_principal').addEventListener('blur', async (e) => {
-            const cnaeInput = e.target;
-            const cnaeCode = cnaeInput.value.replace(/\D/g, '');
-            const descInput = document.getElementById('atividade_principal_descricao');
-
-            if (cnaeCode.length === 7) {
-                try {
-                    const response = await fetchWithAuth(`/api/empresas/cnae/${cnaeCode}`);
-                    const data = await response.json();
-                    // A API retorna um objeto único, não um array, para um código único.
-                    if (data && data.descricao) {
-                        descInput.value = data.descricao;
-                    } else {
-                        descInput.value = 'Código CNAE não encontrado.';
-                    }
-                } catch (error) {
-                    descInput.value = 'Erro ao buscar descrição do CNAE.';
-                }
-            }
-        });
-
-        function setupInitialMasks() {
-            formatInput(document.getElementById('cnpj'), maskCnpj);
-            formatInput(document.getElementById('matriz_cnpj'), maskCnpj); // Máscara para o CNPJ da matriz
-            formatInput(document.getElementById('cep'), maskCep);
-            formatInput(document.getElementById('telefone'), maskPhone);
-            formatInput(document.getElementById('atividade_principal'), maskCnae);
-            formatInput(document.getElementById('capital_social'), maskCurrency);
-        }
-
-        function applyMasks(container) {
-            formatInput(container.querySelector('input[name$="[cpf]"]'), maskCpf);
-            formatInput(container.querySelector('input[name$="[endereco][cep]"]'), maskCep);
-        }
-
-        // --- SUBMISSÃO DO FORMULÁRIO ---
-        document.getElementById('formulario-empresa').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            if (!validateStep(currentStep)) {
-                alert('Por favor, preencha todos os campos obrigatórios.');
-                return;
-            }
-
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Enviando...';
-
-            const formData = new FormData(this);
-            const mensagemDiv = document.getElementById('mensagem');
-
-            try {
-                // A função fetchWithAuth já está no shared.js
-                const response = await fetchWithAuth('/api/empresas', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (response && response.ok) {
-                    const result = await response.json();
-                    mensagemDiv.textContent = 'Empresa cadastrada com sucesso!';
-                    mensagemDiv.className = 'success';
-                    mensagemDiv.style.display = 'block';
-                    setTimeout(() => window.location.href = 'empresas.html', 2000);
-                } else {
-                    const errorData = await response.json();
-                    throw new Error(errorData.msg || 'Erro ao cadastrar empresa.');
-                }
-            } catch (error) {
-                mensagemDiv.textContent = `Erro: ${error.message}`;
-                mensagemDiv.className = 'error';
-                mensagemDiv.style.display = 'block';
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Finalizar Cadastro';
-            }
-        });
     </script>
+    <script src="shared.js"></script>
+    <script src="js/pages/cliente-formulario.js"></script>
 </body>
 </html>
