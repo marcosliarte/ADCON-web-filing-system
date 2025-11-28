@@ -1,0 +1,270 @@
+/* detalhes-empresa.css */
+@import url('common-page.css');
+
+h3 {
+    color: #007bff;
+}
+
+h2 {
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.5rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.section {
+    margin-bottom: 1.5rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.info-item {
+    background-color: #f8f9fa;
+    padding: 0.8rem;
+    border-radius: 4px;
+    border-left: 4px solid #007bff;
+}
+
+.info-label {
+    display: block;
+    font-weight: bold;
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 0.25rem;
+}
+
+.info-value {
+    font-size: 1rem;
+}
+
+.socio-card,
+.filial-card {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.document-list {
+    list-style: none;
+    padding: 0;
+}
+
+.document-list li {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+}
+
+.action-buttons {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-back {
+    background-color: #6c757d;
+}
+
+.btn-edit {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-download {
+    background-color: #28a745;
+}
+
+.btn-pdf {
+    background-color: #dc3545;
+}
+
+.btn-pdf:hover {
+    background-color: #c82333;
+}
+
+/* Seleção de documentos */
+.document-selection-header {
+    background: #e7f3ff;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.selection-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.selection-actions button {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.doc-checkbox {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.doc-label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.selected-count {
+    font-weight: 600;
+    color: #007bff;
+}
+
+.btn-select-all {
+    background-color: #17a2b8;
+}
+
+.btn-select-all:hover {
+    background-color: #138496;
+}
+
+.btn-deselect-all {
+    background-color: #6c757d;
+}
+
+.btn-deselect-all:hover {
+    background-color: #5a6268;
+}
+
+/* Modal de Autenticação */
+.auth-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-modal.show {
+    display: flex;
+}
+
+.auth-modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.auth-modal-content h2 {
+    margin-top: 0;
+    color: #007bff;
+}
+
+.auth-modal-content p {
+    font-size: 0.95rem;
+    color: #555;
+}
+
+.auth-modal-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.auth-modal-form input {
+    padding: 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.auth-modal-form button {
+    margin: 0;
+}
+
+.auth-modal-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.auth-modal-buttons button {
+    flex: 1;
+}
+
+.auth-modal-buttons .btn-cancel {
+    background-color: #6c757d;
+}
+
+.auth-modal-buttons .btn-cancel:hover {
+    background-color: #545b62;
+}
+
+/* Senha protegida */
+.senha-certificado-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.senha-certificado-container input {
+    flex: 1;
+}
+
+.btn-show-senha {
+    background-color: #17a2b8;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.btn-show-senha:hover {
+    background-color: #138496;
+}
+
+/* Impressão/PDF */
+@media print {
+    body {
+        background-color: white;
+        margin: 0;
+        padding: 20px;
+    }
+    .header,
+    .action-buttons,
+    .document-selection-header,
+    .btn-download,
+    .btn-delete,
+    .doc-checkbox,
+    button {
+        display: none !important;
+    }
+    .container {
+        box-shadow: none;
+        max-width: 100%;
+        padding: 0;
+    }
+}

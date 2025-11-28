@@ -1,0 +1,133 @@
+/* Importar estilos comuns */
+@import url('common-page.css');
+
+/* ============================================
+   MEUS-PAGAMENTOS.HTML - Estilos Específicos
+   ============================================ */
+
+/* Estados de carregamento e mensagens */
+.loading,
+.error,
+.no-data {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    font-style: italic;
+    color: #6c757d;
+}
+
+.error {
+    color: #dc3545;
+}
+
+/* Estilos do cartão de holerite (payslip) */
+.payslip-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    page-break-inside: avoid;
+}
+
+.payslip-header {
+    background-color: #e9ecef;
+    padding: 1rem 1.5rem;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.payslip-body {
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Duas colunas: Proventos e Descontos */
+    gap: 1.5rem;
+}
+
+.payslip-section h3 {
+    margin-top: 0;
+    font-size: 1rem;
+    color: #495057;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.payslip-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.payslip-item .description {
+    color: #6c757d;
+}
+
+.payslip-item .description.sub-item {
+    padding-left: 1rem;
+}
+
+.payslip-item .value {
+    font-weight: 500;
+}
+
+.payslip-footer {
+    background-color: #f8f9fa;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+/* Cores para valores positivos e negativos */
+.value.positive {
+    color: #28a745;
+}
+
+.value.negative {
+    color: #dc3545;
+}
+
+/* Botão de impressão */
+.print-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: #6c757d;
+}
+
+.print-button:hover {
+    color: #007bff;
+}
+
+/* Estilos para impressão */
+@media print {
+    body {
+        background-color: white;
+    }
+
+    .header,
+    .print-button,
+    h1 {
+        display: none !important;
+    }
+
+    .container {
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+    }
+
+    .payslip-card {
+        border: 1px solid #ccc;
+        margin-top: 2rem;
+    }
+}
