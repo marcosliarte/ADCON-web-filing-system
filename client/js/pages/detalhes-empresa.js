@@ -9,31 +9,17 @@ let usuario = null;
 let senhaAutenticadaTemp = false; // Flag de autenticação temporária da sessão
 let inputSenhaAtuais = []; // Rastreia inputs de senha abertos
 
-// Função para obter usuário (reutiliza função do shared.js se disponível)
+// Função para obter usuário
 async function getUsuario() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/login.html';
-        return;
-    }
-
     try {
-        const response = await fetch('/api/auth/usuario', {
-            method: 'GET',
-            headers: { 'x-auth-token': token }
-        });
-
-        if (!response.ok) {
-            localStorage.removeItem('token');
-            window.location.href = '/login.html';
-            return;
+        const response = await fetchWithAuth('/api/auth');
+        if (!response || !response.ok) {
+            throw new Error('Falha na autenticação');
         }
-
         usuario = await response.json();
     } catch (error) {
         console.error('Erro ao obter usuário:', error);
-        localStorage.removeItem('token');
-        window.location.href = '/login.html';
+        // fetchWithAuth já redireciona para login em caso de erro 401/403
     }
 }
 
@@ -51,13 +37,9 @@ async function carregarDadosEmpresa() {
     esconderErro();
 
     try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/api/empresas/${empresaId}`, {
-            method: 'GET',
-            headers: { 'x-auth-token': token }
-        });
+        const response = await fetchWithAuth(`/api/empresas/${empresaId}`);
 
-        if (!response.ok) {
+        if (!response || !response.ok) {
             throw new Error('Erro ao carregar dados da empresa');
         }
 
@@ -468,17 +450,15 @@ async function excluirSelecionados() {
         }));
 
         // Enviar requisição de exclusão
-        const token = localStorage.getItem('token');
-        const response = await fetch(`/api/empresas/${empresaId}/documentos/excluir`, {
+        const response = await fetchWithAuth(`/api/empresas/${empresaId}/documentos/excluir`, {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json',
-                'x-auth-token': token
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ documentos: documentosParaExcluir })
         });
 
-        if (!response.ok) {
+        if (!response || !response.ok) {
             const error = await response.json();
             throw new Error(error.msg || 'Erro ao excluir documentos');
         }
