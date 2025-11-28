@@ -207,6 +207,46 @@ async function stopImpersonating(event) {
 document.addEventListener('DOMContentLoaded', async () => {
     await getUsuario();
 
+    // Event listener para logout
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            logout();
+        });
+    }
+
+    // Event listeners para foto de perfil
+    const editPicIcon = document.getElementById('editPicIcon');
+    if (editPicIcon) {
+        editPicIcon.addEventListener('click', () => {
+            document.getElementById('profilePicInput').click();
+        });
+    }
+
+    const savePicIcon = document.getElementById('savePicIcon');
+    if (savePicIcon) {
+        savePicIcon.addEventListener('click', () => {
+            saveProfilePic();
+        });
+    }
+
+    const deletePicIcon = document.getElementById('deletePicIcon');
+    if (deletePicIcon) {
+        deletePicIcon.addEventListener('click', () => {
+            deleteProfilePic();
+        });
+    }
+
+    // Card de funcionalidade em desenvolvimento
+    const cardDevAlert = document.querySelector('[data-action="dev-alert"]');
+    if (cardDevAlert) {
+        cardDevAlert.addEventListener('click', (e) => {
+            e.preventDefault();
+            alert('Funcionalidade em desenvolvimento');
+        });
+    }
+
     // Redireciona para página de configurações em vez de abrir na home
     const btnPwd = document.getElementById('togglePasswordBtn');
     if (btnPwd) {

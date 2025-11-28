@@ -28,7 +28,7 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="12" cy="8" r="3" stroke="white" stroke-width="1.5"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div id="userMenu" class="dropdown-content">
-                <a href="#" onclick="logout()"><span>⏻</span> Sair</a>
+                <a href="#" id="logoutBtn"><span>⏻</span> Sair</a>
             </div>
         </div>
     </div>
@@ -39,9 +39,9 @@
                 <div class="profile-pic-container">
                     <img src="/uploads/profile-pics/no-profile.png" alt="Foto de Perfil" class="profile-pic" id="profile-pic">
                     <div class="profile-pic-actions">
-                        <span id="editPicIcon" title="Alterar foto" onclick="document.getElementById('profilePicInput').click()">✏️</span>
-                        <span id="savePicIcon" title="Salvar foto" style="display: none;" onclick="saveProfilePic()">✔️</span>
-                        <span id="deletePicIcon" title="Remover foto" style="display: none;" onclick="deleteProfilePic()">🗑️</span>
+                        <span id="editPicIcon" title="Alterar foto">✏️</span>
+                        <span id="savePicIcon" title="Salvar foto" style="display: none;">✔️</span>
+                        <span id="deletePicIcon" title="Remover foto" style="display: none;">🗑️</span>
                     </div>
                     <input type="file" id="profilePicInput" style="display: none;" accept="image/png, image/jpeg, image/gif">
                 </div>
@@ -132,7 +132,7 @@
                 </a>
 
                 <!-- CARD ALTERAÇÃO DE EMPRESA -->
-                <a href="#" class="dashboard-card" id="card-alteracao-empresa" style="display: none;" onclick="event.preventDefault(); alert('Funcionalidade em desenvolvimento');">
+                <a href="#" class="dashboard-card" id="card-alteracao-empresa" style="display: none;" data-action="dev-alert">
                     <h3>Alteração de Empresa</h3>
                     <p>Gerencie e atualize as informações das empresas cadastradas.</p>
                 </a>

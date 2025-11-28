@@ -20,6 +20,15 @@ async function getUsuarioConta() {
 document.addEventListener('DOMContentLoaded', async () => {
   await getUsuarioConta();
 
+  // Event listener para logout
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+  }
+
   // Dropdown Header
   const userMenuBtn = document.getElementById('userMenuBtn');
   const userMenu = document.getElementById('userMenu');
