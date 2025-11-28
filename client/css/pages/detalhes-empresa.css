@@ -1,19 +1,21 @@
 /* detalhes-empresa.css */
 @import url('/css/pages/common-page.css');
 
-h3 {
-    color: #007bff;
+/* Títulos */
+.h1, h1, h2, h3 {
+    font-weight: 600;
+    color: var(--primary-600);
 }
 
 h2 {
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 2px solid var(--primary);
     padding-bottom: 0.5rem;
     margin-top: 2rem;
     margin-bottom: 1rem;
 }
 
 .section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
 }
 
 .info-grid {
@@ -23,89 +25,114 @@ h2 {
 }
 
 .info-item {
-    background-color: #f8f9fa;
-    padding: 0.8rem;
-    border-radius: 4px;
-    border-left: 4px solid #007bff;
+    background-color: var(--card-bg);
+    padding: 0.9rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    position: relative;
+}
+.info-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--primary), var(--primary-600));
+    border-radius: 4px 0 0 4px;
 }
 
 .info-label {
     display: block;
-    font-weight: bold;
-    font-size: 0.85rem;
-    color: #555;
-    margin-bottom: 0.25rem;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: .5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
 }
 
 .info-value {
-    font-size: 1rem;
+    font-size: 0.95rem;
+    color: var(--neutral-700);
+    word-break: break-word;
 }
 
 .socio-card,
 .filial-card {
-    background-color: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 1.5rem;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem 1.25rem 1rem;
     margin-bottom: 1rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    position: relative;
+}
+.socio-card::before, .filial-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 4px;
+    background: linear-gradient(90deg,var(--primary),var(--primary-600));
+    border-radius: 8px 8px 0 0;
 }
 
 .document-list {
     list-style: none;
     padding: 0;
+    margin: 0;
 }
 
 .document-list li {
-    background-color: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.9rem;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 1rem;
     position: relative;
+    transition: box-shadow .15s ease, border-color .15s ease;
+}
+.document-list li:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    border-color: #d9e7ff;
 }
 
 .action-buttons {
-    margin-top: 2rem;
+    margin-top: 2.25rem;
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     flex-wrap: wrap;
 }
+.action-buttons button { flex: 0 1 auto; }
 
-.btn-back {
-    background-color: #6c757d;
-}
+/* Variantes de botões (usam base de common-page) */
+.btn-back { background-color: var(--muted); }
+.btn-back:hover { background-color: #5a6268; }
 
-.btn-edit {
-    background-color: #ffc107;
-    color: #212529;
-}
+.btn-edit { background-color: #ffca2c; color: #212529; }
+.btn-edit:hover { background-color: #e0b524; }
 
-.btn-download {
-    background-color: #28a745;
-}
+.btn-download { background-color: #28a745; }
+.btn-download:hover { background-color: #218838; }
 
-.btn-pdf {
-    background-color: #dc3545;
-}
-
-.btn-pdf:hover {
-    background-color: #c82333;
-}
+.btn-pdf { background-color: var(--danger); }
+.btn-pdf:hover { background-color: #c82333; }
 
 /* Seleção de documentos */
 .document-selection-header {
-    background: #e7f3ff;
-    padding: 1rem;
-    border-radius: 4px;
-    margin-bottom: 1rem;
+    background: var(--accent-bg);
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
+    border: 1px solid var(--accent-border);
 }
 
 .selection-actions {
@@ -115,8 +142,10 @@ h2 {
 }
 
 .selection-actions button {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.8rem;
+    line-height: 1.1;
+    border-radius: 6px;
 }
 
 .doc-checkbox {
@@ -131,28 +160,22 @@ h2 {
     display: flex;
     align-items: center;
     flex: 1;
+    font-weight: 500;
 }
 
 .selected-count {
     font-weight: 600;
-    color: #007bff;
+    color: var(--primary-600);
+    font-size: 0.85rem;
+    letter-spacing: .5px;
+    text-transform: uppercase;
 }
 
-.btn-select-all {
-    background-color: #17a2b8;
-}
+.btn-select-all { background-color: #0ea5e9; }
+.btn-select-all:hover { background-color: #0284c7; }
 
-.btn-select-all:hover {
-    background-color: #138496;
-}
-
-.btn-deselect-all {
-    background-color: #6c757d;
-}
-
-.btn-deselect-all:hover {
-    background-color: #5a6268;
-}
+.btn-deselect-all { background-color: var(--muted); }
+.btn-deselect-all:hover { background-color: #5a6268; }
 
 /* Modal de Autenticação */
 .auth-modal {
@@ -162,109 +185,93 @@ h2 {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.45);
     z-index: 9999;
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(2px);
 }
 
-.auth-modal.show {
-    display: flex;
-}
+.auth-modal.show { display: flex; }
 
 .auth-modal-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 2rem 2rem 1.5rem;
+    border-radius: 12px;
     width: 90%;
-    max-width: 400px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    max-width: 420px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+    border: 1px solid var(--border);
 }
 
 .auth-modal-content h2 {
     margin-top: 0;
-    color: #007bff;
+    color: var(--primary-600);
+    font-weight: 600;
 }
 
 .auth-modal-content p {
-    font-size: 0.95rem;
-    color: #555;
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.4;
 }
 
 .auth-modal-form {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.9rem;
+    margin-top: 0.5rem;
 }
 
 .auth-modal-form input {
-    padding: 0.8rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1rem;
+    padding: 0.7rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color .15s, box-shadow .15s;
+}
+.auth-modal-form input:focus {
+    outline: none;
+    border-color: var(--primary-600);
+    box-shadow: 0 0 0 0.2rem var(--focus-ring);
 }
 
-.auth-modal-form button {
-    margin: 0;
-}
-
-.auth-modal-buttons {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.auth-modal-buttons button {
-    flex: 1;
-}
-
-.auth-modal-buttons .btn-cancel {
-    background-color: #6c757d;
-}
-
-.auth-modal-buttons .btn-cancel:hover {
-    background-color: #545b62;
-}
+.auth-modal-buttons { display: flex; gap: 0.75rem; margin-top: 0.25rem; }
+.auth-modal-buttons button { flex: 1; }
+.auth-modal-buttons .btn-cancel { background-color: var(--muted); }
+.auth-modal-buttons .btn-cancel:hover { background-color: #545b62; }
 
 /* Senha protegida */
 .senha-certificado-container {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
 }
-
-.senha-certificado-container input {
-    flex: 1;
-}
+.senha-certificado-container input { flex: 1; }
 
 .btn-show-senha {
-    background-color: #17a2b8;
+    background-color: #0ea5e9;
     padding: 0.6rem 0.8rem;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
 }
+.btn-show-senha:hover { background-color: #0284c7; }
 
-.btn-show-senha:hover {
-    background-color: #138496;
-}
+/* Estado oculto reutilizável */
+.hidden { display: none !important; }
+
+/* Rodapé de impressão */
+.print-footer { text-align: center; font-size: 0.7rem; color: var(--muted); margin-top: 2rem; }
 
 /* Impressão/PDF */
 @media print {
-    body {
-        background-color: white;
-        margin: 0;
-        padding: 20px;
-    }
-    .header,
-    .action-buttons,
-    .document-selection-header,
-    .btn-download,
-    .btn-delete,
-    .doc-checkbox,
-    button {
-        display: none !important;
-    }
-    .container {
-        box-shadow: none;
-        max-width: 100%;
-        padding: 0;
-    }
+    body { background-color: #fff; margin: 0; padding: 12px 24px; }
+    .header, .action-buttons, .document-selection-header, .btn-download, .btn-delete, .doc-checkbox, button { display: none !important; }
+    .container { box-shadow: none; max-width: 100%; padding: 0; }
+    .info-item, .socio-card, .filial-card { page-break-inside: avoid; }
+    h2 { border: none; margin-top: 1.2rem; }
 }
+
