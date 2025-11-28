@@ -207,14 +207,6 @@ async function stopImpersonating(event) {
 document.addEventListener('DOMContentLoaded', async () => {
     await getUsuario();
 
-    // Lógica para o menu dropdown do usuário
-    const userMenuBtn = document.getElementById('userMenuBtn');
-    const userMenu = document.getElementById('userMenu');
-
-    if (userMenuBtn) {
-        userMenuBtn.addEventListener('click', () => userMenu.classList.toggle('show'));
-    }
-
     // Lógica para mostrar/esconder os formulários de configuração
     document.getElementById('togglePasswordBtn').addEventListener('click', (e) => {
         e.preventDefault();

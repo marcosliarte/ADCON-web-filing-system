@@ -584,14 +584,7 @@
             await getUsuario();
             // A função createHeaderFromHome foi removida pois sua lógica foi integrada aqui.
             // O cabeçalho agora é criado dentro de getUsuario().
-
-            // Lógica para o menu dropdown do usuário
-            const userMenuBtn = document.getElementById('userMenuBtn');
-            const userMenu = document.getElementById('userMenu');
-
-            if (userMenuBtn) {
-                userMenuBtn.addEventListener('click', () => userMenu.classList.toggle('show'));
-            }
+            // A lógica do dropdown do menu de usuário está no arquivo home.js
 
             // Lógica para mostrar/esconder os formulários de configuração
             document.getElementById('togglePasswordBtn').addEventListener('click', (e) => {
