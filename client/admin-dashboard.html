@@ -32,13 +32,13 @@
         <div style="background:white; border-radius:8px; width:95%; max-width:900px; max-height:90vh; overflow:auto; padding:1.5rem; box-shadow:0 8px 24px rgba(0,0,0,0.3);">
             <h3 style="margin-top:0; color:#007bff; display:flex; justify-content:space-between; align-items:center;">
                 <span>🔍 Análise do Backup</span>
-                <button onclick="closeAnalyzeModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#999;">×</button>
+                <button id="closeAnalyzeModalBtn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#999;">×</button>
             </h3>
             <div id="analyzeBackupContent" style="margin-top:1rem;">
                 <p>Carregando análise...</p>
             </div>
             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1.5rem; padding-top:1rem; border-top:1px solid #dee2e6;">
-                <button onclick="closeAnalyzeModal()" style="padding:8px 16px; border-radius:5px; border:none; background:#6c757d; color:white; cursor:pointer;">Fechar</button>
+                <button id="closeAnalyzeModalBtn2" style="padding:8px 16px; border-radius:5px; border:none; background:#6c757d; color:white; cursor:pointer;">Fechar</button>
                 <button id="downloadFromAnalyzeBtn" style="padding:8px 16px; border-radius:5px; border:none; background:#28a745; color:white; cursor:pointer;">📥 Baixar Backup</button>
                 <button id="restoreFromAnalyzeBtn" style="padding:8px 16px; border-radius:5px; border:none; background:#007bff; color:white; cursor:pointer;">🔄 Restaurar</button>
             </div>
@@ -69,10 +69,10 @@
                     <label style="font-size:0.9rem;">Até: <input type="date" id="filter-end" style="margin-left:6px"></label>
                     <label style="font-size:0.9rem;">Usuário: <select id="filter-user" style="margin-left:6px"><option value="">Todos</option></select></label>
                     <label style="font-size:0.9rem;">Ação/Texto: <input id="filter-action" placeholder="Buscar texto..." style="margin-left:6px"></label>
-                    <button onclick="applyLogFilters()">Aplicar Filtros</button>
-                    <button onclick="exportLogsCSV()">Exportar Logs (CSV)</button>
-                    <button onclick="exportUsersCSV()" style="background:#28a745">Exportar Usuários (CSV)</button>
-                    <button onclick="exportStatsCSV()" style="background:#17a2b8">Exportar Estatísticas (CSV)</button>
+                    <button id="btn-apply-filters">Aplicar Filtros</button>
+                    <button id="btn-export-logs">Exportar Logs (CSV)</button>
+                    <button id="btn-export-users" style="background:#28a745">Exportar Usuários (CSV)</button>
+                    <button id="btn-export-stats" style="background:#17a2b8">Exportar Estatísticas (CSV)</button>
                     <a href="logs.html"><button style="background:#6c757d">Ver todos os logs</button></a>
                 </div>
             </div>
@@ -107,12 +107,12 @@
             <!-- Widget de Backup -->
             <div class="widget">
                 <h3>Backup e Restauração</h3>
-                <button onclick="criarBackup()">Criar Backup Agora</button>
+                <button id="btn-criar-backup">Criar Backup Agora</button>
                 <!-- CAMPO PARA CARREGAR BACKUP -->
                 <div style="margin-top: 1rem; border-top: 1px solid #eee; padding-top: 1rem;">
                     <label for="backup-file-input" style="display: block; margin-bottom: 0.5rem;">Ou carregue um arquivo de backup (.zip) para restaurar:</label>
                     <input type="file" id="backup-file-input" accept=".zip" style="font-size: 0.9rem;">
-                    <button onclick="carregarBackup()" style="margin-top: 0.5rem;">Carregar e Restaurar</button>
+                    <button id="btn-carregar-backup" style="margin-top: 0.5rem;">Carregar e Restaurar</button>
                 </div>
 
                 <div id="backup-status" style="margin-top: 1rem;"></div>
@@ -580,10 +580,10 @@
                             <small>${new Date(backup.createdAt).toLocaleString('pt-BR')} - ${backup.size} MB</small>
                         </div>
                         <div class="backup-actions">
-                            <button class="btn-analyze" onclick="analisarBackup('${backup.filename}')" title="Visualizar conteúdo do backup">🔍 Analisar</button>
-                            <a href="#" onclick="baixarBackup(event, '${backup.filename}')"><button class="btn-download">Baixar</button></a>
-                            <button class="btn-restore" onclick="restaurarBackup('${backup.filename}')">Restaurar</button>
-                            <button class="btn-delete" onclick="excluirBackup('${backup.filename}')">Excluir</button>
+                            <button class="btn-analyze" data-filename="${backup.filename}" title="Visualizar conteúdo do backup">🔍 Analisar</button>
+                            <button class="btn-download" data-filename="${backup.filename}">Baixar</button>
+                            <button class="btn-restore" data-filename="${backup.filename}">Restaurar</button>
+                            <button class="btn-delete" data-filename="${backup.filename}">Excluir</button>
                         </div>
                     `;
                     list.appendChild(item);
@@ -911,6 +911,42 @@
                 btnCancel.addEventListener('click', onCancel);
             });
         }
+
+        // Event Listeners - Removendo onclick inline
+        document.addEventListener('DOMContentLoaded', () => {
+            // Modal de análise - botões de fechar
+            document.getElementById('closeAnalyzeModalBtn')?.addEventListener('click', closeAnalyzeModal);
+            document.getElementById('closeAnalyzeModalBtn2')?.addEventListener('click', closeAnalyzeModal);
+
+            // Botões de filtro e export
+            document.getElementById('btn-apply-filters')?.addEventListener('click', applyLogFilters);
+            document.getElementById('btn-export-logs')?.addEventListener('click', exportLogsCSV);
+            document.getElementById('btn-export-users')?.addEventListener('click', exportUsersCSV);
+            document.getElementById('btn-export-stats')?.addEventListener('click', exportStatsCSV);
+
+            // Botões de backup
+            document.getElementById('btn-criar-backup')?.addEventListener('click', criarBackup);
+            document.getElementById('btn-carregar-backup')?.addEventListener('click', carregarBackup);
+
+            // Event delegation para botões dinâmicos de backup
+            document.getElementById('backup-list')?.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+
+                const filename = btn.dataset.filename;
+                if (!filename) return;
+
+                if (btn.classList.contains('btn-analyze')) {
+                    analisarBackup(filename);
+                } else if (btn.classList.contains('btn-download')) {
+                    baixarBackup(e, filename);
+                } else if (btn.classList.contains('btn-restore')) {
+                    restaurarBackup(filename);
+                } else if (btn.classList.contains('btn-delete')) {
+                    excluirBackup(filename);
+                }
+            });
+        });
     </script>
 </body>
 </html>

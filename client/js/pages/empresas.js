@@ -24,11 +24,53 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
  
         carregarEmpresas(); // CORREÇÃO: Não precisa de 'await' aqui, a função já é assíncrona.
+        
+        // Event Listeners - Removendo onclick inline
+        setupEventListeners();
     } catch (error) {
         console.error("Erro na inicialização da página de empresas:", error);
         logout();
     }
 });
+
+function setupEventListeners() {
+    // Botão de cadastrar nova empresa
+    const btnCadastrar = document.getElementById('btn-cadastrar');
+    if (btnCadastrar) {
+        btnCadastrar.addEventListener('click', () => {
+            window.location.href = 'cliente-formulario.html';
+        });
+    }
+
+    // Headers de ordenação
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+            const sortField = th.dataset.sort;
+            if (sortField) ordenarPor(sortField);
+        });
+    });
+
+    // Botões de paginação
+    document.getElementById('btn-anterior')?.addEventListener('click', paginaAnterior);
+    document.getElementById('btn-proximo')?.addEventListener('click', proximaPagina);
+
+    // Event delegation para botões de ação da tabela (gerados dinamicamente)
+    document.getElementById('lista-empresas')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+
+        if (action === 'visualizar') {
+            window.location.href = `detalhes-empresa.html?id=${id}`;
+        } else if (action === 'editar') {
+            window.location.href = `editar.html?id=${id}`;
+        } else if (action === 'excluir') {
+            excluirEmpresa(id);
+        }
+    });
+}
 
 async function carregarEmpresas() {
     const tbody = document.getElementById('lista-empresas');
@@ -69,9 +111,9 @@ async function carregarEmpresas() {
             // CORREÇÃO: Lógica de permissão para os botões de ação
             if (usuario && ['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
                 acoesCell.innerHTML = `
-                    <button onclick="window.location.href='detalhes-empresa.html?id=${empresa._id}'">Visualizar</button>
-                    <button onclick="window.location.href='editar.html?id=${empresa._id}'" style="background-color: #ffc107; color: #212529;">Editar</button>
-                    <button onclick="excluirEmpresa('${empresa._id}')" class="delete-btn">Excluir</button>
+                    <button data-action="visualizar" data-id="${empresa._id}">Visualizar</button>
+                    <button data-action="editar" data-id="${empresa._id}" style="background-color: #ffc107; color: #212529;">Editar</button>
+                    <button data-action="excluir" data-id="${empresa._id}" class="delete-btn">Excluir</button>
                 `;
             }
         });
