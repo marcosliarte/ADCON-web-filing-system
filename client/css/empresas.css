@@ -1,0 +1,226 @@
+/* empresas.css - Estilos da página de empresas cadastradas */
+
+/* --- Layout da Página --- */
+.page-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.page-container h1 {
+    color: var(--primary, #007bff);
+    border-bottom: 2px solid var(--primary, #007bff);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* --- Tabela --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1em;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+    cursor: pointer;
+}
+
+th:hover {
+    background-color: #e0e0e0;
+}
+
+/* Estilo para os links dos nomes das empresas na tabela */
+#lista-empresas a {
+    color: var(--primary, #007bff);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+#lista-empresas a:visited {
+    color: var(--primary, #007bff);
+}
+
+#lista-empresas a:hover {
+    text-decoration: underline;
+}
+
+/* --- Busca e Autocomplete --- */
+.search-container {
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+.search-wrapper {
+    position: relative;
+    flex-grow: 1;
+}
+
+.search-container input {
+    padding: 0.6rem;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    width: 100%;
+}
+
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 400px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: none;
+}
+
+.autocomplete-list.active {
+    display: block;
+}
+
+.autocomplete-item {
+    padding: 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.autocomplete-item:hover {
+    background-color: var(--primary, #007bff);
+    color: white;
+}
+
+.autocomplete-item strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.autocomplete-item small {
+    color: #6c757d;
+}
+
+.autocomplete-item:hover small {
+    color: #e3f2fd;
+}
+
+.autocomplete-empty {
+    padding: 0.75rem;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* --- Botões --- */
+button.delete-btn {
+    background-color: var(--danger, #dc3545);
+}
+
+button.delete-btn:hover {
+    background-color: #c82333;
+}
+
+/* --- Paginação --- */
+.pagination {
+    margin-top: 1em;
+}
+
+.pagination button {
+    margin: 0 5px;
+}
+
+/* --- Ações na Tabela --- */
+.actions button {
+    margin-right: 5px;
+}
+
+/* --- Loading Indicator --- */
+.loading {
+    margin-left: 10px;
+    font-style: italic;
+    color: #555;
+}
+
+/* --- Setas de Ordenação --- */
+.arrow {
+    display: inline-block;
+    margin-left: 5px;
+}
+
+/* --- Responsividade para Tabelas --- */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* --- MOBILE / RESPONSIVE --- */
+@media (max-width: 800px) {
+    .page-container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+
+    .page-container h1 {
+        font-size: 1.25rem;
+    }
+
+    .search-container {
+        flex-direction: column;
+    }
+
+    .search-container input,
+    .search-container button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    th, td {
+        padding: 6px;
+        font-size: 0.9rem;
+    }
+
+    table {
+        min-width: 480px;
+    }
+
+    .actions button {
+        display: block;
+        width: 100%;
+        margin: 4px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-container {
+        padding: 0.75rem;
+    }
+
+    .page-container h1 {
+        font-size: 1.1rem;
+    }
+
+    table {
+        min-width: 420px;
+        font-size: 0.85rem;
+    }
+}

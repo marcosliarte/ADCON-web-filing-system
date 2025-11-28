@@ -1,81 +1,242 @@
-require('dotenv').config(); // Carrega as variáveis de ambiente do arquivo .env
+require('dotenv').config(); // Carrega .env localmente, se existir
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose'); // Importe o Mongoose
-const path = require('path'); // Módulo para lidar com caminhos de arquivos
-const os = require('os'); // Módulo para obter informações do sistema operacional, como o IP
-const helmet = require('helmet'); // Para segurança dos cabeçalhos HTTP
-const mongoSanitize = require('express-mongo-sanitize'); // Para prevenir NoSQL Injection
+const mongoose = require('mongoose');
+const path = require('path');
+const os = require('os');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const rateLimit = require('express-rate-limit');
+
+// Importar configurações de segurança
+const securityConfig = require('./config/security');
+const { errorHandler, notFound } = require('./middleware/errorHandler');
 
 // Importar rotas
 const authRoutes = require('./routes/rota-auth');
 const empresaRoutes = require('./routes/rota-empresas');
 const mensalidadeRoutes = require('./routes/rota-mensalidades');
-const relatoriosRoutes = require('./routes/rota-relatorios'); // ROTA DE RELATÓRIOS
-const configuracaoRoutes = require('./routes/rota-configuracao'); // NOVA ROTA
+const relatoriosRoutes = require('./routes/rota-relatorios');
+const configuracaoRoutes = require('./routes/rota-configuracao');
+const funcionarioRoutes = require('./routes/rota-funcionarios');
+const pagamentosRoutes = require('./routes/rota-pagamentos');
+const adminRoutes = require('./routes/rota-admin');
+const notificacoesRoutes = require('./routes/rota-notificacoes');
+const compartilhamentoRoutes = require('./routes/rota-compartilhamento');
+const faturamentoRoutes = require('./routes/rota-faturamento');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGODB_URI;
 
-// Conectar ao MongoDB
+// ⚠️ Necessário para o Render (proxy reverse)
+app.set("trust proxy", 1);
+
+const PORT = process.env.PORT || 3000;
+
+// Validação crítica do JWT_SECRET
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+    console.error('❌ ERRO CRÍTICO: JWT_SECRET não configurado ou muito fraco!');
+    console.error('   Gere um com: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+    process.exit(1);
+}
+
+// -----------------------------
+//       CONFIGURAÇÃO DO MONGODB
+// -----------------------------
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
+
+if (!MONGODB_URI) {
+    console.error('Erro: MONGODB_URI não está definida!');
+    process.exit(1);
+}
+
+// Conectar ao MongoDB (versão moderna, sem warnings)
 mongoose.connect(MONGODB_URI)
-.then(() => console.log('Conectado ao MongoDB'))
+.then(() => console.log(`MongoDB conectado (${MONGODB_URI.includes('127.0.0.1') ? 'local' : 'produção'})...`))
 .catch(err => {
     console.error('Erro ao conectar ao MongoDB:', err);
-    process.exit(1); // Encerra a aplicação se não conseguir conectar ao DB
+    process.exit(1);
 });
 
-// --- ORDEM CORRETA DOS MIDDLEWARES ---
+// -----------------------------
+//       MIDDLEWARES
+// -----------------------------
 
-// 1. Middlewares de Segurança primeiro
-app.use(
-  helmet.contentSecurityPolicy({
+// Encontra o IP local para adicionar à CSP em ambiente de desenvolvimento
+const interfaces = os.networkInterfaces();
+let localIpAddress = 'localhost';
+for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+        if ('IPv4' !== iface.family || iface.internal !== false) continue;
+        localIpAddress = iface.address;
+        break;
+    }
+}
+
+// -----------------------------
+//    SEGURANÇA - HELMET
+// -----------------------------
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+app.use(helmet({
+  hsts: !isDevelopment, // HSTS apenas em produção
+  contentSecurityPolicy: isDevelopment ? false : {
     directives: {
-      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "script-src": ["'self'", "'unsafe-inline'"], // Permite <script> tags
-      "connect-src": ["'self'", "https://viacep.com.br", "https://servicodados.ibge.gov.br"], // Permite conexão com ViaCEP e IBGE
-      "script-src-attr": ["'self'", "'unsafe-inline'"], // Permite onclick="", etc.
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"], // Considere remover unsafe-inline em produção
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
     },
-  })
-);
-app.use(mongoSanitize()); // Previne NoSQL Injection
+  },
+  frameguard: { action: 'deny' }, // Previne clickjacking
+  noSniff: true, // Previne MIME sniffing
+  xssFilter: true, // XSS protection
+}));
 
-// 2. Middlewares de parsing e CORS
-app.use(cors());
-app.use(express.json());
+// -----------------------------
+//    SEGURANÇA - SANITIZAÇÃO
+// -----------------------------
+// Previne NoSQL Injection removendo $ e . de req.body, req.query, req.params
+app.use(mongoSanitize({
+  replaceWith: '_',
+  onSanitize: ({ req, key }) => {
+    console.warn(`⚠️ Tentativa de NoSQL Injection detectada: ${key} em ${req.path}`);
+  },
+}));
 
-// 3. Middlewares de Rota
+// -----------------------------
+//    SEGURANÇA - RATE LIMITING
+// -----------------------------
+const generalLimiter = rateLimit({
+  windowMs: securityConfig.rateLimit.windowMs,
+  max: securityConfig.rateLimit.max,
+  message: 'Muitas requisições deste IP, tente novamente mais tarde',
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    console.warn(`⚠️ Rate limit excedido: ${req.ip} em ${req.path}`);
+    res.status(429).json({
+      msg: 'Muitas requisições deste IP, tente novamente em 15 minutos',
+    });
+  },
+});
+
+app.use(generalLimiter);
+
+// -----------------------------
+//    CORS E PARSING
+// -----------------------------
+app.use(cors(securityConfig.cors));
+app.use(express.json({ limit: '10mb' })); // Limite de tamanho do payload JSON
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Middleware para logar todas as requisições recebidas
+app.use((req, res, next) => {
+  console.log(`[${new Date().toLocaleString('pt-BR')}] Requisição recebida: ${req.method} ${req.originalUrl} de ${req.ip}`);
+  next();
+});
+
+// -----------------------------
+//       ROTAS DA API
+// -----------------------------
 app.use('/api/auth', authRoutes);
-// A linha acima já lida com todas as rotas de autenticação, incluindo /api/auth/admin/users
 app.use('/api/empresas', empresaRoutes);
-app.use('/api/mensalidades', mensalidadeRoutes); // ROTA REGISTRADA
-app.use('/api/relatorios', relatoriosRoutes); // REGISTRANDO ROTA DE RELATÓRIOS
-app.use('/api/configuracao', configuracaoRoutes); // REGISTRANDO NOVA ROTA
+app.use('/api/mensalidades', mensalidadeRoutes);
+app.use('/api/relatorios', relatoriosRoutes);
+app.use('/api/configuracao', configuracaoRoutes);
+app.use('/api/funcionarios', funcionarioRoutes);
+app.use('/api/pagamentos', pagamentosRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/notificacoes', notificacoesRoutes);
+app.use('/api/faturamento', faturamentoRoutes);
+// app.use('/api/compartilhamento', compartilhamentoRoutes); // Desativado - funcionalidade removida
 
-// 4. Middlewares para servir arquivos estáticos (frontend e uploads)
+// -----------------------------
+//       ARQUIVOS ESTÁTICOS
+// -----------------------------
 app.use(express.static('client'));
 app.use('/assets', express.static(path.join(__dirname, 'client/assets')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/js/config.js', express.static(path.join(__dirname, 'config.js')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // ⚠️ Apenas temporário no Render
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor rodando!`);
-    console.log(`JWT_SECRET carregado: ${process.env.JWT_SECRET ? 'Sim' : 'Não'}`); // Adicionado para debug
+// -----------------------------
+//       ROTAS ADICIONAIS
+// -----------------------------
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/login.html'));
+});
+
+app.get('/healthz', (req, res) => res.status(200).send('OK'));
+
+// -----------------------------
+//    TRATAMENTO DE ERROS
+// -----------------------------
+// Rota não encontrada (404) - deve vir ANTES do errorHandler
+app.use(notFound);
+
+// Handler centralizado de erros - deve ser o ÚLTIMO middleware
+app.use(errorHandler);
+
+// -----------------------------
+//       INICIAR SERVIDOR
+// -----------------------------
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log('\n' + '='.repeat(60));
+    console.log('🚀 ADCON WEB FILING SYSTEM - SERVIDOR INICIADO');
+    console.log('='.repeat(60));
+    console.log(`📅 Data/Hora: ${new Date().toLocaleString('pt-BR')}`);
+    console.log(`🌍 Ambiente: ${isDevelopment ? 'DESENVOLVIMENTO' : 'PRODUÇÃO'}`);
+    console.log(`🔌 Porta: ${PORT}`);
+    console.log(`🔐 JWT_SECRET: ${process.env.JWT_SECRET ? '✅ Configurado' : '❌ NÃO CONFIGURADO'}`);
+    console.log(`💾 MongoDB: ${MONGODB_URI.includes('127.0.0.1') ? '🏠 Local' : '☁️ Atlas'}`);
     
-    // Função para encontrar o endereço IP local
-    const interfaces = os.networkInterfaces();
-    let ipAddress = 'localhost';
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            // Pula endereços internos (ex: 127.0.0.1) e não-ipv4
-            if ('IPv4' !== iface.family || iface.internal !== false) {
-                continue;
-            }
-            ipAddress = iface.address;
-            break;
-        }
+    console.log('\n📡 URLs de Acesso:');
+    console.log(`   Local:  http://localhost:${PORT}/login.html`);
+    console.log(`   Rede:   http://${localIpAddress}:${PORT}/login.html`);
+    
+    if (process.env.RENDER_EXTERNAL_URL) {
+        console.log(`   Online: ${process.env.RENDER_EXTERNAL_URL}`);
     }
+    
+    console.log('\n🔒 Segurança:');
+    console.log(`   ✅ Helmet ativado`);
+    console.log(`   ✅ Rate limiting ativado (${securityConfig.rateLimit.max} req/${securityConfig.rateLimit.windowMs}ms)`);
+    console.log(`   ✅ NoSQL Injection protection`);
+    console.log(`   ✅ CORS configurado`);
+    
+    if (!isDevelopment) {
+        console.log(`   ✅ HSTS ativado`);
+        console.log(`   ✅ CSP ativado`);
+    } else {
+        console.log(`   ⚠️ HSTS desativado (desenvolvimento)`);
+        console.log(`   ⚠️ CSP desativado (desenvolvimento)`);
+    }
+    
+    console.log('\n' + '='.repeat(60) + '\n');
+});
 
-    console.log(`\nAcesse a aplicação localmente em: http://localhost:${PORT}/login.html`);
-    console.log(`Acesse na sua rede em:          http://${ipAddress}:${PORT}/login.html\n`);
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM recebido, encerrando servidor...');
+    server.close(() => {
+        console.log('✅ Servidor encerrado');
+        mongoose.connection.close(false, () => {
+            console.log('✅ MongoDB desconectado');
+            process.exit(0);
+        });
+    });
+});
+
+process.on('SIGINT', () => {
+    console.log('\n🛑 SIGINT recebido, encerrando servidor...');
+    server.close(() => {
+        console.log('✅ Servidor encerrado');
+        mongoose.connection.close(false, () => {
+            console.log('✅ MongoDB desconectado');
+            process.exit(0);
+        });
+    });
 });
