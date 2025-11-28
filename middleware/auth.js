@@ -12,7 +12,18 @@ module.exports = function (req, res, next) {
 
   // Verificar token
   try {
+    // Validar JWT_SECRET está configurado
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+      console.error('⚠️ JWT_SECRET não configurado corretamente!');
+      return res.status(500).json({ msg: 'Erro de configuração do servidor' });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Validar estrutura do token
+    if (!decoded.usuario || !decoded.usuario.id) {
+      return res.status(401).json({ msg: 'Token inválido' });
+    }
 
     req.usuario = decoded.usuario;
     
@@ -26,6 +37,14 @@ module.exports = function (req, res, next) {
     
     next();
   } catch (err) {
-    res.status(401).json({ msg: 'Token inválido' });
+    // Diferentes tipos de erro JWT
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ msg: 'Token expirado', expired: true });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ msg: 'Token inválido' });
+    }
+    // Erro genérico
+    return res.status(401).json({ msg: 'Falha na autenticação' });
   }
 };

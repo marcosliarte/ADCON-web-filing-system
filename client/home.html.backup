@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>ADCON - Página Inicial</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
     <style>
         /* --- Reset e Estilos Base --- */
         * {
@@ -328,11 +327,6 @@
         /* Toasts (fallback styling if shared.js not loaded yet) */
         #toast-container .toast { font-size:0.95rem }
     </style>
-=======
-    <link rel="stylesheet" href="css/global.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/home.css">
->>>>>>> refactor
 </head>
 <body style="display: none;">
     <!-- Script de bloqueio de acesso e exibição de conteúdo -->
@@ -344,8 +338,6 @@
         }
     </script>
     <script src="shared.js"></script>
-
-    <div id="impersonation-banner"></div>
 
     <div id="impersonation-banner"></div>
 
@@ -512,7 +504,6 @@
         &copy; 2025 ADCON. Todos os direitos reservados.
     </div>
 
-<<<<<<< HEAD
     <script>
         let usuario;
 
@@ -822,9 +813,5 @@
             }
         }
     </script>
-=======
-    <script src="shared.js"></script>
-    <script src="js/pages/home.js"></script>
->>>>>>> refactor
 </body>
 </html>
