@@ -27,6 +27,24 @@
         </div>
     </div>
 
+    <!-- Modal de Análise de Backup -->
+    <div id="analyzeBackupModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9998; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:8px; width:95%; max-width:900px; max-height:90vh; overflow:auto; padding:1.5rem; box-shadow:0 8px 24px rgba(0,0,0,0.3);">
+            <h3 style="margin-top:0; color:#007bff; display:flex; justify-content:space-between; align-items:center;">
+                <span>🔍 Análise do Backup</span>
+                <button onclick="closeAnalyzeModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#999;">×</button>
+            </h3>
+            <div id="analyzeBackupContent" style="margin-top:1rem;">
+                <p>Carregando análise...</p>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1.5rem; padding-top:1rem; border-top:1px solid #dee2e6;">
+                <button onclick="closeAnalyzeModal()" style="padding:8px 16px; border-radius:5px; border:none; background:#6c757d; color:white; cursor:pointer;">Fechar</button>
+                <button id="downloadFromAnalyzeBtn" style="padding:8px 16px; border-radius:5px; border:none; background:#28a745; color:white; cursor:pointer;">📥 Baixar Backup</button>
+                <button id="restoreFromAnalyzeBtn" style="padding:8px 16px; border-radius:5px; border:none; background:#007bff; color:white; cursor:pointer;">🔄 Restaurar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <h1 class="page-title">Central do Administrador</h1>
 
@@ -562,6 +580,7 @@
                             <small>${new Date(backup.createdAt).toLocaleString('pt-BR')} - ${backup.size} MB</small>
                         </div>
                         <div class="backup-actions">
+                            <button class="btn-analyze" onclick="analisarBackup('${backup.filename}')" title="Visualizar conteúdo do backup">🔍 Analisar</button>
                             <a href="#" onclick="baixarBackup(event, '${backup.filename}')"><button class="btn-download">Baixar</button></a>
                             <button class="btn-restore" onclick="restaurarBackup('${backup.filename}')">Restaurar</button>
                             <button class="btn-delete" onclick="excluirBackup('${backup.filename}')">Excluir</button>
@@ -587,6 +606,123 @@
             } catch (error) {
                 statusDiv.innerHTML = `<p style="color: red;">${error.message}</p>`;
             }
+        }
+
+        // Funções de análise de backup
+        let currentAnalyzedBackup = null;
+
+        async function analisarBackup(filename) {
+            currentAnalyzedBackup = filename;
+            const modal = document.getElementById('analyzeBackupModal');
+            const content = document.getElementById('analyzeBackupContent');
+            
+            modal.style.display = 'flex';
+            content.innerHTML = '<p style="text-align:center;"><em>Carregando análise do backup...</em></p>';
+            
+            try {
+                const response = await fetchWithAuth(`/api/admin/backup/analyze/${filename}`);
+                if (!response.ok) throw new Error('Falha ao analisar backup.');
+                
+                const data = await response.json();
+                
+                content.innerHTML = `
+                    <div style="background:#f8f9fa; padding:1rem; border-radius:5px; margin-bottom:1rem;">
+                        <h4 style="margin-top:0; color:#495057;">📁 Informações do Arquivo</h4>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.5rem;">
+                            <div><strong>Nome:</strong> ${data.filename}</div>
+                            <div><strong>Tamanho:</strong> ${data.size}</div>
+                            <div><strong>Data:</strong> ${new Date(data.createdAt).toLocaleString('pt-BR')}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background:#e7f3ff; padding:1rem; border-radius:5px; border-left:4px solid #007bff; margin-bottom:1rem;">
+                        <h4 style="margin-top:0; color:#0056b3;">📊 Estatísticas do Banco de Dados</h4>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:0.8rem;">
+                            <div style="text-align:center; padding:0.5rem; background:white; border-radius:4px;">
+                                <div style="font-size:2rem; color:#007bff; font-weight:bold;">${data.database.collections.usuarios || 0}</div>
+                                <div style="font-size:0.9rem; color:#6c757d;">Usuários</div>
+                            </div>
+                            <div style="text-align:center; padding:0.5rem; background:white; border-radius:4px;">
+                                <div style="font-size:2rem; color:#28a745; font-weight:bold;">${data.database.collections.empresas || 0}</div>
+                                <div style="font-size:0.9rem; color:#6c757d;">Empresas</div>
+                            </div>
+                            <div style="text-align:center; padding:0.5rem; background:white; border-radius:4px;">
+                                <div style="font-size:2rem; color:#17a2b8; font-weight:bold;">${data.database.collections.funcionarios || 0}</div>
+                                <div style="font-size:0.9rem; color:#6c757d;">Funcionários</div>
+                            </div>
+                            <div style="text-align:center; padding:0.5rem; background:white; border-radius:4px;">
+                                <div style="font-size:2rem; color:#ffc107; font-weight:bold;">${data.database.collections.notificacoes || 0}</div>
+                                <div style="font-size:0.9rem; color:#6c757d;">Notificações</div>
+                            </div>
+                            <div style="text-align:center; padding:0.5rem; background:white; border-radius:4px;">
+                                <div style="font-size:2rem; color:#6610f2; font-weight:bold;">${data.database.collections.logs || 0}</div>
+                                <div style="font-size:0.9rem; color:#6c757d;">Logs</div>
+                            </div>
+                        </div>
+                        <div style="margin-top:1rem; padding:0.5rem; background:white; border-radius:4px;">
+                            <strong>Total de Coleções:</strong> ${data.database.totalCollections} | 
+                            <strong>Total de Documentos:</strong> ${data.database.totalDocuments}
+                        </div>
+                    </div>
+                    
+                    <div style="background:#fff3cd; padding:1rem; border-radius:5px; border-left:4px solid #ffc107; margin-bottom:1rem;">
+                        <h4 style="margin-top:0; color:#856404;">📂 Arquivos de Upload</h4>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.8rem;">
+                            <div style="padding:0.5rem; background:white; border-radius:4px;">
+                                <strong>Total de Arquivos:</strong> ${data.uploads.totalFiles}
+                            </div>
+                            <div style="padding:0.5rem; background:white; border-radius:4px;">
+                                <strong>Tamanho Total:</strong> ${data.uploads.totalSize}
+                            </div>
+                        </div>
+                        ${data.uploads.folders && data.uploads.folders.length > 0 ? `
+                            <div style="margin-top:1rem;">
+                                <strong>Pastas encontradas:</strong>
+                                <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+                                    ${data.uploads.folders.map(folder => `<li>${folder.name}: ${folder.count} arquivos</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div style="background:#d1ecf1; padding:1rem; border-radius:5px; border-left:4px solid #17a2b8;">
+                        <h4 style="margin-top:0; color:#0c5460;">ℹ️ Informações Adicionais</h4>
+                        <ul style="margin:0; padding-left:1.5rem;">
+                            <li>Este backup contém todos os dados do banco de dados MongoDB</li>
+                            <li>Os arquivos de upload serão restaurados na pasta uploads/</li>
+                            <li>Ao restaurar, os dados atuais serão substituídos</li>
+                            <li>Recomenda-se criar um backup atual antes de restaurar</li>
+                        </ul>
+                    </div>
+                `;
+                
+                // Configurar botões do modal
+                document.getElementById('downloadFromAnalyzeBtn').onclick = (e) => {
+                    e.preventDefault();
+                    baixarBackupDirect(filename);
+                };
+                
+                document.getElementById('restoreFromAnalyzeBtn').onclick = () => {
+                    closeAnalyzeModal();
+                    restaurarBackup(filename);
+                };
+                
+            } catch (error) {
+                content.innerHTML = `<p style="color:red; text-align:center;">❌ Erro ao analisar backup: ${error.message}</p>`;
+            }
+        }
+
+        function closeAnalyzeModal() {
+            document.getElementById('analyzeBackupModal').style.display = 'none';
+            currentAnalyzedBackup = null;
+        }
+
+        function baixarBackupDirect(filename) {
+            const url = `/api/admin/backup/download/${filename}`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
         }
 
         async function restaurarBackup(filename) {

@@ -311,6 +311,194 @@ router.get('/backup/list', (req, res) => {
     });
 });
 
+// @route   GET api/admin/backup/analyze/:filename
+// @desc    Analisar o conteúdo de um backup sem restaurá-lo
+router.get('/backup/analyze/:filename', async (req, res) => {
+    try {
+        const { filename } = req.params;
+        if (!filename) {
+            return res.status(400).json({ msg: 'Nome do arquivo de backup é obrigatório.' });
+        }
+
+        const backupFilePath = path.join(backupDir, filename);
+        if (!fs.existsSync(backupFilePath)) {
+            return res.status(404).json({ msg: 'Arquivo de backup não encontrado.' });
+        }
+
+        // Informações básicas do arquivo
+        const stats = fs.statSync(backupFilePath);
+        const fileInfo = {
+            filename,
+            size: (stats.size / (1024 * 1024)).toFixed(2) + ' MB',
+            createdAt: stats.birthtime,
+        };
+
+        // Criar diretório temporário para análise
+        const tempInspectDir = path.join('_temp_uploads', `temp-inspect-${Date.now()}`);
+        fs.mkdirSync(tempInspectDir, { recursive: true });
+
+        try {
+            // Extrair o ZIP
+            await new Promise((resolve, reject) => {
+                fs.createReadStream(backupFilePath)
+                    .pipe(unzipper.Extract({ path: tempInspectDir }))
+                    .on('finish', resolve)
+                    .on('error', reject);
+            });
+
+            const filesInTemp = fs.readdirSync(tempInspectDir);
+            
+            // Analisar arquivos de dump do banco
+            const dbDumpFile = filesInTemp.find(f => f.endsWith('.gz'));
+            let databaseInfo = {
+                totalCollections: 0,
+                totalDocuments: 0,
+                collections: {}
+            };
+
+            if (dbDumpFile) {
+                const dbDumpFilePath = path.join(tempInspectDir, dbDumpFile);
+                
+                // Criar diretório temporário para restauração de teste
+                const tempDbDir = path.join(tempInspectDir, 'temp_db_inspect');
+                fs.mkdirSync(tempDbDir, { recursive: true });
+
+                // Extrair dump para análise
+                const mongorestoreExecutable = process.env.MONGODUMP_PATH ? 
+                    `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 
+                    'mongorestore';
+                
+                const inspectCommand = `${mongorestoreExecutable} --archive="${dbDumpFilePath}" --gzip --dryRun 2>&1`;
+                
+                try {
+                    const { stdout } = await new Promise((resolve, reject) => {
+                        exec(inspectCommand, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+                            if (error && !stdout) {
+                                reject(error);
+                            } else {
+                                resolve({ stdout: stdout + stderr });
+                            }
+                        });
+                    });
+
+                    // Parsear output do mongorestore --dryRun
+                    const lines = stdout.split('\n');
+                    const collectionCounts = {};
+                    
+                    for (const line of lines) {
+                        // Procurar por linhas que indicam documentos restaurados
+                        const match = line.match(/(\w+)\.(\w+)\s+to\s+\w+\.(\w+)/);
+                        if (match) {
+                            const collection = match[2];
+                            if (!collectionCounts[collection]) {
+                                collectionCounts[collection] = 0;
+                                databaseInfo.totalCollections++;
+                            }
+                        }
+                        
+                        // Contar documentos
+                        const docMatch = line.match(/(\d+)\s+document/);
+                        if (docMatch) {
+                            const count = parseInt(docMatch[1]);
+                            databaseInfo.totalDocuments += count;
+                            
+                            // Tentar associar ao último collection visto
+                            const lastCollection = Object.keys(collectionCounts).pop();
+                            if (lastCollection) {
+                                collectionCounts[lastCollection] = count;
+                            }
+                        }
+                    }
+
+                    databaseInfo.collections = collectionCounts;
+                    
+                } catch (execError) {
+                    console.error('Erro ao analisar dump:', execError);
+                    // Análise básica se falhar
+                    databaseInfo = {
+                        totalCollections: 'N/A',
+                        totalDocuments: 'N/A',
+                        collections: { info: 'Análise detalhada não disponível' }
+                    };
+                }
+            }
+
+            // Analisar pasta uploads
+            let uploadsInfo = {
+                totalFiles: 0,
+                totalSize: '0 MB',
+                folders: []
+            };
+
+            const uploadsFolderInBackup = path.join(tempInspectDir, 'uploads');
+            if (fs.existsSync(uploadsFolderInBackup)) {
+                let totalBytes = 0;
+                const folderStats = {};
+
+                function scanDirectory(dir, baseDir = '') {
+                    const items = fs.readdirSync(dir);
+                    
+                    for (const item of items) {
+                        const fullPath = path.join(dir, item);
+                        const stat = fs.statSync(fullPath);
+                        
+                        if (stat.isDirectory()) {
+                            const folderName = baseDir ? `${baseDir}/${item}` : item;
+                            if (!folderStats[folderName]) {
+                                folderStats[folderName] = { count: 0, size: 0 };
+                            }
+                            scanDirectory(fullPath, folderName);
+                        } else {
+                            uploadsInfo.totalFiles++;
+                            totalBytes += stat.size;
+                            
+                            if (baseDir && !folderStats[baseDir]) {
+                                folderStats[baseDir] = { count: 0, size: 0 };
+                            }
+                            if (baseDir) {
+                                folderStats[baseDir].count++;
+                                folderStats[baseDir].size += stat.size;
+                            }
+                        }
+                    }
+                }
+
+                scanDirectory(uploadsFolderInBackup);
+                uploadsInfo.totalSize = (totalBytes / (1024 * 1024)).toFixed(2) + ' MB';
+                uploadsInfo.folders = Object.entries(folderStats).map(([name, stats]) => ({
+                    name,
+                    count: stats.count,
+                    size: (stats.size / (1024 * 1024)).toFixed(2) + ' MB'
+                }));
+            }
+
+            // Limpar diretório temporário
+            fs.rmSync(tempInspectDir, { recursive: true, force: true });
+
+            // Retornar análise
+            res.json({
+                ...fileInfo,
+                database: databaseInfo,
+                uploads: uploadsInfo,
+            });
+
+        } catch (extractError) {
+            // Limpar em caso de erro
+            if (fs.existsSync(tempInspectDir)) {
+                fs.rmSync(tempInspectDir, { recursive: true, force: true });
+            }
+            throw extractError;
+        }
+
+    } catch (error) {
+        console.error('Erro ao analisar backup:', error);
+        res.status(500).json({ 
+            msg: 'Erro ao analisar backup.', 
+            error: error.message 
+        });
+    }
+});
+
 // @route   POST api/admin/backup/restore
 // @desc    Restaurar o banco de dados a partir de um backup
 router.post('/backup/restore', async (req, res) => {

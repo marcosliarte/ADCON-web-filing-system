@@ -247,9 +247,22 @@ h1.page-title {
     cursor: pointer; 
 }
 
+.backup-actions .btn-analyze { 
+    background-color: #6f42c1; 
+    color: white; 
+}
+
+.backup-actions .btn-analyze:hover {
+    background-color: #5a32a3;
+}
+
 .backup-actions .btn-download { 
     background-color: #17a2b8; 
     color: white; 
+}
+
+.backup-actions .btn-download:hover {
+    background-color: #138496;
 }
 
 .backup-actions .btn-restore { 
@@ -257,9 +270,17 @@ h1.page-title {
     color: #212529; 
 }
 
+.backup-actions .btn-restore:hover {
+    background-color: #e0a800;
+}
+
 .backup-actions .btn-delete { 
     background-color: #dc3545; 
     color: white; 
+}
+
+.backup-actions .btn-delete:hover {
+    background-color: #c82333;
 }
 
 /* Usuários online */
