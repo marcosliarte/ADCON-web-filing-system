@@ -312,4 +312,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             reader.readAsDataURL(file);
         }
     });
+
+    // Adiciona a lógica do dropdown do menu de usuário
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenu = document.getElementById('userMenu');
+    const userActionsDropdown = userMenuBtn?.closest('.dropdown');
+    
+    if (userMenuBtn && userMenu && userActionsDropdown) {
+        userMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            userActionsDropdown.classList.toggle('show');
+        });
+
+        // Fecha dropdown ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
+                userActionsDropdown.classList.remove('show');
+            }
+        });
+    }
 });

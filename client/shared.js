@@ -448,3 +448,45 @@ function openConfirmModal(message, options = {}) {
         btnCancel.addEventListener('click', onCancel);
     });
 }
+
+/**
+ * Verifica se o usuário está em modo de personificação (impersonation)
+ * e exibe um banner de aviso caso esteja
+ */
+function checkImpersonation() {
+    const originalUserId = localStorage.getItem('originalUserId');
+    const banner = document.getElementById('impersonation-banner');
+    
+    if (originalUserId && banner) {
+        banner.innerHTML = `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; text-align: center; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                ⚠️ Você está visualizando como outro usuário. 
+                <button onclick="stopImpersonating()" style="background: white; color: #667eea; border: none; padding: 0.5rem 1rem; border-radius: 4px; margin-left: 1rem; cursor: pointer; font-weight: 600; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    Voltar para minha conta
+                </button>
+            </div>
+        `;
+        banner.style.display = 'block';
+    }
+}
+
+/**
+ * Encerra o modo de personificação e retorna para a conta original
+ */
+async function stopImpersonating() {
+    try {
+        const response = await fetchWithAuth('/api/auth/admin/stop-impersonating', { method: 'POST' });
+        if (response && response.ok) {
+            const data = await response.json();
+            localStorage.setItem('token', data.token);
+            localStorage.removeItem('originalUserId');
+            showToast('Retornado para sua conta original', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            throw new Error('Falha ao retornar para a conta original.');
+        }
+    } catch (error) {
+        console.error('Erro ao parar personificação:', error);
+        showToast(error.message || 'Erro ao retornar para conta original', 'error');
+    }
+}
