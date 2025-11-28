@@ -21,10 +21,7 @@ Nenhum arquivo em progresso no momento.
 
 #### Média Prioridade (formulários complexos)
 - [x] `cliente-formulario.html` + `cliente-formulario.js` - 13 ocorrências removidas ✅
-
-- [ ] `editar.html` - 10 ocorrências
-  - Similar ao cliente-formulario
-  - Cancelar edição
+- [x] `editar.html` + `editar.js` - 9 ocorrências removidas ✅
 
 #### Média Prioridade (relatórios e gestão)
 - [ ] `relatorios.html` - 8 ocorrências
