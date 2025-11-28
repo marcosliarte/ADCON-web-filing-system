@@ -243,50 +243,148 @@ router.get('/dashboard/expiring-docs', async (req, res) => {
 
 // @route   POST api/admin/backup/create
 // @desc    Criar um novo backup do banco de dados
-router.post('/backup/create', (req, res) => {
-  // LÓGICA DE BACKUP DO ZERO
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const dbDumpFilename = `db-dump-${timestamp}.gz`;
-  const dbDumpFilePath = path.join(backupDir, dbDumpFilename);
+router.post('/backup/create', async (req, res) => {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const dbDumpFilename = `db-dump-${timestamp}.gz`;
+    const dbDumpFilePath = path.join(backupDir, dbDumpFilename);
 
-  // 1. Pega o caminho do mongodump do .env ou usa o comando padrão.
-  const mongodumpExecutable = process.env.MONGODUMP_PATH || 'mongodump';
-  const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
+    // Pega o caminho do mongodump do .env ou usa o comando padrão
+    const mongodumpExecutable = process.env.MONGODUMP_PATH || 'mongodump';
+    const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
 
-  // 2. Constrói o comando, garantindo que o executável e os caminhos de arquivo estejam entre aspas.
-  // Esta é a correção crucial para o Windows.
-  const command = `"${mongodumpExecutable}" --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip`;
+    console.log(`[BACKUP] Iniciando backup em ${timestamp}`);
+    console.log(`[BACKUP] Usando mongodump: ${mongodumpExecutable}`);
+    console.log(`[BACKUP] URI MongoDB: ${MONGODB_URI_PARA_BACKUP ? 'Configurada' : 'NÃO CONFIGURADA'}`);
 
-    // comando construído; não expor em logs de produção
-
-  // 3. Executa o comando.
-  exec(command, (dumpError, stdout, stderr) => {
-    if (dumpError) {
-      console.error(`Erro ao criar dump do banco de dados: ${stderr}`);
-      return res.status(500).json({ msg: 'Falha ao criar o backup do banco de dados.', error: stderr });
+    // Verifica se há dados no banco antes de criar backup
+    const mongoose = require('mongoose');
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    console.log(`[BACKUP] Coleções no banco: ${collections.length}`);
+    
+    if (collections.length === 0) {
+      return res.status(400).json({ 
+        msg: 'O banco de dados está vazio. Não há dados para fazer backup.' 
+      });
     }
 
-    // 4. Se o dump do banco de dados foi bem-sucedido, cria o arquivo .zip.
+    // Conta documentos totais
+    let totalDocs = 0;
+    for (const col of collections) {
+      const count = await mongoose.connection.db.collection(col.name).countDocuments();
+      console.log(`[BACKUP] Coleção ${col.name}: ${count} documentos`);
+      totalDocs += count;
+    }
+
+    console.log(`[BACKUP] Total de documentos no banco: ${totalDocs}`);
+
+    if (totalDocs === 0) {
+      return res.status(400).json({ 
+        msg: 'O banco de dados não contém documentos. Não há dados para fazer backup.' 
+      });
+    }
+
+    // Constrói o comando com aspas para Windows
+    const command = `"${mongodumpExecutable}" --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip`;
+
+    console.log(`[BACKUP] Executando mongodump...`);
+
+  // Executa o comando com buffer maior
+  exec(command, { maxBuffer: 50 * 1024 * 1024 }, (dumpError, stdout, stderr) => {
+    if (dumpError) {
+      console.error(`[BACKUP ERROR] Erro ao criar dump:`, dumpError.message);
+      console.error(`[BACKUP ERROR] stderr:`, stderr);
+      console.error(`[BACKUP ERROR] stdout:`, stdout);
+      return res.status(500).json({ 
+        msg: 'Falha ao criar o backup do banco de dados.', 
+        error: stderr || dumpError.message 
+      });
+    }
+
+    console.log(`[BACKUP] stdout:`, stdout);
+    if (stderr) console.log(`[BACKUP] stderr:`, stderr);
+
+    // Verifica se o arquivo de dump foi criado e tem tamanho > 0
+    if (!fs.existsSync(dbDumpFilePath)) {
+      console.error(`[BACKUP ERROR] Arquivo de dump não foi criado: ${dbDumpFilePath}`);
+      return res.status(500).json({ 
+        msg: 'Arquivo de dump do banco não foi criado.' 
+      });
+    }
+
+    const dumpStats = fs.statSync(dbDumpFilePath);
+    console.log(`[BACKUP] Dump criado com sucesso: ${(dumpStats.size / 1024).toFixed(2)} KB`);
+
+    if (dumpStats.size === 0) {
+      console.error(`[BACKUP ERROR] Arquivo de dump está vazio (0 bytes)`);
+      fs.unlinkSync(dbDumpFilePath);
+      return res.status(500).json({ 
+        msg: 'Backup do banco de dados está vazio. Verifique se há dados no MongoDB.' 
+      });
+    }
+
+    // Cria o arquivo ZIP final
     const finalBackupFilename = `backup-completo-${timestamp}.zip`;
     const finalBackupPath = path.join(backupDir, finalBackupFilename);
     const uploadsPath = path.join(__dirname, '../uploads');
+
+    console.log(`[BACKUP] Criando arquivo ZIP: ${finalBackupFilename}`);
 
     const output = fs.createWriteStream(finalBackupPath);
     const archive = archiver('zip', { zlib: { level: 9 } });
 
     output.on('close', () => {
-      fs.unlink(dbDumpFilePath, (unlinkErr) => { if (unlinkErr) console.error("Erro ao remover arquivo de dump temporário:", unlinkErr); });
-      res.json({ msg: 'Backup completo criado com sucesso!', file: finalBackupFilename });
+      const zipSize = (archive.pointer() / (1024 * 1024)).toFixed(2);
+      console.log(`[BACKUP] ZIP criado com sucesso: ${zipSize} MB`);
+      
+      // Remove o dump temporário
+      fs.unlink(dbDumpFilePath, (unlinkErr) => { 
+        if (unlinkErr) console.error("[BACKUP] Erro ao remover dump temporário:", unlinkErr); 
+      });
+      
+      res.json({ 
+        msg: `Backup completo criado com sucesso! (${zipSize} MB)`, 
+        file: finalBackupFilename,
+        size: zipSize + ' MB'
+      });
     });
 
-    archive.on('error', (archiveErr) => res.status(500).json({ msg: 'Falha ao criar o arquivo ZIP.', error: archiveErr.message }));
+    archive.on('error', (archiveErr) => {
+      console.error(`[BACKUP ERROR] Erro ao criar ZIP:`, archiveErr);
+      res.status(500).json({ 
+        msg: 'Falha ao criar o arquivo ZIP.', 
+        error: archiveErr.message 
+      });
+    });
+
+    archive.on('warning', (warn) => {
+      console.warn(`[BACKUP WARNING]`, warn);
+    });
+
     archive.pipe(output);
+    
+    // Adiciona o dump do banco ao ZIP
     archive.file(dbDumpFilePath, { name: dbDumpFilename });
+    
+    // Adiciona pasta uploads se existir
     if (fs.existsSync(uploadsPath)) {
+      const uploadsStats = fs.readdirSync(uploadsPath);
+      console.log(`[BACKUP] Adicionando pasta uploads (${uploadsStats.length} itens)`);
       archive.directory(uploadsPath, 'uploads');
+    } else {
+      console.log(`[BACKUP] Pasta uploads não encontrada, continuando sem ela`);
     }
+    
     archive.finalize();
   });
+  
+  } catch (error) {
+    console.error('[BACKUP ERROR] Erro inesperado:', error);
+    res.status(500).json({ 
+      msg: 'Erro ao criar backup.', 
+      error: error.message 
+    });
+  }
 });
 
 // @route   GET api/admin/backup/list
