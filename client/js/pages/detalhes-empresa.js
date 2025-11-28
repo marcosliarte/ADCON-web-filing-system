@@ -88,12 +88,14 @@ function exibirDadosEmpresa(empresa) {
             ${createInfoItem('Nome Fantasia', empresa.nome_fantasia)}
             ${createInfoItem('NIRE', empresa.nire)}
             ${createInfoItem('Inscrição Estadual', empresa.inscricao_estadual)}
-            ${createInfoItem('Atividade Principal', empresa.atividade_principal_descricao || empresa.atividade_principal)}
+            ${createInfoItem('CNAE (Código)', empresa.atividade_principal)}
+            ${createInfoItem('Atividade Principal (Descrição)', empresa.atividade_principal_descricao)}
             ${createInfoItem('Porte', empresa.porte)}
             ${createInfoItem('Natureza Jurídica', empresa.natureza_juridica)}
             ${createInfoItem('Data de Abertura', formatarData(empresa.data_abertura))}
             ${createInfoItem('Capital Social', empresa.capital_social ? `R$ ${empresa.capital_social.toLocaleString('pt-BR')}` : 'Não informado')}
-            ${createInfoItem('Simples Nacional', empresa.simples_nacional ? 'Sim' : 'Não')}
+            ${createInfoItem('Simples Nacional', empresa.simples_nacional === 'sim' ? 'Sim' : empresa.simples_nacional === 'nao' ? 'Não' : 'Não informado')}
+            ${empresa.possui_filial ? createInfoItem('Possui Filial', empresa.possui_filial === 'sim' ? 'Sim' : 'Não') : ''}
             ${createInfoItem('Tipo', empresa.tipo === 'matriz' ? 'Matriz' : empresa.tipo === 'filial' ? 'Filial' : 'Não definido')}
             ${createInfoItem('Data de Cadastro', formatarData(empresa.dataCadastro))}
         `;
@@ -196,7 +198,8 @@ function exibirDadosEmpresa(empresa) {
                     ${createInfoItem('CNPJ', formatarCNPJ(filial.cnpj))}
                     ${createInfoItem('NIRE', filial.nire)}
                     ${createInfoItem('Inscrição Estadual', filial.inscricao_estadual)}
-                    ${createInfoItem('Atividade Principal', filial.atividade_principal_descricao || filial.atividade_principal)}
+                    ${createInfoItem('CNAE (Código)', filial.atividade_principal)}
+                    ${createInfoItem('Atividade Principal (Descrição)', filial.atividade_principal_descricao)}
                     <h4 style="margin-top: 1.5rem; margin-bottom: 1rem; color: var(--primary-600); font-size: 1rem;">Endereço da Filial</h4>
                     ${createInfoItem('CEP', endFilial.cep || 'Não informado')}
                     ${createInfoItem('Rua', endFilial.rua || 'Não informado')}
