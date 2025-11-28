@@ -112,11 +112,11 @@ h2 {
 .btn-back { background-color: var(--muted); }
 .btn-back:hover { background-color: #5a6268; }
 
-.btn-edit { background-color: #ffca2c; color: #212529; }
-.btn-edit:hover { background-color: #e0b524; }
+.btn-edit { background-color: var(--primary); color: white; }
+.btn-edit:hover { background-color: var(--primary-600); }
 
-.btn-download { background-color: #28a745; }
-.btn-download:hover { background-color: #218838; }
+.btn-download { background-color: var(--primary); }
+.btn-download:hover { background-color: var(--primary-600); }
 
 .btn-pdf { background-color: var(--danger); }
 .btn-pdf:hover { background-color: #c82333; }
@@ -171,8 +171,8 @@ h2 {
     text-transform: uppercase;
 }
 
-.btn-select-all { background-color: #0ea5e9; }
-.btn-select-all:hover { background-color: #0284c7; }
+.btn-select-all { background-color: var(--primary); }
+.btn-select-all:hover { background-color: var(--primary-600); }
 
 .btn-deselect-all { background-color: var(--muted); }
 .btn-deselect-all:hover { background-color: #5a6268; }
@@ -251,14 +251,14 @@ h2 {
 .senha-certificado-container input { flex: 1; }
 
 .btn-show-senha {
-    background-color: #0ea5e9;
+    background-color: var(--primary);
     padding: 0.6rem 0.8rem;
     font-size: 0.75rem;
     font-weight: 600;
     letter-spacing: .5px;
     text-transform: uppercase;
 }
-.btn-show-senha:hover { background-color: #0284c7; }
+.btn-show-senha:hover { background-color: var(--primary-600); }
 
 /* Estado oculto reutilizável */
 .hidden { display: none !important; }
