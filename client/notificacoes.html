@@ -4,50 +4,7 @@
     <meta charset="UTF-8">
     <title>ADCON - Notificações</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-        .page-title { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-        
-        .notification-filters { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
-        .notification-filters select, .notification-filters button { padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid #ddd; }
-        .notification-filters button { background: #007bff; color: white; border: none; cursor: pointer; }
-        .notification-filters button:hover { background: #0056b3; }
-        .notification-filters button.secondary { background: #6c757d; }
-        .notification-filters button.secondary:hover { background: #5a6268; }
-        
-        .notification-card { background: white; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s; position: relative; }
-        .notification-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); transform: translateY(-2px); }
-        .notification-card.unread { border-left: 4px solid #007bff; background: #f0f8ff; }
-        
-        .notification-icon { font-size: 2rem; float: left; margin-right: 1rem; }
-        .notification-content { overflow: hidden; }
-        .notification-title { font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 0.5rem; }
-        .notification-message { color: #666; margin-bottom: 0.5rem; line-height: 1.5; }
-        .notification-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #999; }
-        .notification-time { font-style: italic; }
-        .notification-actions { display: flex; gap: 0.5rem; }
-        .notification-actions button { padding: 0.25rem 0.75rem; font-size: 0.8rem; border: none; 
-            border-radius: 4px; cursor: pointer; background: #6c757d; color: white; }
-        .notification-actions button:hover { background: #5a6268; }
-        .notification-actions .btn-delete { background: #dc3545; }
-        .notification-actions .btn-delete:hover { background: #c82333; }
-        
-        .empty-state { text-align: center; padding: 3rem; color: #999; }
-        .empty-state-icon { font-size: 4rem; margin-bottom: 1rem; }
-        
-        .loading { text-align: center; padding: 2rem; color: #666; }
-        
-        .tipo-badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 12px; 
-            font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; }
-        .tipo-documento_vencendo { background: #ffc107; color: #333; }
-        .tipo-documento_vencido { background: #dc3545; color: white; }
-        .tipo-pagamento_recebido { background: #28a745; color: white; }
-        .tipo-mensagem_admin { background: #007bff; color: white; }
-        .tipo-sistema { background: #6c757d; color: white; }
-    </style>
+    <link rel="stylesheet" href="css/pages/notificacoes.css">
 </head>
 <body style="display: none;">
     <script>
