@@ -200,10 +200,13 @@ function formatarTempoCompleto(data) {
 // === EVENT LISTENERS ===
 function setupEventListeners() {
     // Botões de ação principais
-    const buttons = document.querySelectorAll('.filter-actions button');
-    if (buttons[0]) buttons[0].addEventListener('click', aplicarFiltros);
-    if (buttons[1]) buttons[1].addEventListener('click', marcarTodasComoLidas);
-    if (buttons[2]) buttons[2].addEventListener('click', limparNotificacoesLidas);
+    const btnFiltrar = document.getElementById('btnFiltrar');
+    const btnMarcarLidas = document.getElementById('btnMarcarLidas');
+    const btnLimparLidas = document.getElementById('btnLimparLidas');
+    
+    if (btnFiltrar) btnFiltrar.addEventListener('click', aplicarFiltros);
+    if (btnMarcarLidas) btnMarcarLidas.addEventListener('click', marcarTodasComoLidas);
+    if (btnLimparLidas) btnLimparLidas.addEventListener('click', limparNotificacoesLidas);
     
     // Event delegation para notificações dinâmicas
     document.addEventListener('click', (e) => {

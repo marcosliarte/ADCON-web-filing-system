@@ -1,89 +1,85 @@
-/* Importar estilos base do sistema */
-@import url('../style.css');
+/* === NOTIFICAÇÕES - SISTEMA ADCON === */
+@import url('/css/pages/common-page.css');
 
-/* ============================================
-   NOTIFICACOES.HTML - Estilos Específicos
-   ============================================ */
-
+/* Container principal */
 .container {
     max-width: 900px;
     margin: 2rem auto;
     padding: 0 1rem;
 }
 
-.page-title {
-    color: #007bff;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1.5rem;
-}
-
 /* Filtros de notificações */
 .notification-filters {
-    background: white;
-    padding: 1rem;
+    background: var(--card-bg);
+    padding: 1rem 1.25rem;
     border-radius: 8px;
     margin-bottom: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     flex-wrap: wrap;
     align-items: center;
 }
 
-.notification-filters select,
-.notification-filters button {
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    border: 1px solid #ddd;
+.notification-filters select {
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 0.9rem;
+    background: var(--card-bg);
+    color: var(--neutral-700);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.notification-filters select:focus {
+    outline: none;
+    border-color: var(--primary-600);
+    box-shadow: 0 0 0 0.2rem var(--focus-ring);
 }
 
 .notification-filters button {
-    background: #007bff;
-    color: white;
-    border: none;
-    cursor: pointer;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
-.notification-filters button:hover {
-    background: #0056b3;
+.notification-filters .btn-secondary {
+    background-color: var(--muted);
 }
 
-.notification-filters button.secondary {
-    background: #6c757d;
-}
-
-.notification-filters button.secondary:hover {
-    background: #5a6268;
+.notification-filters .btn-secondary:hover {
+    background-color: #5a6268;
 }
 
 /* Card de notificação */
 .notification-card {
-    background: white;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 1.25rem;
     margin-bottom: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
     position: relative;
 }
 
 .notification-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     transform: translateY(-2px);
+    border-color: #d9e7ff;
 }
 
 .notification-card.unread {
-    border-left: 4px solid #007bff;
-    background: #f0f8ff;
-}
-
+    border-left: 4px solid var(--primary);
+    background: var(--accent-bg);
 /* Conteúdo da notificação */
 .notification-icon {
     font-size: 2rem;
     float: left;
     margin-right: 1rem;
+    line-height: 1;
 }
 
 .notification-content {
@@ -91,24 +87,26 @@
 }
 
 .notification-title {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 600;
-    color: #333;
+    color: var(--neutral-700);
     margin-bottom: 0.5rem;
 }
 
 .notification-message {
-    color: #666;
+    color: var(--neutral-600);
     margin-bottom: 0.5rem;
     line-height: 1.5;
+    font-size: 0.95rem;
 }
 
 .notification-meta {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.85rem;
-    color: #999;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 0.75rem;
 }
 
 .notification-time {
@@ -121,74 +119,106 @@
 }
 
 .notification-actions button {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.8rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    background: #6c757d;
+    background: var(--muted);
     color: white;
+    font-weight: 500;
+    transition: background-color 0.15s, transform 0.1s;
 }
 
 .notification-actions button:hover {
     background: #5a6268;
+    transform: scale(1.02);
 }
 
 .notification-actions .btn-delete {
-    background: #dc3545;
-}
-
-.notification-actions .btn-delete:hover {
-    background: #c82333;
+    background: var(--danger);
 }
 
 /* Estado vazio */
 .empty-state {
     text-align: center;
-    padding: 3rem;
-    color: #999;
+    padding: 3rem 1rem;
+    color: var(--muted);
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
 }
 
 .empty-state-icon {
     font-size: 4rem;
     margin-bottom: 1rem;
+    opacity: 0.6;
 }
 
 /* Estado de carregamento */
 .loading {
     text-align: center;
     padding: 2rem;
-    color: #666;
+    color: var(--neutral-600);
+    font-style: italic;
 }
 
 /* Badges de tipo */
 .tipo-badge {
     display: inline-block;
-    padding: 0.25rem 0.5rem;
+    padding: 0.3rem 0.6rem;
     border-radius: 12px;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
     margin-left: 0.5rem;
 }
 
 .tipo-documento_vencendo {
-    background: #ffc107;
-    color: #333;
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
 }
 
 .tipo-documento_vencido {
-    background: #dc3545;
+    background: var(--danger);
     color: white;
 }
 
 .tipo-pagamento_recebido {
-    background: #28a745;
+    background: var(--primary);
     color: white;
 }
 
 .tipo-mensagem_admin {
-    background: #007bff;
+    background: var(--primary-600);
     color: white;
+}
+
+.tipo-sistema {
+    background: var(--muted);
+    color: white;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .notification-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .notification-filters select,
+    .notification-filters button {
+        width: 100%;
+    }
+    
+    .notification-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}   color: white;
 }
 
 .tipo-sistema {

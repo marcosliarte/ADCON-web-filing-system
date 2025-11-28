@@ -6,15 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/pages/notificacoes.css">
 </head>
-<body style="display: none;">
-    <script>
-        if (!localStorage.getItem('token')) window.location.replace('login.html');
-    </script>
-    
+<body>
     <div id="header-placeholder"></div>
 
     <div class="container">
-        <h1 class="page-title">🔔 Central de Notificações</h1>
+        <h1>🔔 Central de Notificações</h1>
 
         <div class="notification-filters">
             <select id="filterTipo">
@@ -32,9 +28,9 @@
                 <option value="true">Lidas</option>
             </select>
             
-            <button>Filtrar</button>
-            <button class="secondary">Marcar todas como lidas</button>
-            <button class="secondary">Limpar lidas</button>
+            <button id="btnFiltrar">Filtrar</button>
+            <button class="btn-secondary" id="btnMarcarLidas">Marcar todas como lidas</button>
+            <button class="btn-secondary" id="btnLimparLidas">Limpar lidas</button>
         </div>
 
         <div id="notificationContainer">
