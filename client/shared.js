@@ -146,17 +146,21 @@ async function createHeader(placeholderId, usuario) {
     // Adiciona a lógica do dropdown do menu de usuário
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userMenu = document.getElementById('userMenu');
-    userMenuBtn.addEventListener('click', () => {
-        userMenu.classList.toggle('show');
+    const userActionsDropdown = userMenuBtn?.closest('.dropdown');
+    
+    userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userActionsDropdown.classList.toggle('show');
         document.getElementById('notificationDropdown').classList.remove('show');
     });
 
     // Adiciona a lógica do dropdown de notificações
     const notificationIcon = document.getElementById('notificationIcon');
     const notificationDropdown = document.getElementById('notificationDropdown');
-    notificationIcon.addEventListener('click', () => {
+    notificationIcon.addEventListener('click', (e) => {
+        e.stopPropagation();
         notificationDropdown.classList.toggle('show');
-        userMenu.classList.remove('show');
+        userActionsDropdown.classList.remove('show');
         if (notificationDropdown.classList.contains('show')) {
             loadNotifications();
         }
@@ -167,8 +171,8 @@ async function createHeader(placeholderId, usuario) {
         if (!notificationIcon.contains(e.target)) {
             notificationDropdown.classList.remove('show');
         }
-        if (!userMenuBtn.contains(e.target)) {
-            userMenu.classList.remove('show');
+        if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
+            userActionsDropdown.classList.remove('show');
         }
     });
 
