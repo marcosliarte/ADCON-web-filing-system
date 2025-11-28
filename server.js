@@ -220,23 +220,35 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-    console.log('🛑 SIGTERM recebido, encerrando servidor...');
-    server.close(() => {
-        console.log('✅ Servidor encerrado');
-        mongoose.connection.close(false, () => {
-            console.log('✅ MongoDB desconectado');
-            process.exit(0);
-        });
-    });
+  console.log('🛑 SIGTERM recebido, encerrando servidor...');
+  server.close(() => {
+    console.log('✅ Servidor encerrado');
+    (async () => {
+      try {
+        await mongoose.connection.close();
+        console.log('✅ MongoDB desconectado');
+      } catch (err) {
+        console.error('❌ Erro ao desconectar MongoDB:', err);
+      } finally {
+        process.exit(0);
+      }
+    })();
+  });
 });
 
 process.on('SIGINT', () => {
-    console.log('\n🛑 SIGINT recebido, encerrando servidor...');
-    server.close(() => {
-        console.log('✅ Servidor encerrado');
-        mongoose.connection.close(false, () => {
-            console.log('✅ MongoDB desconectado');
-            process.exit(0);
-        });
-    });
+  console.log('\n🛑 SIGINT recebido, encerrando servidor...');
+  server.close(() => {
+    console.log('✅ Servidor encerrado');
+    (async () => {
+      try {
+        await mongoose.connection.close();
+        console.log('✅ MongoDB desconectado');
+      } catch (err) {
+        console.error('❌ Erro ao desconectar MongoDB:', err);
+      } finally {
+        process.exit(0);
+      }
+    })();
+  });
 });
