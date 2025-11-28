@@ -72,6 +72,14 @@ async function loadEmpresa() {
             const naturezaRadio = document.querySelector(`input[name="natureza_juridica"][value="${data.natureza_juridica}"]`);
             if (naturezaRadio) naturezaRadio.checked = true;
         }
+        if (data.simples_nacional) {
+            const simplesRadio = document.querySelector(`input[name="simples_nacional"][value="${data.simples_nacional}"]`);
+            if (simplesRadio) simplesRadio.checked = true;
+        }
+        if (data.possui_filial) {
+            const possuiFilialRadio = document.querySelector(`input[name="possui_filial"][value="${data.possui_filial}"]`);
+            if (possuiFilialRadio) possuiFilialRadio.checked = true;
+        }
 
         // Tipo de empresa (matriz/filial)
         if (data.tipo) {
@@ -79,6 +87,7 @@ async function loadEmpresa() {
             if (tipoRadio) {
                 tipoRadio.checked = true;
                 toggleMatrizFields();
+                togglePossuiFilialField();
             }
         }
         
@@ -278,7 +287,10 @@ function showMessage(text, type) {
 function setupEventListeners() {
     // Tipo de empresa (matriz/filial)
     document.querySelectorAll('input[name="tipo"]').forEach(radio => {
-        radio.addEventListener('change', toggleMatrizFields);
+        radio.addEventListener('change', () => {
+            toggleMatrizFields();
+            togglePossuiFilialField();
+        });
     });
     
     // Botão buscar matriz
@@ -363,6 +375,22 @@ function toggleMatrizFields() {
     
     if (tipoFilial && matrizFieldsContainer) {
         matrizFieldsContainer.style.display = tipoFilial.checked ? 'block' : 'none';
+    }
+}
+
+function togglePossuiFilialField() {
+    const tipoMatriz = document.getElementById('tipo_matriz');
+    const possuiFilialGroup = document.getElementById('possui-filial-group');
+    
+    if (tipoMatriz && possuiFilialGroup) {
+        // Só mostra "Possui Filial?" se for tipo Matriz
+        possuiFilialGroup.style.display = tipoMatriz.checked ? 'block' : 'none';
+        
+        // Se for filial, limpar a seleção de possui_filial
+        if (!tipoMatriz.checked) {
+            const possuiFilialRadios = document.querySelectorAll('input[name="possui_filial"]');
+            possuiFilialRadios.forEach(radio => radio.checked = false);
+        }
     }
 }
 

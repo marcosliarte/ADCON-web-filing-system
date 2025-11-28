@@ -82,6 +82,17 @@ function toggleMatrizSelect() {
     } else {
         container.style.display = 'none';
     }
+    
+    // Controlar visibilidade do campo "Possui Filial?" - só para matrizes
+    const possuiFilialGroup = document.querySelector('input[name="possui_filial"]')?.closest('.form-group');
+    if (possuiFilialGroup) {
+        possuiFilialGroup.style.display = tipo === 'matriz' ? 'block' : 'none';
+        
+        // Se for filial, limpar a seleção
+        if (tipo === 'filial') {
+            document.querySelectorAll('input[name="possui_filial"]').forEach(radio => radio.checked = false);
+        }
+    }
 }
 
 async function buscarMatrizPeloBotao() {
