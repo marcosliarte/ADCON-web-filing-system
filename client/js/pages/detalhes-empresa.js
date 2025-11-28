@@ -58,78 +58,121 @@ async function carregarDadosEmpresa() {
 
 // --- Exibição de Dados ---
 function exibirDadosEmpresa(empresa) {
-    // Dados da Empresa
-    document.getElementById('empresa-id').textContent = empresa._id || '';
-    document.getElementById('empresa-nome').textContent = empresa.nome || '';
-    document.getElementById('empresa-cnpj').textContent = formatarCNPJ(empresa.cnpj) || '';
-    document.getElementById('empresa-razao').textContent = empresa.razaoSocial || '';
-    document.getElementById('empresa-inscricao-municipal').textContent = empresa.inscricaoMunicipal || 'Não informado';
-    document.getElementById('empresa-inscricao-estadual').textContent = empresa.inscricaoEstadual || 'Não informado';
-    document.getElementById('empresa-ramo').textContent = empresa.ramoAtividade || 'Não informado';
-    document.getElementById('empresa-endereco').textContent = empresa.endereco || 'Não informado';
-    document.getElementById('empresa-telefone').textContent = empresa.telefone || 'Não informado';
-    document.getElementById('empresa-email').textContent = empresa.email || 'Não informado';
+    // Helper para criar item de informação
+    const createInfoItem = (label, value) => {
+        return `
+            <div class="info-item">
+                <span class="info-label">${label}:</span>
+                <span class="info-value">${value || 'Não informado'}</span>
+            </div>
+        `;
+    };
 
-    // Informações de Cadastro
-    document.getElementById('criado-por').textContent = empresa.criadoPor || 'Sistema';
-    document.getElementById('data-criacao').textContent = formatarData(empresa.dataCriacao);
-
-    // Responsável Legal
-    const responsavelLegal = empresa.responsavelLegal || {};
-    document.getElementById('responsavel-nome').textContent = responsavelLegal.nome || 'Não informado';
-    document.getElementById('responsavel-cpf').textContent = formatarCPF(responsavelLegal.cpf) || 'Não informado';
-    document.getElementById('responsavel-rg').textContent = responsavelLegal.rg || 'Não informado';
-    document.getElementById('responsavel-nascimento').textContent = formatarData(responsavelLegal.dataNascimento) || 'Não informado';
-    document.getElementById('responsavel-estado-civil').textContent = formatarEstadoCivil(responsavelLegal.estadoCivil, responsavelLegal.regimeCasamento);
-    document.getElementById('responsavel-telefone').textContent = responsavelLegal.telefone || 'Não informado';
-    document.getElementById('responsavel-email').textContent = responsavelLegal.email || 'Não informado';
-    document.getElementById('responsavel-endereco').textContent = responsavelLegal.endereco || 'Não informado';
-
-    // Cônjuge (se aplicável)
-    const conjugeSection = document.getElementById('conjuge-section');
-    if (responsavelLegal.estadoCivil === 'casado' && responsavelLegal.conjuge) {
-        conjugeSection.style.display = 'block';
-        const conjuge = responsavelLegal.conjuge;
-        document.getElementById('conjuge-nome').textContent = conjuge.nome || 'Não informado';
-        document.getElementById('conjuge-cpf').textContent = formatarCPF(conjuge.cpf) || 'Não informado';
-        document.getElementById('conjuge-rg').textContent = conjuge.rg || 'Não informado';
-        document.getElementById('conjuge-nascimento').textContent = formatarData(conjuge.dataNascimento) || 'Não informado';
-    } else {
-        conjugeSection.style.display = 'none';
+    // Atualizar título
+    const titulo = document.getElementById('relatorio-titulo');
+    if (titulo) {
+        titulo.textContent = `Relatório: ${empresa.nome || 'Empresa'}`;
     }
 
-    // Contador
-    const contador = empresa.contador || {};
-    document.getElementById('contador-nome').textContent = contador.nome || 'Não informado';
-    document.getElementById('contador-cpf').textContent = formatarCPF(contador.cpf) || 'Não informado';
-    document.getElementById('contador-crc').textContent = contador.crc || 'Não informado';
-    document.getElementById('contador-telefone').textContent = contador.telefone || 'Não informado';
-    document.getElementById('contador-email').textContent = contador.email || 'Não informado';
+    // Preencher Dados Empresariais
+    const dadosEmpresa = document.getElementById('dados-empresa');
+    if (dadosEmpresa) {
+        dadosEmpresa.innerHTML = `
+            ${createInfoItem('Nome/Razão Social', empresa.nome)}
+            ${createInfoItem('CNPJ', formatarCNPJ(empresa.cnpj))}
+            ${createInfoItem('Nome Fantasia', empresa.nome_fantasia)}
+            ${createInfoItem('NIRE', empresa.nire)}
+            ${createInfoItem('Inscrição Estadual', empresa.inscricao_estadual)}
+            ${createInfoItem('Atividade Principal', empresa.atividade_principal_descricao || empresa.atividade_principal)}
+            ${createInfoItem('Porte', empresa.porte)}
+            ${createInfoItem('Natureza Jurídica', empresa.natureza_juridica)}
+            ${createInfoItem('Data de Abertura', formatarData(empresa.data_abertura))}
+            ${createInfoItem('Capital Social', empresa.capital_social ? `R$ ${empresa.capital_social.toLocaleString('pt-BR')}` : 'Não informado')}
+            ${createInfoItem('Simples Nacional', empresa.simples_nacional ? 'Sim' : 'Não')}
+            ${createInfoItem('Tipo', empresa.tipo === 'matriz' ? 'Matriz' : empresa.tipo === 'filial' ? 'Filial' : 'Não definido')}
+            ${createInfoItem('Data de Cadastro', formatarData(empresa.dataCadastro))}
+        `;
+    }
 
-    // Sócios
-    const sociosLista = document.getElementById('socios-lista');
-    sociosLista.innerHTML = '';
-    if (empresa.socios && empresa.socios.length > 0) {
+    // Preencher Endereço e Contato
+    const enderecoContato = document.getElementById('endereco-contato');
+    if (enderecoContato) {
+        const end = empresa.endereco || {};
+        const enderecoCompleto = end.rua ? 
+            `${end.rua}, ${end.numero}${end.complemento ? ' - ' + end.complemento : ''}, ${end.bairro}, ${end.cidade}/${end.estado} - CEP: ${end.cep}` : 
+            'Não informado';
+        
+        enderecoContato.innerHTML = `
+            ${createInfoItem('Endereço', enderecoCompleto)}
+            ${createInfoItem('Telefone', empresa.telefone)}
+            ${createInfoItem('E-mail', empresa.email)}
+        `;
+    }
+
+    // Preencher Sócios
+    const sociosContainer = document.getElementById('socios-container');
+    const sociosSection = document.getElementById('socios-section');
+    if (sociosContainer && empresa.socios && empresa.socios.length > 0) {
+        if (sociosSection) sociosSection.style.display = 'block';
+        
+        sociosContainer.innerHTML = '';
         empresa.socios.forEach((socio, index) => {
-            const socioHTML = `
-                <div class="socio-item">
-                    <h4>Sócio ${index + 1}</h4>
-                    <p><strong>Nome:</strong> ${socio.nome || 'Não informado'}</p>
-                    <p><strong>CPF:</strong> ${formatarCPF(socio.cpf) || 'Não informado'}</p>
-                    <p><strong>Participação:</strong> ${socio.participacao || 'Não informado'}%</p>
-                    ${socio.observacoes ? `<p><strong>Observações:</strong> ${socio.observacoes}</p>` : ''}
-                </div>
+            const endSocio = socio.endereco || {};
+            const enderecoSocio = endSocio.rua ? 
+                `${endSocio.rua}, ${endSocio.numero}${endSocio.complemento ? ' - ' + endSocio.complemento : ''}, ${endSocio.bairro}, ${endSocio.cidade}/${endSocio.estado}` : 
+                'Não informado';
+            
+            const socioCard = document.createElement('div');
+            socioCard.className = 'socio-card';
+            socioCard.innerHTML = `
+                <h3>Sócio ${index + 1}${socio.is_admin === 'sim' ? ' - Administrador' : ''}</h3>
+                ${createInfoItem('Nome', socio.nome)}
+                ${createInfoItem('CPF', formatarCPF(socio.cpf))}
+                ${createInfoItem('RG', socio.rg)}
+                ${createInfoItem('Data de Nascimento', formatarData(socio.data_nascimento))}
+                ${createInfoItem('Estado Civil', formatarEstadoCivil(socio.estado_civil, socio.regime_casamento))}
+                ${createInfoItem('Endereço', enderecoSocio)}
+                ${createInfoItem('Participação', socio.participacao ? `${socio.participacao}%` : 'Não informado')}
+                ${socio.observacoes ? createInfoItem('Observações', socio.observacoes) : ''}
             `;
-            sociosLista.innerHTML += socioHTML;
+            sociosContainer.appendChild(socioCard);
         });
-    } else {
-        sociosLista.innerHTML = '<p style="color: #666;">Nenhum sócio cadastrado.</p>';
+    } else if (sociosSection) {
+        sociosSection.style.display = 'none';
     }
 
-    // Documentos
-    const documentosLista = document.getElementById('documentos-lista');
-    documentosLista.innerHTML = '';
+    // Preencher Filiais se for matriz
+    const filiaisContainer = document.getElementById('filiais-container');
+    const filiaisSection = document.getElementById('filiais-section');
+    if (empresa.tipo === 'matriz' && empresa.filiais && empresa.filiais.length > 0) {
+        if (filiaisSection) filiaisSection.style.display = 'block';
+        if (filiaisContainer) {
+            filiaisContainer.innerHTML = '';
+            empresa.filiais.forEach((filial, index) => {
+                const filialCard = document.createElement('div');
+                filialCard.className = 'filial-card';
+                filialCard.innerHTML = `
+                    <h3>Filial ${index + 1}</h3>
+                    ${createInfoItem('Nome', filial.nome)}
+                    ${createInfoItem('CNPJ', formatarCNPJ(filial.cnpj))}
+                    ${createInfoItem('NIRE', filial.nire)}
+                    ${createInfoItem('Telefone', filial.telefone)}
+                    ${createInfoItem('E-mail', filial.email)}
+                `;
+                filiaisContainer.appendChild(filialCard);
+            });
+        }
+    } else if (filiaisSection) {
+        filiaisSection.style.display = 'none';
+    }
 
+    // Preencher Documentos
+    const documentosContainer = document.getElementById('documentos-container');
+    const documentosSection = document.getElementById('documentos-section');
+    
+    // Obter responsável legal para verificar condições de documentos
+    const responsavelLegal = empresa.socios?.find(s => s.is_admin === 'sim') || empresa.socios?.[0] || {};
+    
     const tiposDocumentosOrdenados = [
         { tipo: 'cartaoCNPJ', label: 'Cartão CNPJ', campo: 'documentos.cartaoCNPJ' },
         { tipo: 'contratoSocial', label: 'Contrato Social', campo: 'documentos.contratoSocial' },
@@ -140,50 +183,80 @@ function exibirDadosEmpresa(empresa) {
         { tipo: 'certificadoDigital', label: 'Certificado Digital (eCNPJ)', campo: 'certificadoDigital', validade: 'certificadoDigital.validade', isCertificado: true },
         { tipo: 'rgResponsavel', label: 'RG do Responsável Legal', campo: 'documentos.rgResponsavel' },
         { tipo: 'comprovanteResidenciaResponsavel', label: 'Comprovante Residência (Responsável)', campo: 'documentos.comprovanteResidenciaResponsavel' },
-        { tipo: 'rgConjuge', label: 'RG do Cônjuge', campo: 'documentos.rgConjuge', condicao: responsavelLegal.estadoCivil === 'casado' },
-        { tipo: 'comprovanteResidenciaConjuge', label: 'Comprovante Residência (Cônjuge)', campo: 'documentos.comprovanteResidenciaConjuge', condicao: responsavelLegal.estadoCivil === 'casado' },
+        { tipo: 'rgConjuge', label: 'RG do Cônjuge', campo: 'documentos.rgConjuge', condicao: responsavelLegal.estado_civil === 'casado' },
+        { tipo: 'comprovanteResidenciaConjuge', label: 'Comprovante Residência (Cônjuge)', campo: 'documentos.comprovanteResidenciaConjuge', condicao: responsavelLegal.estado_civil === 'casado' },
         { tipo: 'iptu', label: 'IPTU', campo: 'documentos.iptu' },
         { tipo: 'contratoLocacao', label: 'Contrato de Locação', campo: 'documentos.contratoLocacao' },
         { tipo: 'outrosDocumentos', label: 'Outros Documentos', campo: 'outrosDocumentos', isArray: true }
     ];
 
-    tiposDocumentosOrdenados.forEach(item => {
-        // Verificar condição (exemplo: documentos de cônjuge só aparecem se casado)
-        if (item.condicao === false) return;
+    if (documentosContainer) {
+        documentosContainer.innerHTML = '';
+        let hasDocuments = false;
 
-        if (item.isArray) {
-            // Outros Documentos
-            const outrosDocs = empresa.outrosDocumentos || [];
-            if (outrosDocs.length > 0) {
-                outrosDocs.forEach(doc => {
-                    documentosLista.innerHTML += gerarItemDocumento(doc.nome, doc.caminho, item.tipo, null, false, doc);
-                });
-            }
-        } else if (item.isCertificado) {
-            // Certificado Digital
-            const certDigital = empresa.certificadoDigital;
-            if (certDigital && certDigital.arquivo) {
-                const validadeFormatada = certDigital.validade ? `Validade: ${formatarData(certDigital.validade)}` : null;
-                documentosLista.innerHTML += gerarItemDocumento(item.label, certDigital.arquivo, item.tipo, validadeFormatada, true, certDigital);
-            }
-        } else {
-            // Outros campos
-            const caminho = item.campo.split('.').reduce((obj, key) => obj && obj[key], empresa);
-            if (caminho) {
-                let validadeText = null;
-                if (item.validade) {
-                    const dataValidade = item.validade.split('.').reduce((obj, key) => obj && obj[key], empresa);
-                    if (dataValidade) {
-                        validadeText = `Validade: ${formatarData(dataValidade)}`;
-                    }
+        tiposDocumentosOrdenados.forEach(item => {
+            // Verificar condição (exemplo: documentos de cônjuge só aparecem se casado)
+            if (item.condicao === false) return;
+
+            if (item.isArray) {
+                // Outros Documentos
+                const outrosDocs = empresa.outrosDocumentos || [];
+                if (outrosDocs.length > 0) {
+                    outrosDocs.forEach(doc => {
+                        documentosContainer.innerHTML += gerarItemDocumento(doc.nome, doc.caminho, item.tipo, null, false, doc);
+                        hasDocuments = true;
+                    });
                 }
-                documentosLista.innerHTML += gerarItemDocumento(item.label, caminho, item.tipo, validadeText, false, null);
+            } else if (item.isCertificado) {
+                // Certificado Digital
+                const certDigital = empresa.certificadoDigital;
+                if (certDigital && certDigital.arquivo) {
+                    const validadeFormatada = certDigital.validade ? `Validade: ${formatarData(certDigital.validade)}` : null;
+                    documentosContainer.innerHTML += gerarItemDocumento(item.label, certDigital.arquivo, item.tipo, validadeFormatada, true, certDigital);
+                    hasDocuments = true;
+                }
+            } else {
+                // Outros campos
+                const caminho = item.campo.split('.').reduce((obj, key) => obj && obj[key], empresa);
+                if (caminho) {
+                    let validadeText = null;
+                    if (item.validade) {
+                        const dataValidade = item.validade.split('.').reduce((obj, key) => obj && obj[key], empresa);
+                        if (dataValidade) {
+                            validadeText = `Validade: ${formatarData(dataValidade)}`;
+                        }
+                    }
+                    documentosContainer.innerHTML += gerarItemDocumento(item.label, caminho, item.tipo, validadeText, false, null);
+                    hasDocuments = true;
+                }
             }
-        }
-    });
+        });
 
-    if (documentosLista.innerHTML.trim() === '') {
-        documentosLista.innerHTML = '<p style="color: #666;">Nenhum documento cadastrado.</p>';
+        if (!hasDocuments) {
+            documentosContainer.innerHTML = '<li style="list-style: none; color: #666; padding: 10px;">Nenhum documento cadastrado.</li>';
+        }
+        
+        if (documentosSection) {
+            documentosSection.style.display = hasDocuments ? 'block' : 'none';
+        }
+    }
+
+    // Atualizar contador de documentos selecionados
+    atualizarContador();
+    
+    // Configurar botões de ação
+    const btnEditar = document.getElementById('btn-editar');
+    if (btnEditar) {
+        btnEditar.style.display = 'inline-block';
+        btnEditar.onclick = () => {
+            window.location.href = `editar.html?id=${empresa._id}`;
+        };
+    }
+
+    // Configurar data e hora para impressão
+    const printDateTime = document.getElementById('print-datetime');
+    if (printDateTime) {
+        printDateTime.textContent = new Date().toLocaleString('pt-BR');
     }
 }
 
