@@ -1,6 +1,11 @@
 // === editar.js ===
 // Lógica do formulário de edição de empresa (similar a cliente-formulario.js)
 
+// Verificar autenticação antes de carregar a página
+if (!localStorage.getItem('token')) {
+    window.location.replace('login.html');
+}
+
 let socioIndex = 0;
 let contratoIndex = 0;
 const urlParams = new URLSearchParams(window.location.search);
