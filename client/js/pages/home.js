@@ -207,20 +207,25 @@ async function stopImpersonating(event) {
 document.addEventListener('DOMContentLoaded', async () => {
     await getUsuario();
 
-    // Lógica para mostrar/esconder os formulários de configuração
-    document.getElementById('togglePasswordBtn').addEventListener('click', (e) => {
-        e.preventDefault();
-        const container = document.getElementById('changePasswordContainer');
-        container.style.display = container.style.display === 'none' ? 'block' : 'none';
-    });
-
-    document.getElementById('toggleEmailBtn').addEventListener('click', (e) => {
-        e.preventDefault();
-        const container = document.getElementById('changeEmailContainer');
-        container.style.display = container.style.display === 'none' ? 'block' : 'none';
-    });
+    // Redireciona para página de configurações em vez de abrir na home
+    const btnPwd = document.getElementById('togglePasswordBtn');
+    if (btnPwd) {
+        btnPwd.addEventListener('click', (e) => {
+            // Se for link com href já definido, apenas segue
+            if (!btnPwd.getAttribute('href')) e.preventDefault();
+            window.location.href = 'configuracoes-conta.html#senha';
+        });
+    }
+    const btnEmail = document.getElementById('toggleEmailBtn');
+    if (btnEmail) {
+        btnEmail.addEventListener('click', (e) => {
+            if (!btnEmail.getAttribute('href')) e.preventDefault();
+            window.location.href = 'configuracoes-conta.html#email';
+        });
+    }
 
     // Helpers de validação de senha
+    if (document.getElementById('changePasswordForm')) {
     const hasUpper = (s) => /[A-Z]/.test(s);
     const hasLower = (s) => /[a-z]/.test(s);
     const hasDigit = (s) => /\d/.test(s);
@@ -330,8 +335,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast(error.message || 'Erro ao alterar a senha.', 'error');
         }
     });
+    }
 
     // Lógica para alterar email
+    if (document.getElementById('changeEmailForm')) {
     const emailFormatMsg = document.getElementById('emailFormatMsg');
     const emailMatchMsg = document.getElementById('emailMatchMsg');
     const btnSubmitEmail = document.getElementById('btnSubmitEmail');
@@ -393,6 +400,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast(error.message || 'Erro ao alterar o email.', 'error');
         }
     });
+    }
 
     // Lógica para upload de foto
     document.getElementById('profilePicInput').addEventListener('change', function(event) {
@@ -428,6 +436,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     // Inicializa estados de validação ao abrir a página
-    try { updatePwUI(); } catch (_) {}
-    try { updateEmailUI(); } catch (_) {}
+    try { if (document.getElementById('changePasswordForm')) updatePwUI(); } catch (_) {}
+    try { if (document.getElementById('changeEmailForm')) updateEmailUI(); } catch (_) {}
 });
