@@ -12,8 +12,8 @@ module.exports = {
 
   // Rate Limiting
   rateLimit: {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 1 * 60 * 1000, // 1 minuto (para desenvolvimento)
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000, // 1000 requisições por minuto (desenvolvimento)
     login: {
       windowMs: 15 * 60 * 1000, // 15 minutos
       max: parseInt(process.env.RATE_LIMIT_LOGIN_MAX) || 5, // 5 tentativas
