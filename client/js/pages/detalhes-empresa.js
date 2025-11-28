@@ -725,52 +725,41 @@ function gerarRelatorioCompleto() {
 
 // --- Event Listeners ---
 function setupEventListeners() {
-    // Botões de navegação
-    document.querySelectorAll('[data-action="voltar"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            window.history.back();
-        });
+    // Botão Voltar (classe .btn-back)
+    document.querySelectorAll('.btn-back').forEach(btn => {
+        btn.addEventListener('click', () => window.history.back());
     });
 
-    // Editar empresa
-    const btnEditar = document.querySelector('[data-action="editar"]');
+    // Editar empresa (id="btn-editar")
+    const btnEditar = document.getElementById('btn-editar');
     if (btnEditar) {
         btnEditar.addEventListener('click', () => {
             window.location.href = `editar.html?id=${empresaId}`;
         });
     }
 
-    // Seleção de documentos
-    const btnSelectAll = document.getElementById('btn-select-all');
-    if (btnSelectAll) {
-        btnSelectAll.addEventListener('click', selecionarTodos);
-    }
+    // Seleção de documentos (classes .btn-select-all / .btn-deselect-all)
+    const btnSelectAll = document.querySelector('.btn-select-all');
+    if (btnSelectAll) btnSelectAll.addEventListener('click', selecionarTodos);
 
-    const btnDeselectAll = document.getElementById('btn-deselect-all');
-    if (btnDeselectAll) {
-        btnDeselectAll.addEventListener('click', desselecionarTodos);
-    }
+    const btnDeselectAll = document.querySelector('.btn-deselect-all');
+    if (btnDeselectAll) btnDeselectAll.addEventListener('click', desselecionarTodos);
 
-    // Ações com documentos
-    const btnPrint = document.getElementById('btn-print');
-    if (btnPrint) {
-        btnPrint.addEventListener('click', prepararImpressao);
-    }
+    // Ações com documentos (ids reais do HTML)
+    const btnPrint = document.querySelector('.btn-print');
+    if (btnPrint) btnPrint.addEventListener('click', prepararImpressao);
 
-    const btnPdf = document.getElementById('btn-pdf');
-    if (btnPdf) {
-        btnPdf.addEventListener('click', gerarRelatorioCompleto);
-    }
+    const btnPdf = document.querySelector('.btn-pdf');
+    if (btnPdf) btnPdf.addEventListener('click', gerarRelatorioCompleto);
 
-    const btnDownload = document.querySelector('[data-action="baixar"]');
-    if (btnDownload) {
-        btnDownload.addEventListener('click', baixarSelecionados);
-    }
+    const btnDownload = document.getElementById('btn-download-selected');
+    if (btnDownload) btnDownload.addEventListener('click', baixarSelecionados);
 
-    const btnDelete = document.querySelector('[data-action="excluir"]');
-    if (btnDelete) {
-        btnDelete.addEventListener('click', excluirSelecionados);
-    }
+    const btnOpenSelected = document.getElementById('btn-open-selected');
+    if (btnOpenSelected) btnOpenSelected.addEventListener('click', abrirSelecionados);
+
+    const btnDelete = document.getElementById('btn-delete-selected');
+    if (btnDelete) btnDelete.addEventListener('click', excluirSelecionados);
 
     // Autenticação de senha
     const authForm = document.getElementById('auth-form');
