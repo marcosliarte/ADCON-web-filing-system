@@ -153,14 +153,19 @@
             <div class="widget">
                 <h3>Backup e Restauração</h3>
                 <button onclick="criarBackup()">Criar Backup Agora</button>
+                <button onclick="verificarDiagnostico()" style="background: #17a2b8; margin-left: 0.5rem;">🔍 Diagnóstico DB</button>
                 <!-- CAMPO PARA CARREGAR BACKUP -->
                 <div style="margin-top: 1rem; border-top: 1px solid #eee; padding-top: 1rem;">
-                    <label for="backup-file-input" style="display: block; margin-bottom: 0.5rem;">Ou carregue um arquivo de backup (.zip) para restaurar:</label>
+                    <label for="backup-file-input" style="display: block; margin-bottom: 0.5rem;">Ou carregue um arquivo de backup (.zip):</label>
                     <input type="file" id="backup-file-input" accept=".zip" style="font-size: 0.9rem;">
-                    <button onclick="carregarBackup()" style="margin-top: 0.5rem;">Carregar e Restaurar</button>
+                    <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+                        <button onclick="inspecionarBackup()" style="background: #17a2b8;">🔍 Inspecionar</button>
+                        <button onclick="carregarBackup()">📥 Restaurar</button>
+                    </div>
                 </div>
 
                 <div id="backup-status" style="margin-top: 1rem;"></div>
+                <div id="diagnostico-status" style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 4px; display: none;"></div>
                 <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Backups Disponíveis:</h4>
                 <ul id="backup-list" class="backup-list">
                 </ul>
@@ -625,6 +630,7 @@
                             <small>${new Date(backup.createdAt).toLocaleString('pt-BR')} - ${backup.size} MB</small>
                         </div>
                         <div class="backup-actions">
+                            <button class="btn-download" style="background: #17a2b8;" onclick="inspecionarBackupServidor('${backup.filename}')">🔍</button>
                             <a href="#" onclick="baixarBackup(event, '${backup.filename}')"><button class="btn-download">Baixar</button></a>
                             <button class="btn-restore" onclick="restaurarBackup('${backup.filename}')">Restaurar</button>
                             <button class="btn-delete" onclick="excluirBackup('${backup.filename}')">Excluir</button>
@@ -787,6 +793,175 @@
             } catch (error) {
                 alert(`Erro: ${error.message}`);
             }
+        }
+
+        async function verificarDiagnostico() {
+            const diagnosticoDiv = document.getElementById('diagnostico-status');
+            diagnosticoDiv.style.display = 'block';
+            diagnosticoDiv.innerHTML = '<p>🔄 Verificando estado do banco de dados...</p>';
+            
+            try {
+                const response = await fetchWithAuth('/api/admin/diagnostico');
+                if (!response.ok) throw new Error('Falha ao obter diagnóstico');
+                
+                const data = await response.json();
+                
+                const isProducao = data.banco.uri.includes('mongodb+srv') || data.banco.uri.includes('atlas');
+                const ambienteBadge = isProducao 
+                    ? '<span style="background: #dc3545; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: bold;">🌐 PRODUÇÃO</span>'
+                    : '<span style="background: #28a745; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: bold;">💻 LOCAL</span>';
+                
+                const detalhesHTML = data.detalhesColecoes 
+                    ? Object.entries(data.detalhesColecoes)
+                        .map(([nome, count]) => `• ${nome}: <strong>${count}</strong> documentos`)
+                        .join('<br>')
+                    : data.colecoes.map(c => `• ${c}`).join('<br>');
+                
+                diagnosticoDiv.innerHTML = `
+                    <h4 style="margin-top: 0; color: #007bff;">📊 Diagnóstico do Banco de Dados</h4>
+                    <div style="background: white; padding: 0.75rem; border-radius: 4px; margin-bottom: 0.5rem;">
+                        <strong>Ambiente:</strong> ${ambienteBadge}<br><br>
+                        <strong>Conexão:</strong><br>
+                        • Banco: <code>${data.banco.nome}</code><br>
+                        • Host: <code>${data.banco.host}</code><br>
+                        • Estado: <span style="color: ${data.banco.estado === 'connected' ? 'green' : 'red'}; font-weight: bold;">${data.banco.estado}</span><br>
+                        • URI: <code style="font-size: 0.8rem; word-break: break-all;">${data.banco.uri}</code>
+                    </div>
+                    <div style="background: white; padding: 0.75rem; border-radius: 4px; margin-bottom: 0.5rem;">
+                        <strong>Coleções e Documentos:</strong><br>
+                        ${detalhesHTML}
+                    </div>
+                    <div style="background: white; padding: 0.75rem; border-radius: 4px;">
+                        <strong>Resumo:</strong><br>
+                        • Empresas: <strong>${data.contagens.empresas}</strong><br>
+                        • Usuários: <strong>${data.contagens.usuarios}</strong>
+                    </div>
+                    ${isProducao ? '<div style="background: #fff3cd; padding: 0.75rem; border-radius: 4px; margin-top: 0.5rem; border-left: 4px solid #ffc107;"><strong>⚠️ Atenção:</strong> Você está conectado ao banco de PRODUÇÃO. Qualquer alteração afetará os dados reais!</div>' : ''}
+                    <button onclick="document.getElementById('diagnostico-status').style.display='none'" 
+                            style="margin-top: 0.5rem; background: #6c757d; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                        Fechar
+                    </button>
+                `;
+            } catch (error) {
+                diagnosticoDiv.innerHTML = `<p style="color: red;">❌ Erro: ${error.message}</p>`;
+            }
+        }
+
+        async function inspecionarBackup() {
+            const fileInput = document.getElementById('backup-file-input');
+            const file = fileInput.files[0];
+            const statusDiv = document.getElementById('backup-status');
+
+            if (!file) {
+                alert('Por favor, selecione um arquivo de backup para inspecionar.');
+                return;
+            }
+
+            if (!file.name.endsWith('.zip')) {
+                alert('Por favor, selecione um arquivo .zip válido.');
+                return;
+            }
+
+            statusDiv.innerHTML = `<p style="color: #007bff;">🔍 Inspecionando backup "${file.name}"...</p>`;
+
+            const formData = new FormData();
+            formData.append('backupFile', file);
+
+            try {
+                const response = await fetchWithAuth('/api/admin/backup/inspecionar', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Erro ao inspecionar backup');
+                }
+
+                const data = await response.json();
+                mostrarResultadoInspecao(data, statusDiv);
+            } catch (error) {
+                statusDiv.innerHTML = `<p style="color: red;">❌ Erro ao inspecionar: ${error.message}</p>`;
+            }
+        }
+
+        async function inspecionarBackupServidor(filename) {
+            const statusDiv = document.getElementById('backup-status');
+            statusDiv.innerHTML = `<p style="color: #007bff;">🔍 Inspecionando backup "${filename}" do servidor...</p>`;
+
+            try {
+                const response = await fetchWithAuth('/api/admin/backup/inspecionar-servidor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.msg || 'Erro ao inspecionar backup');
+                }
+
+                const data = await response.json();
+                mostrarResultadoInspecao(data, statusDiv);
+            } catch (error) {
+                statusDiv.innerHTML = `<p style="color: red;">❌ Erro ao inspecionar: ${error.message}</p>`;
+            }
+        }
+
+        function mostrarResultadoInspecao(data, statusDiv) {
+            let dumpInfoHTML = '';
+            if (data.temDumpDB) {
+                if (data.dumpInfo.success) {
+                    const collections = data.dumpInfo.collections;
+                    const totalDocs = collections.reduce((sum, c) => sum + (c.docCount || 0), 0);
+                    dumpInfoHTML = `
+                        <strong style="color: ${totalDocs > 0 ? 'green' : 'orange'};">
+                            ${totalDocs > 0 ? '✅' : '⚠️'} Dump do Banco ${totalDocs > 0 ? 'COM DADOS' : 'VAZIO'}
+                        </strong><br>
+                        <strong>Total de documentos:</strong> ${totalDocs}<br>
+                        <strong>Banco:</strong> ${collections[0]?.database || 'N/A'}<br>
+                        <strong>Coleções:</strong><br>
+                        ${collections.map(c => `• ${c.collection} ${c.docCount ? `(${c.docCount} docs)` : ''}`).join('<br>') || 'Nenhuma'}
+                    `;
+                } else {
+                    dumpInfoHTML = `
+                        <strong>❌ Erro ao ler dump:</strong><br>
+                        <code style="font-size: 0.8rem; white-space: pre-wrap;">${data.dumpInfo.error}</code>
+                    `;
+                }
+            } else {
+                dumpInfoHTML = '<strong>⚠️ Nenhum dump do banco encontrado no backup</strong>';
+            }
+
+            let uploadsInfoHTML = '';
+            if (data.uploadsInfo.exists) {
+                uploadsInfoHTML = `
+                    <strong>✅ Pasta uploads encontrada</strong><br>
+                    • Arquivos: ${data.uploadsInfo.fileCount}<br>
+                    • Tamanho: ${(data.uploadsInfo.size / (1024 * 1024)).toFixed(2)} MB
+                `;
+            } else {
+                uploadsInfoHTML = '<strong>⚠️ Nenhuma pasta uploads encontrada</strong>';
+            }
+
+            statusDiv.innerHTML = `
+                <h4 style="margin-top: 0; color: #007bff;">📦 Inspeção do Backup</h4>
+                <div style="background: white; padding: 0.75rem; border-radius: 4px; margin-bottom: 0.5rem;">
+                    <strong>Arquivo:</strong> ${data.arquivoOriginal || data.filename}<br>
+                    <strong>Tamanho:</strong> ${(data.tamanho / (1024 * 1024)).toFixed(2)} MB<br>
+                    <strong>Arquivos extraídos:</strong> ${data.arquivosExtraidos.join(', ')}
+                </div>
+                <div style="background: white; padding: 0.75rem; border-radius: 4px; margin-bottom: 0.5rem;">
+                    ${dumpInfoHTML}
+                </div>
+                <div style="background: white; padding: 0.75rem; border-radius: 4px;">
+                    ${uploadsInfoHTML}
+                </div>
+                <button onclick="document.getElementById('backup-status').innerHTML=''" 
+                        style="margin-top: 0.5rem; background: #6c757d; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                    Fechar
+                </button>
+            `;
         }
 
         // Função utilitária: abre modal de confirmação. Returns Promise<boolean>
