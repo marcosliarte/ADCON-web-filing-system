@@ -28,7 +28,7 @@
         <input type="text" id="busca" placeholder="Buscar por nome ou CNPJ" autocomplete="off">
         <div id="autocomplete-list" class="autocomplete-list"></div>
       </div>
-      <button id="btn-cadastrar" onclick="window.location.href='cliente-formulario.html'" style="display: none;">Cadastrar Nova Empresa</button>
+      <button id="btn-cadastrar" style="display: none;">Cadastrar Nova Empresa</button>
       <span id="loading" class="loading" style="display: none;">Carregando...</span>
     </div>
 
@@ -36,9 +36,9 @@
     <table>
       <thead>
         <tr>
-          <th id="th-cnpj" onclick="ordenarPor('cnpj')">CNPJ</th>
-          <th id="th-nome" onclick="ordenarPor('nome')">Nome Empresarial</th>
-          <th id="th-dataCadastro" onclick="ordenarPor('dataCadastro')">Data de Cadastro</th>
+          <th id="th-cnpj" data-sort="cnpj">CNPJ</th>
+          <th id="th-nome" data-sort="nome">Nome Empresarial</th>
+          <th id="th-dataCadastro" data-sort="dataCadastro">Data de Cadastro</th>
           <th>Ações</th>
         </tr>
       </thead>
@@ -51,9 +51,9 @@
     </div>
 
     <div class="pagination">
-      <button id="btn-anterior" onclick="paginaAnterior()" disabled>&lt; Anterior</button>
+      <button id="btn-anterior" disabled>&lt; Anterior</button>
       <span id="pagina-atual"></span>
-      <button id="btn-proximo" onclick="proximaPagina()" disabled>&gt; Próximo</button>
+      <button id="btn-proximo" disabled>&gt; Próximo</button>
     </div>
   </div>
 
