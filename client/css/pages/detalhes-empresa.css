@@ -1,5 +1,5 @@
 /* detalhes-empresa.css */
-@import url('common-page.css');
+@import url('/css/pages/common-page.css');
 
 h3 {
     color: #007bff;

@@ -1,5 +1,5 @@
 /* editar.html.css */
-@import url('common-page.css');
+@import url('/css/pages/common-page.css');
 
 /* Correção para inputs de arquivo */
 input[type="file"] {
