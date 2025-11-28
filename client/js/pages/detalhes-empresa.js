@@ -734,32 +734,35 @@ function setupEventListeners() {
     }
 
     // Event delegation para checkboxes dinâmicos
-    document.getElementById('documentos-lista').addEventListener('change', (e) => {
-        if (e.target.classList.contains('doc-checkbox')) {
-            atualizarContador();
-        }
-    });
-
-    // Event delegation para botões de revelar senha dinâmicos
-    document.getElementById('documentos-lista').addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-show-senha')) {
-            revelarSenha(e.target);
-        }
-    });
-
-    // Event delegation para links de verificar arquivo dinâmicos
-    document.getElementById('documentos-lista').addEventListener('click', async (e) => {
-        if (e.target.closest('.link-verificar-arquivo')) {
-            e.preventDefault();
-            const link = e.target.closest('.link-verificar-arquivo');
-            const caminho = link.getAttribute('data-caminho');
-            const nome = link.getAttribute('data-nome');
-            const podeAbrir = await verificarArquivo(caminho, nome);
-            if (podeAbrir) {
-                window.open(caminho, '_blank', 'noopener,noreferrer');
+    const documentosContainer = document.getElementById('documentos-container');
+    if (documentosContainer) {
+        documentosContainer.addEventListener('change', (e) => {
+            if (e.target.classList.contains('doc-checkbox')) {
+                atualizarContador();
             }
-        }
-    });
+        });
+
+        // Event delegation para botões de revelar senha dinâmicos
+        documentosContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-show-senha')) {
+                revelarSenha(e.target);
+            }
+        });
+
+        // Event delegation para links de verificar arquivo dinâmicos
+        documentosContainer.addEventListener('click', async (e) => {
+            if (e.target.closest('.link-verificar-arquivo')) {
+                e.preventDefault();
+                const link = e.target.closest('.link-verificar-arquivo');
+                const caminho = link.getAttribute('data-caminho');
+                const nome = link.getAttribute('data-nome');
+                const podeAbrir = await verificarArquivo(caminho, nome);
+                if (podeAbrir) {
+                    window.open(caminho, '_blank', 'noopener,noreferrer');
+                }
+            }
+        });
+    }
 
     // Setup modal click handler
     setupModalClickHandler();
