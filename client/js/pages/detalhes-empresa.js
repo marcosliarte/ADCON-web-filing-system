@@ -1,6 +1,11 @@
 // === detalhes-empresa.js ===
 // Lógica da página de detalhes da empresa
 
+// Verificar autenticação antes de carregar a página
+if (!localStorage.getItem('token')) {
+    window.location.replace('login.html');
+}
+
 let empresaAtual = null;
 let empresaId = null;
 let usuario = null;
