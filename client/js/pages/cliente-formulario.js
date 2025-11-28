@@ -5,6 +5,7 @@ let currentStep = 1;
 const totalSteps = 3;
 let socioIndex = 0;
 let contratoIndex = 1;
+let balancoIndex = 0;
 
 // === MÁSCARAS ===
 const maskCnpj = (value) => value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d)/, '$1-$2').slice(0, 18);
@@ -184,6 +185,19 @@ function adicionarAlteracaoContrato() {
     contratoIndex++;
 }
 
+function adicionarBalancoPatrimonial() {
+    if (balancoIndex >= 50) {
+        alert('Limite máximo de 50 balanços atingido. Se precisar adicionar mais, entre em contato com o suporte.');
+        return;
+    }
+    const template = document.getElementById('balanco-template').innerHTML;
+    const container = document.getElementById('balancos-container');
+    const newBalanco = document.createElement('div');
+    newBalanco.innerHTML = template.replace(/INDEX/g, balancoIndex);
+    container.appendChild(newBalanco);
+    balancoIndex++;
+}
+
 function toggleRegimeCasamento(select) {
     const regimeDiv = select.closest('.form-group').nextElementSibling;
     regimeDiv.style.display = select.value === 'casado' ? 'block' : 'none';
@@ -284,6 +298,12 @@ function setupEventListeners() {
     const btnAddContrato = document.querySelectorAll('.btn-add')[1];
     if (btnAddContrato) {
         btnAddContrato.addEventListener('click', adicionarAlteracaoContrato);
+    }
+
+    // Adicionar balanço patrimonial
+    const btnAddBalanco = document.getElementById('btn-add-balanco');
+    if (btnAddBalanco) {
+        btnAddBalanco.addEventListener('click', adicionarBalancoPatrimonial);
     }
 
     // Navegação de etapas

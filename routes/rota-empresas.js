@@ -79,10 +79,17 @@ const handleMulterError = (req, res, next) => {
     maxCount: 1
   }));
 
+  // Gerar campos dinamicamente para até 50 balanços patrimoniais
+  const balancoFields = Array.from({ length: 50 }, (_, i) => ({
+    name: `balanco_patrimonial[${i}][arquivo]`,
+    maxCount: 1
+  }));
+
   const uploadFields = upload.fields([
     { name: 'arquivo_cnpj', maxCount: 1 },
     { name: 'certificado_digital', maxCount: 1 },
     ...contratoFields, // Adiciona todos os campos de contratos dinamicamente
+    ...balancoFields, // Adiciona todos os campos de balanços dinamicamente
     { name: 'alvara_arquivo', maxCount: 1 },
     { name: 'certidao_prefeitura_arquivo', maxCount: 1 },
     { name: 'certidao_receita_arquivo', maxCount: 1 },
@@ -215,6 +222,25 @@ router.post(
             }
             // Adiciona o contrato se houver data, mesmo sem arquivo
             if (newContrato.dataAlteracao) dadosEmpresa.documentos.contratos.push(newContrato);
+          });
+        }
+
+        // Processa os balanços patrimoniais
+        if (req.body.balanco_patrimonial) {
+          const balancosInfo = req.body.balanco_patrimonial; // Array de {ano}
+
+          balancosInfo.forEach((info, index) => {
+            const file = req.files[`balanco_patrimonial[${index}][arquivo]`]?.[0];
+            
+            // Só adiciona se houver arquivo e ano
+            if (file && info.ano) {
+              const newBalanco = {
+                nomeArquivo: file.originalname,
+                caminhoArquivo: `/uploads/balancos/${file.filename}`,
+                ano: info.ano,
+              };
+              dadosEmpresa.documentos.balancosPatrimoniais.push(newBalanco);
+            }
           });
         }
       }
@@ -498,6 +524,29 @@ router.put(
           .filter(c => c.dataAlteracao);
       } else {
         empresa.documentos.contratos = []; // Limpa se nenhum contrato for enviado
+      }
+
+      // Lógica para atualizar/adicionar balanços patrimoniais
+      if (req.body.balanco_patrimonial) {
+        // Garante que balanco_patrimonial seja sempre um array
+        const balancosInfo = Array.isArray(req.body.balanco_patrimonial) ? req.body.balanco_patrimonial : [req.body.balanco_patrimonial];
+
+        empresa.documentos.balancosPatrimoniais = balancosInfo
+          .map((balancoInfo, index) => {
+            const file = filesMap[`balanco_patrimonial[${index}][arquivo]`];
+            // Pega o balanço existente pelo mesmo índice para manter o arquivo se não for alterado
+            const balancoExistente = empresa.documentos.balancosPatrimoniais?.[index] || {};
+
+            return {
+              nomeArquivo: file ? file.originalname : balancoExistente.nomeArquivo,
+              caminhoArquivo: file ? `/uploads/balancos/${file.filename}` : balancoExistente.caminhoArquivo,
+              ano: balancoInfo.ano,
+            };
+          })
+          // Remove entradas vazias (sem ano)
+          .filter(b => b.ano && b.nomeArquivo);
+      } else {
+        empresa.documentos.balancosPatrimoniais = []; // Limpa se nenhum balanço for enviado
       }
 
 

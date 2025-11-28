@@ -273,6 +273,16 @@
                 <button type="button" class="btn-add">+ Adicionar Alteração Contratual</button>
             </div>
 
+            <!-- BALANÇOS PATRIMONIAIS -->
+            <div class="form-section">
+                <h3>Balanços Patrimoniais (Opcional)</h3>
+                <p>Adicione os documentos anuais de balanço patrimonial. Este campo é opcional.</p>
+                <div id="balancos-container">
+                    <!-- Balanços serão adicionados dinamicamente aqui -->
+                </div>
+                <button type="button" id="btn-add-balanco" class="btn-add">+ Adicionar Balanço Patrimonial</button>
+            </div>
+
             <!-- NAVEGAÇÃO E SUBMISSÃO -->
             <div class="navigation-buttons">
                 <button type="button" id="prevBtn" class="btn-secondary">Anterior</button>
@@ -398,6 +408,24 @@
                 <div class="form-group">
                     <label>Número da Alteração</label>
                     <input type="text" name="contrato_social[INDEX][numero]" required>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Template para balanço patrimonial -->
+    <template id="balanco-template">
+        <div class="alteracao-card">
+            <button type="button" class="btn-remover" style="float: right;">Remover</button>
+            <h3>Balanço Patrimonial</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Arquivo PDF</label>
+                    <input type="file" name="balanco_patrimonial[INDEX][arquivo]" accept=".pdf">
+                </div>
+                <div class="form-group">
+                    <label>Ano</label>
+                    <input type="text" name="balanco_patrimonial[INDEX][ano]" placeholder="Ex: 2024" maxlength="4" required>
                 </div>
             </div>
         </div>

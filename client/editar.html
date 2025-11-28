@@ -125,6 +125,10 @@
                         <input type="text" id="numero" name="endereco.numero" required>
                     </div>
                     <div class="form-group">
+                        <label for="complemento">Complemento (Opcional)</label>
+                        <input type="text" id="complemento" name="endereco.complemento">
+                    </div>
+                    <div class="form-group">
                         <label for="bairro">Bairro</label>
                         <input type="text" id="bairro" name="endereco.bairro" required>
                     </div>
@@ -302,6 +306,13 @@
                 <button type="button" class="btn-add">+ Adicionar Alteração Contratual</button>
             </div>
 
+            <button type="button" class="accordion-header">Balanços Patrimoniais</button>
+            <div class="accordion-content">
+                <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem;">Os balanços patrimoniais são documentos anuais. Adicione os balanços de cada ano fiscal.</p>
+                <div id="balancos-container"></div>
+                <button type="button" class="btn-add" id="btn-add-balanco">+ Adicionar Balanço Patrimonial</button>
+            </div>
+
             <!-- NAVEGAÇÃO E SUBMISSÃO -->
             <div class="navigation-buttons" style="margin-top: 2rem;">
                 <button type="button" class="btn-secondary">Cancelar</button>
@@ -423,6 +434,25 @@
                 <div class="form-group">
                     <label>Data da Alteração</label>
                     <input type="date" name="contrato_social[INDEX][data]" required>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Template para balanço patrimonial -->
+    <template id="balanco-template">
+        <div class="alteracao-card">
+            <button type="button" class="btn-remover" style="float: right;">Remover</button>
+            <h3>Balanço Patrimonial</h3>
+            <div class="form-grid" style="align-items: end;">
+                <div class="form-group">
+                    <label>Arquivo do Balanço (PDF)</label>
+                    <div class="file-info"></div>
+                    <input type="file" name="balanco_patrimonial[INDEX][arquivo]" accept=".pdf">
+                </div>
+                <div class="form-group">
+                    <label>Ano do Balanço</label>
+                    <input type="text" name="balanco_patrimonial[INDEX][ano]" placeholder="Ex: 2024" maxlength="4" required>
                 </div>
             </div>
         </div>

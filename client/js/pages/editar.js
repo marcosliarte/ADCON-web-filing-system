@@ -8,6 +8,7 @@ if (!localStorage.getItem('token')) {
 
 let socioIndex = 0;
 let contratoIndex = 0;
+let balancoIndex = 0;
 const urlParams = new URLSearchParams(window.location.search);
 const empresaId = urlParams.get('id');
 
@@ -107,6 +108,7 @@ async function loadEmpresa() {
             setValue('cep', data.endereco.cep);
             setValue('rua', data.endereco.rua);
             setValue('numero', data.endereco.numero);
+            setValue('complemento', data.endereco.complemento);
             setValue('bairro', data.endereco.bairro);
             setValue('cidade', data.endereco.cidade);
             setValue('estado', data.endereco.estado);
@@ -157,6 +159,18 @@ async function loadEmpresa() {
                     adicionarAlteracaoContrato(contrato);
                 } catch (err) {
                     console.error('Erro ao adicionar contrato:', err, contrato);
+                }
+            });
+        }
+
+        // Balanços Patrimoniais
+        console.log('Carregando balanços patrimoniais:', data.documentos?.balancosPatrimoniais);
+        if (data.documentos && data.documentos.balancosPatrimoniais && data.documentos.balancosPatrimoniais.length > 0) {
+            data.documentos.balancosPatrimoniais.forEach(balanco => {
+                try {
+                    adicionarBalancoPatrimonial(balanco);
+                } catch (err) {
+                    console.error('Erro ao adicionar balanço:', err, balanco);
                 }
             });
         }
@@ -270,6 +284,24 @@ function adicionarAlteracaoContrato(contrato = null) {
     contratoIndex++;
 }
 
+function adicionarBalancoPatrimonial(balanco = null) {
+    const template = document.getElementById('balanco-template').innerHTML;
+    const container = document.getElementById('balancos-container');
+    const newBalancoDiv = document.createElement('div');
+    newBalancoDiv.innerHTML = template.replace(/INDEX/g, balancoIndex);
+
+    if (balanco) {
+        newBalancoDiv.querySelector(`input[name="balanco_patrimonial[${balancoIndex}][ano]"]`).value = balanco.ano || '';
+        const fileInfo = newBalancoDiv.querySelector('.file-info');
+        if (balanco.caminhoArquivo) {
+            fileInfo.innerHTML = `Arquivo atual: <a href="${balanco.caminhoArquivo}" target="_blank">${balanco.nomeArquivo}</a>`;
+        }
+    }
+
+    container.appendChild(newBalancoDiv);
+    balancoIndex++;
+}
+
 function toggleRegimeCasamento(select) {
     const regimeDiv = select.closest('.form-group').nextElementSibling;
     regimeDiv.style.display = select.value === 'casado' ? 'block' : 'none';
@@ -314,6 +346,12 @@ function setupEventListeners() {
     const btnAddContrato = document.querySelectorAll('.btn-add')[1];
     if (btnAddContrato) {
         btnAddContrato.addEventListener('click', () => adicionarAlteracaoContrato());
+    }
+
+    // Adicionar balanço patrimonial
+    const btnAddBalanco = document.getElementById('btn-add-balanco');
+    if (btnAddBalanco) {
+        btnAddBalanco.addEventListener('click', () => adicionarBalancoPatrimonial());
     }
 
     // Botão cancelar

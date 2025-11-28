@@ -229,6 +229,7 @@ function exibirDadosEmpresa(empresa) {
         { tipo: 'cartaoCnpj', label: 'Cartão CNPJ', campo: 'documentos.cartaoCnpj' },
         { tipo: 'certificadoDigital', label: 'Certificado Digital (eCNPJ)', campo: 'documentos.certificadoDigital', isCertificado: true },
         { tipo: 'contratos', label: 'Contratos', campo: 'documentos.contratos', isArray: true },
+        { tipo: 'balancosPatrimoniais', label: 'Balanços Patrimoniais', campo: 'documentos.balancosPatrimoniais', isArray: true, isBalanco: true },
         { tipo: 'alvara', label: 'Alvará', campo: 'documentos.alvara' },
         { tipo: 'certidaoPrefeitura', label: 'Certidão Negativa Prefeitura', campo: 'documentos.certidaoPrefeitura' },
         { tipo: 'certidaoReceita', label: 'Certidão Negativa Receita Federal', campo: 'documentos.certidaoReceita' },
@@ -248,11 +249,24 @@ function exibirDadosEmpresa(empresa) {
             if (item.condicao === false) return;
 
             if (item.isArray) {
-                // Arrays de documentos (contratos)
+                // Arrays de documentos (contratos e balanços)
                 const docArray = item.campo.split('.').reduce((obj, key) => obj && obj[key], empresa);
                 if (docArray && docArray.length > 0) {
-                    docArray.forEach((doc, index) => {
-                        const labelComIndex = `${item.label} ${index + 1}`;
+                    // Se for balanço patrimonial, ordenar por ano decrescente
+                    const sortedArray = item.isBalanco 
+                        ? [...docArray].sort((a, b) => (b.ano || 0).toString().localeCompare((a.ano || 0).toString()))
+                        : docArray;
+
+                    sortedArray.forEach((doc, index) => {
+                        let labelComIndex;
+                        if (item.isBalanco) {
+                            // Para balanços, mostrar o ano ao invés do índice
+                            labelComIndex = `${item.label} - ${doc.ano || 'Ano não informado'}`;
+                        } else {
+                            // Para contratos, continuar mostrando o índice
+                            labelComIndex = `${item.label} ${index + 1}`;
+                        }
+                        
                         const caminho = doc.caminhoArquivo || doc.caminho;
                         let validadeText = null;
                         if (doc.dataValidade) {
