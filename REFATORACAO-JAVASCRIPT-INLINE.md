@@ -5,32 +5,29 @@ Remover todo JavaScript inline (onclick, onchange, onsubmit, etc.) dos arquivos 
 
 ## Progresso
 
-### ✅ Concluído
+### ✅ Concluído (67 de 87 = 77%)
 - [x] `home.html` + `home.js` - 5 ocorrências removidas
 - [x] `configuracoes-conta.html` + `account-settings.js` - 1 ocorrência removida
 - [x] `empresas.html` + `empresas.js` - 7 ocorrências removidas (4 HTML + 3 JS dinâmico)
 - [x] `admin-dashboard.html` - 10 ocorrências removidas (modais, filtros, backups)
 - [x] `detalhes-empresa.html` + `detalhes-empresa.js` - 14 ocorrências removidas (script inline extraído para JS separado)
+- [x] `cliente-formulario.html` + `cliente-formulario.js` - 13 ocorrências removidas (formulário multi-etapa completo)
+- [x] `editar.html` + `editar.js` - 9 ocorrências removidas (edição de empresas)
+- [x] `relatorios.html` + `relatorios.js` - 8 ocorrências removidas (~525 linhas de JS inline extraídas, event delegation implementada)
 - [x] `server.js` - Graceful shutdown do Mongoose corrigido
 
 ### ⏳ Em Andamento
 
 Nenhum arquivo em progresso no momento.
 
-### 📋 Pendente (47 ocorrências restantes)
+### 📋 Pendente (19 ocorrências restantes)
 
 #### Média Prioridade (formulários complexos)
 - [x] `cliente-formulario.html` + `cliente-formulario.js` - 13 ocorrências removidas ✅
 - [x] `editar.html` + `editar.js` - 9 ocorrências removidas ✅
 
 #### Média Prioridade (relatórios e gestão)
-- [ ] `relatorios.html` - 8 ocorrências
-  - Gerar/imprimir relatório
-  - Toggle filtros
-  - Editar/excluir lançamentos
-  - Marcar como paga
-  - Modal de edição
-  - Form de receita
+- [x] `relatorios.html` + `relatorios.js` - 8 ocorrências removidas ✅
 
 - [ ] `faturamento.html` - 7 ocorrências
   - Selecionar empresa
