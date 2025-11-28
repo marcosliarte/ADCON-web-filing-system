@@ -78,6 +78,44 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
+/* Botão de voltar */
+.back-btn {
+    display: inline-block;
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    transition: all 0.2s;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.back-btn:hover {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+    text-decoration: none;
+}
+
+/* Cards */
+.card {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card h3 {
+    color: #495057;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
 h1, h2 {
     color: #007bff;
     border-bottom: 2px solid #007bff;
@@ -145,12 +183,64 @@ button:disabled {
     cursor: not-allowed;
 }
 
+/* Action buttons com espaçamento */
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.action-buttons button {
+    min-width: 120px;
+}
+
 .btn-secondary {
     background-color: #6c757d;
 }
 
 .btn-secondary:hover {
     background-color: #5a6268;
+}
+
+/* Tabelas */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+th, td {
+    border: 1px solid #dee2e6;
+    padding: 12px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+th {
+    background-color: #e9ecef;
+    font-weight: 600;
+    color: #495057;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+tbody tr:hover {
+    background-color: #e9ecef;
+}
+
+tbody td {
+    color: #495057;
+}
+
+/* Mensagem de tabela vazia */
+tbody tr td[colspan] {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 2rem;
 }
 
 .loading, .error {
