@@ -325,8 +325,36 @@ function setupEventListeners() {
     });
 }
 
+// === ACORDEÕES ===
+function inicializarAcordeoes() {
+    const accordionHeaders = document.querySelectorAll('.accordion-header');
+    
+    accordionHeaders.forEach(header => {
+        // Abrir o primeiro acordeão por padrão
+        if (header === accordionHeaders[0]) {
+            const content = header.nextElementSibling;
+            if (content) content.classList.add('show');
+        }
+
+        header.addEventListener('click', function() {
+            const content = this.nextElementSibling;
+            
+            if (content.classList.contains('show')) {
+                content.classList.remove('show');
+            } else {
+                content.classList.add('show');
+            }
+        });
+    });
+}
+
 // === INICIALIZAÇÃO ===
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('DOMContentLoaded - Iniciando...');
+    
+    // Inicializar acordeões PRIMEIRO
+    inicializarAcordeoes();
+    
     // Carregar cabeçalho
     const response = await fetchWithAuth('/api/auth');
     if (response) {
@@ -336,4 +364,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadEmpresa();
     setupEventListeners();
+    
+    console.log('Página carregada e dados preenchidos!');
 });
