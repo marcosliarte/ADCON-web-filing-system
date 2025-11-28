@@ -5,7 +5,7 @@ Remover todo JavaScript inline (onclick, onchange, onsubmit, etc.) dos arquivos 
 
 ## Progresso
 
-### ✅ Concluído (80 de 87 = 92%)
+### ✅ Concluído (85 de 87 = 98%)
 - [x] `home.html` + `home.js` - 5 ocorrências removidas
 - [x] `configuracoes-conta.html` + `account-settings.js` - 1 ocorrência removida
 - [x] `empresas.html` + `empresas.js` - 7 ocorrências removidas (4 HTML + 3 JS dinâmico)
@@ -20,7 +20,7 @@ Remover todo JavaScript inline (onclick, onchange, onsubmit, etc.) dos arquivos 
 
 Nenhum arquivo em progresso no momento.
 
-### 📋 Pendente (6 ocorrências restantes)
+### 📋 Pendente (2 ocorrências restantes)
 
 #### Média Prioridade (formulários complexos)
 - [x] `cliente-formulario.html` + `cliente-formulario.js` - 13 ocorrências removidas ✅
@@ -32,10 +32,7 @@ Nenhum arquivo em progresso no momento.
 - [x] `notificacoes.html` + `notificacoes.js` - 7 ocorrências removidas ✅
 
 #### Baixa Prioridade (páginas simples)
-- [ ] `enviar-notificacoes.html` - 4 ocorrências
-  - Alterar destinatários
-  - Limpar formulário
-  - Selecionar todos
+- [x] `enviar-notificacoes.html` + `enviar-notificacoes.js` - 5 ocorrências removidas ✅
 
 - [ ] `configuracao-empresa.html` - 3 ocorrências
   - Upload/remover logo
