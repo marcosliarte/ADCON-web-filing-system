@@ -113,7 +113,13 @@ function exibirDadosEmpresa(empresa) {
         }
         
         enderecoContato.innerHTML = `
-            ${createInfoItem('Endereço Completo', enderecoCompleto)}
+            ${createInfoItem('CEP', end.cep || 'Não informado')}
+            ${createInfoItem('Rua', end.rua || 'Não informado')}
+            ${createInfoItem('Número', end.numero || 'Não informado')}
+            ${end.complemento ? createInfoItem('Complemento', end.complemento) : ''}
+            ${createInfoItem('Bairro', end.bairro || 'Não informado')}
+            ${createInfoItem('Cidade', end.cidade || 'Não informado')}
+            ${createInfoItem('Estado', end.estado || 'Não informado')}
             ${createInfoItem('Telefone', empresa.telefone)}
             ${createInfoItem('E-mail', empresa.email)}
             ${matrizInfo}
@@ -129,9 +135,6 @@ function exibirDadosEmpresa(empresa) {
         sociosContainer.innerHTML = '';
         empresa.socios.forEach((socio, index) => {
             const endSocio = socio.endereco || {};
-            const enderecoSocio = endSocio.rua ? 
-                `${endSocio.rua}, ${endSocio.numero}${endSocio.complemento ? ' - ' + endSocio.complemento : ''}, ${endSocio.bairro}, ${endSocio.cidade}/${endSocio.estado} - CEP: ${endSocio.cep}` : 
-                'Não informado';
             
             // Formatar RG com órgão emissor
             let rgCompleto = socio.rg || 'Não informado';
@@ -159,7 +162,14 @@ function exibirDadosEmpresa(empresa) {
                 ${createInfoItem('Data de Nascimento', formatarData(socio.data_nascimento))}
                 ${createInfoItem('Gênero', generoFormatado)}
                 ${createInfoItem('Estado Civil', formatarEstadoCivil(socio.estado_civil, socio.regime_casamento))}
-                ${createInfoItem('Endereço Completo', enderecoSocio)}
+                <h4 style="margin-top: 1.5rem; margin-bottom: 1rem; color: var(--primary-600); font-size: 1rem;">Endereço do Sócio</h4>
+                ${createInfoItem('CEP', endSocio.cep || 'Não informado')}
+                ${createInfoItem('Rua', endSocio.rua || 'Não informado')}
+                ${createInfoItem('Número', endSocio.numero || 'Não informado')}
+                ${endSocio.complemento ? createInfoItem('Complemento', endSocio.complemento) : ''}
+                ${createInfoItem('Bairro', endSocio.bairro || 'Não informado')}
+                ${createInfoItem('Cidade', endSocio.cidade || 'Não informado')}
+                ${createInfoItem('Estado', endSocio.estado || 'Não informado')}
             `;
             sociosContainer.appendChild(socioCard);
         });
@@ -176,9 +186,6 @@ function exibirDadosEmpresa(empresa) {
             filiaisContainer.innerHTML = '';
             empresa.filiais.forEach((filial, index) => {
                 const endFilial = filial.endereco || {};
-                const enderecoFilial = endFilial.rua ? 
-                    `${endFilial.rua}, ${endFilial.numero}${endFilial.complemento ? ' - ' + endFilial.complemento : ''}, ${endFilial.bairro}, ${endFilial.cidade}/${endFilial.estado} - CEP: ${endFilial.cep}` : 
-                    'Não informado';
                 
                 const filialCard = document.createElement('div');
                 filialCard.className = 'filial-card';
@@ -190,7 +197,14 @@ function exibirDadosEmpresa(empresa) {
                     ${createInfoItem('NIRE', filial.nire)}
                     ${createInfoItem('Inscrição Estadual', filial.inscricao_estadual)}
                     ${createInfoItem('Atividade Principal', filial.atividade_principal_descricao || filial.atividade_principal)}
-                    ${createInfoItem('Endereço', enderecoFilial)}
+                    <h4 style="margin-top: 1.5rem; margin-bottom: 1rem; color: var(--primary-600); font-size: 1rem;">Endereço da Filial</h4>
+                    ${createInfoItem('CEP', endFilial.cep || 'Não informado')}
+                    ${createInfoItem('Rua', endFilial.rua || 'Não informado')}
+                    ${createInfoItem('Número', endFilial.numero || 'Não informado')}
+                    ${endFilial.complemento ? createInfoItem('Complemento', endFilial.complemento) : ''}
+                    ${createInfoItem('Bairro', endFilial.bairro || 'Não informado')}
+                    ${createInfoItem('Cidade', endFilial.cidade || 'Não informado')}
+                    ${createInfoItem('Estado', endFilial.estado || 'Não informado')}
                     ${createInfoItem('Telefone', filial.telefone)}
                     ${createInfoItem('E-mail', filial.email)}
                 `;
