@@ -2,7 +2,12 @@
 @import url('/css/pages/common-page.css');
 
 /* Títulos */
-.h1, h1, h2, h3 {
+.h1, h1 {
+    font-weight: 600;
+    color: var(--neutral-700);
+}
+
+h2, h3 {
     font-weight: 600;
     color: var(--primary-600);
 }
@@ -109,13 +114,13 @@ h2 {
 .action-buttons button { flex: 0 1 auto; }
 
 /* Variantes de botões (usam base de common-page) */
-.btn-back { background-color: var(--muted); }
+.btn-back { background-color: var(--muted); color: white; }
 .btn-back:hover { background-color: #5a6268; }
 
 .btn-edit { background-color: var(--primary); color: white; }
 .btn-edit:hover { background-color: var(--primary-600); }
 
-.btn-download { background-color: var(--primary); }
+.btn-download { background-color: var(--primary); color: white; }
 .btn-download:hover { background-color: var(--primary-600); }
 
 .btn-pdf { background-color: var(--danger); }
@@ -171,10 +176,10 @@ h2 {
     text-transform: uppercase;
 }
 
-.btn-select-all { background-color: var(--primary); }
+.btn-select-all { background-color: var(--primary); color: white; }
 .btn-select-all:hover { background-color: var(--primary-600); }
 
-.btn-deselect-all { background-color: var(--muted); }
+.btn-deselect-all { background-color: var(--muted); color: white; }
 .btn-deselect-all:hover { background-color: #5a6268; }
 
 /* Modal de Autenticação */
@@ -252,6 +257,7 @@ h2 {
 
 .btn-show-senha {
     background-color: var(--primary);
+    color: white;
     padding: 0.6rem 0.8rem;
     font-size: 0.75rem;
     font-weight: 600;
