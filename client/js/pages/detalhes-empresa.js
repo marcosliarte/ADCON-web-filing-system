@@ -107,10 +107,16 @@ function exibirDadosEmpresa(empresa) {
             `${end.rua}, ${end.numero}${end.complemento ? ' - ' + end.complemento : ''}, ${end.bairro}, ${end.cidade}/${end.estado} - CEP: ${end.cep}` : 
             'Não informado';
         
+        let matrizInfo = '';
+        if (empresa.tipo === 'filial' && empresa.matriz_id) {
+            matrizInfo = createInfoItem('Matriz', empresa.matriz_id.nome ? `${empresa.matriz_id.nome} (CNPJ: ${formatarCNPJ(empresa.matriz_id.cnpj)})` : empresa.matriz_id);
+        }
+        
         enderecoContato.innerHTML = `
-            ${createInfoItem('Endereço', enderecoCompleto)}
+            ${createInfoItem('Endereço Completo', enderecoCompleto)}
             ${createInfoItem('Telefone', empresa.telefone)}
             ${createInfoItem('E-mail', empresa.email)}
+            ${matrizInfo}
         `;
     }
 
@@ -124,21 +130,36 @@ function exibirDadosEmpresa(empresa) {
         empresa.socios.forEach((socio, index) => {
             const endSocio = socio.endereco || {};
             const enderecoSocio = endSocio.rua ? 
-                `${endSocio.rua}, ${endSocio.numero}${endSocio.complemento ? ' - ' + endSocio.complemento : ''}, ${endSocio.bairro}, ${endSocio.cidade}/${endSocio.estado}` : 
+                `${endSocio.rua}, ${endSocio.numero}${endSocio.complemento ? ' - ' + endSocio.complemento : ''}, ${endSocio.bairro}, ${endSocio.cidade}/${endSocio.estado} - CEP: ${endSocio.cep}` : 
                 'Não informado';
+            
+            // Formatar RG com órgão emissor
+            let rgCompleto = socio.rg || 'Não informado';
+            if (socio.rg && socio.orgao_emissor) {
+                rgCompleto = `${socio.rg} ${socio.orgao_emissor}`;
+                if (socio.estado_emissor) {
+                    rgCompleto += `/${socio.estado_emissor}`;
+                }
+            }
+            
+            // Formatar gênero
+            const generoMap = {
+                'masculino': 'Masculino',
+                'feminino': 'Feminino'
+            };
+            const generoFormatado = socio.genero ? generoMap[socio.genero] || socio.genero : 'Não informado';
             
             const socioCard = document.createElement('div');
             socioCard.className = 'socio-card';
             socioCard.innerHTML = `
-                <h3>Sócio ${index + 1}${socio.is_admin === 'sim' ? ' - Administrador' : ''}</h3>
-                ${createInfoItem('Nome', socio.nome)}
+                <h3>Sócio ${index + 1}${socio.is_admin === 'sim' ? ' (Administrador)' : ''}</h3>
+                ${createInfoItem('Nome Completo', socio.nome)}
                 ${createInfoItem('CPF', formatarCPF(socio.cpf))}
-                ${createInfoItem('RG', socio.rg)}
+                ${createInfoItem('RG', rgCompleto)}
                 ${createInfoItem('Data de Nascimento', formatarData(socio.data_nascimento))}
+                ${createInfoItem('Gênero', generoFormatado)}
                 ${createInfoItem('Estado Civil', formatarEstadoCivil(socio.estado_civil, socio.regime_casamento))}
-                ${createInfoItem('Endereço', enderecoSocio)}
-                ${createInfoItem('Participação', socio.participacao ? `${socio.participacao}%` : 'Não informado')}
-                ${socio.observacoes ? createInfoItem('Observações', socio.observacoes) : ''}
+                ${createInfoItem('Endereço Completo', enderecoSocio)}
             `;
             sociosContainer.appendChild(socioCard);
         });
@@ -154,13 +175,22 @@ function exibirDadosEmpresa(empresa) {
         if (filiaisContainer) {
             filiaisContainer.innerHTML = '';
             empresa.filiais.forEach((filial, index) => {
+                const endFilial = filial.endereco || {};
+                const enderecoFilial = endFilial.rua ? 
+                    `${endFilial.rua}, ${endFilial.numero}${endFilial.complemento ? ' - ' + endFilial.complemento : ''}, ${endFilial.bairro}, ${endFilial.cidade}/${endFilial.estado} - CEP: ${endFilial.cep}` : 
+                    'Não informado';
+                
                 const filialCard = document.createElement('div');
                 filialCard.className = 'filial-card';
                 filialCard.innerHTML = `
                     <h3>Filial ${index + 1}</h3>
-                    ${createInfoItem('Nome', filial.nome)}
+                    ${createInfoItem('Nome/Razão Social', filial.nome)}
+                    ${createInfoItem('Nome Fantasia', filial.nome_fantasia)}
                     ${createInfoItem('CNPJ', formatarCNPJ(filial.cnpj))}
                     ${createInfoItem('NIRE', filial.nire)}
+                    ${createInfoItem('Inscrição Estadual', filial.inscricao_estadual)}
+                    ${createInfoItem('Atividade Principal', filial.atividade_principal_descricao || filial.atividade_principal)}
+                    ${createInfoItem('Endereço', enderecoFilial)}
                     ${createInfoItem('Telefone', filial.telefone)}
                     ${createInfoItem('E-mail', filial.email)}
                 `;
@@ -179,20 +209,17 @@ function exibirDadosEmpresa(empresa) {
     const responsavelLegal = empresa.socios?.find(s => s.is_admin === 'sim') || empresa.socios?.[0] || {};
     
     const tiposDocumentosOrdenados = [
-        { tipo: 'cartaoCNPJ', label: 'Cartão CNPJ', campo: 'documentos.cartaoCNPJ' },
-        { tipo: 'contratoSocial', label: 'Contrato Social', campo: 'documentos.contratoSocial' },
-        { tipo: 'alteracaoContratual', label: 'Última Alteração Contratual', campo: 'documentos.alteracaoContratual' },
-        { tipo: 'certidaoFazenda', label: 'Certidão Negativa Fazenda', campo: 'documentos.certidaoFazenda', validade: 'documentos.certidaoFazendaValidade' },
-        { tipo: 'certidaoFederal', label: 'Certidão Negativa Federal', campo: 'documentos.certidaoFederal', validade: 'documentos.certidaoFederalValidade' },
-        { tipo: 'certidaoTrabalhista', label: 'Certidão Negativa Trabalhista', campo: 'documentos.certidaoTrabalhista', validade: 'documentos.certidaoTrabalhistaValidade' },
-        { tipo: 'certificadoDigital', label: 'Certificado Digital (eCNPJ)', campo: 'certificadoDigital', validade: 'certificadoDigital.validade', isCertificado: true },
-        { tipo: 'rgResponsavel', label: 'RG do Responsável Legal', campo: 'documentos.rgResponsavel' },
-        { tipo: 'comprovanteResidenciaResponsavel', label: 'Comprovante Residência (Responsável)', campo: 'documentos.comprovanteResidenciaResponsavel' },
-        { tipo: 'rgConjuge', label: 'RG do Cônjuge', campo: 'documentos.rgConjuge', condicao: responsavelLegal.estado_civil === 'casado' },
-        { tipo: 'comprovanteResidenciaConjuge', label: 'Comprovante Residência (Cônjuge)', campo: 'documentos.comprovanteResidenciaConjuge', condicao: responsavelLegal.estado_civil === 'casado' },
-        { tipo: 'iptu', label: 'IPTU', campo: 'documentos.iptu' },
-        { tipo: 'contratoLocacao', label: 'Contrato de Locação', campo: 'documentos.contratoLocacao' },
-        { tipo: 'outrosDocumentos', label: 'Outros Documentos', campo: 'outrosDocumentos', isArray: true }
+        { tipo: 'cartaoCnpj', label: 'Cartão CNPJ', campo: 'documentos.cartaoCnpj' },
+        { tipo: 'certificadoDigital', label: 'Certificado Digital (eCNPJ)', campo: 'documentos.certificadoDigital', isCertificado: true },
+        { tipo: 'contratos', label: 'Contratos', campo: 'documentos.contratos', isArray: true },
+        { tipo: 'alvara', label: 'Alvará', campo: 'documentos.alvara' },
+        { tipo: 'certidaoPrefeitura', label: 'Certidão Negativa Prefeitura', campo: 'documentos.certidaoPrefeitura' },
+        { tipo: 'certidaoReceita', label: 'Certidão Negativa Receita Federal', campo: 'documentos.certidaoReceita' },
+        { tipo: 'certidaoFGTS', label: 'Certidão Negativa FGTS', campo: 'documentos.certidaoFGTS' },
+        { tipo: 'certidaoSefaz', label: 'Certidão Negativa SEFAZ', campo: 'documentos.certidaoSefaz' },
+        { tipo: 'inscricaoEstadual', label: 'Inscrição Estadual', campo: 'documentos.inscricaoEstadual' },
+        { tipo: 'certidaoTrabalhista', label: 'Certidão Negativa Trabalhista', campo: 'documentos.certidaoTrabalhista' },
+        { tipo: 'certidaoFalencia', label: 'Certidão Negativa Falência', campo: 'documentos.certidaoFalencia' }
     ];
 
     if (documentosContainer) {
@@ -200,39 +227,57 @@ function exibirDadosEmpresa(empresa) {
         let hasDocuments = false;
 
         tiposDocumentosOrdenados.forEach(item => {
-            // Verificar condição (exemplo: documentos de cônjuge só aparecem se casado)
+            // Verificar condição
             if (item.condicao === false) return;
 
             if (item.isArray) {
-                // Outros Documentos
-                const outrosDocs = empresa.outrosDocumentos || [];
-                if (outrosDocs.length > 0) {
-                    outrosDocs.forEach(doc => {
-                        documentosContainer.innerHTML += gerarItemDocumento(doc.nome, doc.caminho, item.tipo, null, false, doc);
+                // Arrays de documentos (contratos)
+                const docArray = item.campo.split('.').reduce((obj, key) => obj && obj[key], empresa);
+                if (docArray && docArray.length > 0) {
+                    docArray.forEach((doc, index) => {
+                        const labelComIndex = `${item.label} ${index + 1}`;
+                        const caminho = doc.caminhoArquivo || doc.caminho;
+                        let validadeText = null;
+                        if (doc.dataValidade) {
+                            validadeText = `Validade: ${formatarData(doc.dataValidade)}`;
+                        }
+                        documentosContainer.innerHTML += gerarItemDocumento(labelComIndex, caminho, item.tipo, validadeText, false, null);
                         hasDocuments = true;
                     });
                 }
             } else if (item.isCertificado) {
-                // Certificado Digital
-                const certDigital = empresa.certificadoDigital;
-                if (certDigital && certDigital.arquivo) {
-                    const validadeFormatada = certDigital.validade ? `Validade: ${formatarData(certDigital.validade)}` : null;
-                    documentosContainer.innerHTML += gerarItemDocumento(item.label, certDigital.arquivo, item.tipo, validadeFormatada, true, certDigital);
+                // Certificado Digital (tem senha)
+                const certDigital = item.campo.split('.').reduce((obj, key) => obj && obj[key], empresa);
+                if (certDigital && certDigital.caminhoArquivo) {
+                    let validadeText = null;
+                    if (certDigital.dataValidade) {
+                        validadeText = `Validade: ${formatarData(certDigital.dataValidade)}`;
+                    }
+                    documentosContainer.innerHTML += gerarItemDocumento(item.label, certDigital.caminhoArquivo, item.tipo, validadeText, true, certDigital);
                     hasDocuments = true;
                 }
             } else {
-                // Outros campos
-                const caminho = item.campo.split('.').reduce((obj, key) => obj && obj[key], empresa);
-                if (caminho) {
+                // Documentos simples (cartaoCnpj, alvara, certidões)
+                const doc = item.campo.split('.').reduce((obj, key) => obj && obj[key], empresa);
+                if (doc) {
+                    let caminho = null;
                     let validadeText = null;
-                    if (item.validade) {
-                        const dataValidade = item.validade.split('.').reduce((obj, key) => obj && obj[key], empresa);
-                        if (dataValidade) {
-                            validadeText = `Validade: ${formatarData(dataValidade)}`;
+                    
+                    // Verificar estrutura do documento
+                    if (typeof doc === 'object') {
+                        caminho = doc.caminhoArquivo || doc.caminho;
+                        if (doc.dataValidade) {
+                            validadeText = `Validade: ${formatarData(doc.dataValidade)}`;
                         }
+                    } else if (typeof doc === 'string') {
+                        // Se for string direta (para compatibilidade)
+                        caminho = doc;
                     }
-                    documentosContainer.innerHTML += gerarItemDocumento(item.label, caminho, item.tipo, validadeText, false, null);
-                    hasDocuments = true;
+                    
+                    if (caminho) {
+                        documentosContainer.innerHTML += gerarItemDocumento(item.label, caminho, item.tipo, validadeText, false, null);
+                        hasDocuments = true;
+                    }
                 }
             }
         });
