@@ -29,41 +29,70 @@ async function loadEmpresa() {
     }
 
     try {
+        console.log('Carregando empresa ID:', empresaId);
         const response = await fetchWithAuth(`/api/empresas/${empresaId}`);
-        if (!response || !response.ok) throw new Error('Falha ao carregar dados da empresa.');
+        if (!response || !response.ok) {
+            const errorText = await response.text();
+            console.error('Erro na resposta:', response.status, errorText);
+            throw new Error('Falha ao carregar dados da empresa.');
+        }
         
         const data = await response.json();
+        console.log('Dados da empresa recebidos:', data);
+
+        // Helper para setar valores com segurança
+        const setValue = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = value || '';
+            } else {
+                console.warn(`Elemento não encontrado: ${id}`);
+            }
+        };
 
         // Preencher campos básicos
-        document.getElementById('cnpj').value = data.cnpj || '';
-        document.getElementById('inscricao_estadual').value = data.inscricao_estadual || '';
-        document.getElementById('data_abertura').value = data.data_abertura ? data.data_abertura.split('T')[0] : '';
-        document.getElementById('nome_empresarial').value = data.nome || '';
-        document.getElementById('nome_fantasia').value = data.nome_fantasia || '';
-        document.getElementById('nire').value = data.nire || '';
-        document.getElementById('capital_social').value = data.capital_social || '';
-        document.getElementById('atividade_principal').value = data.atividade_principal || '';
-        document.getElementById('atividade_principal_descricao').value = data.atividade_principal_descricao || '';
-        document.getElementById('email').value = data.email || '';
-        document.getElementById('telefone').value = data.telefone || '';
+        setValue('cnpj', data.cnpj);
+        setValue('inscricao_estadual', data.inscricao_estadual);
+        setValue('data_abertura', data.data_abertura ? data.data_abertura.split('T')[0] : '');
+        setValue('nome_empresarial', data.nome);
+        setValue('nome_fantasia', data.nome_fantasia);
+        setValue('nire', data.nire);
+        setValue('capital_social', data.capital_social);
+        setValue('atividade_principal', data.atividade_principal);
+        setValue('atividade_principal_descricao', data.atividade_principal_descricao);
+        setValue('email', data.email);
+        setValue('telefone', data.telefone);
 
         // Radio buttons
-        if (data.porte) document.querySelector(`input[name="porte"][value="${data.porte}"]`).checked = true;
-        if (data.natureza_juridica) document.querySelector(`input[name="natureza_juridica"][value="${data.natureza_juridica}"]`).checked = true;
+        if (data.porte) {
+            const porteRadio = document.querySelector(`input[name="porte"][value="${data.porte}"]`);
+            if (porteRadio) porteRadio.checked = true;
+        }
+        if (data.natureza_juridica) {
+            const naturezaRadio = document.querySelector(`input[name="natureza_juridica"][value="${data.natureza_juridica}"]`);
+            if (naturezaRadio) naturezaRadio.checked = true;
+        }
 
         // Endereço
         if (data.endereco) {
-            document.getElementById('cep').value = data.endereco.cep || '';
-            document.getElementById('rua').value = data.endereco.rua || '';
-            document.getElementById('numero').value = data.endereco.numero || '';
-            document.getElementById('bairro').value = data.endereco.bairro || '';
-            document.getElementById('cidade').value = data.endereco.cidade || '';
-            document.getElementById('estado').value = data.endereco.estado || '';
+            setValue('cep', data.endereco.cep);
+            setValue('rua', data.endereco.rua);
+            setValue('numero', data.endereco.numero);
+            setValue('bairro', data.endereco.bairro);
+            setValue('cidade', data.endereco.cidade);
+            setValue('estado', data.endereco.estado);
         }
 
         // Sócios
+        console.log('Carregando sócios:', data.socios);
         if (data.socios && data.socios.length > 0) {
-            data.socios.forEach(socio => adicionarSocio(socio));
+            data.socios.forEach(socio => {
+                try {
+                    adicionarSocio(socio);
+                } catch (err) {
+                    console.error('Erro ao adicionar sócio:', err, socio);
+                }
+            });
         }
 
         // Documentos - criar info de arquivo existente
@@ -92,14 +121,22 @@ async function loadEmpresa() {
         }
 
         // Contratos
+        console.log('Carregando contratos:', data.documentos?.contratos);
         if (data.documentos && data.documentos.contratos && data.documentos.contratos.length > 0) {
-            data.documentos.contratos.forEach(contrato => adicionarAlteracaoContrato(contrato));
+            data.documentos.contratos.forEach(contrato => {
+                try {
+                    adicionarAlteracaoContrato(contrato);
+                } catch (err) {
+                    console.error('Erro ao adicionar contrato:', err, contrato);
+                }
+            });
         }
 
         atualizarLabelsSocios();
+        console.log('Empresa carregada com sucesso!');
     } catch (error) {
         console.error('Erro ao carregar empresa:', error);
-        showMessage('Erro ao carregar dados da empresa.', 'error');
+        showMessage(`Erro ao carregar dados da empresa: ${error.message}`, 'error');
     }
 }
 
@@ -125,36 +162,52 @@ function atualizarLabelsSocios() {
 }
 
 function adicionarSocio(socio = null) {
-    const template = document.getElementById('socio-template').innerHTML;
+    console.log('Adicionando sócio:', socio);
+    const template = document.getElementById('socio-template');
     const container = document.getElementById('socios-container');
+    
+    if (!template || !container) {
+        console.error('Template ou container de sócios não encontrado');
+        return;
+    }
+    
     const newSocioDiv = document.createElement('div');
-    newSocioDiv.innerHTML = template.replace(/INDEX/g, socioIndex);
+    newSocioDiv.innerHTML = template.innerHTML.replace(/INDEX/g, socioIndex);
     
     if (socio) {
-        newSocioDiv.querySelector(`input[name="socios[${socioIndex}][nome]"]`).value = socio.nome || '';
-        newSocioDiv.querySelector(`input[name="socios[${socioIndex}][cpf]"]`).value = socio.cpf || '';
-        newSocioDiv.querySelector(`input[name="socios[${socioIndex}][rg]"]`).value = socio.rg || '';
-        newSocioDiv.querySelector(`input[name="socios[${socioIndex}][orgao_emissor]"]`).value = socio.orgao_emissor || '';
-        newSocioDiv.querySelector(`input[name="socios[${socioIndex}][estado_emissor]"]`).value = socio.estado_emissor || '';
-        newSocioDiv.querySelector(`input[name="socios[${socioIndex}][data_nascimento]"]`).value = socio.data_nascimento ? socio.data_nascimento.split('T')[0] : '';
-        newSocioDiv.querySelector(`select[name="socios[${socioIndex}][genero]"]`).value = socio.genero || 'masculino';
-        newSocioDiv.querySelector(`select[name="socios[${socioIndex}][is_admin]"]`).value = socio.is_admin || 'nao';
+        const setInputValue = (name, value) => {
+            const input = newSocioDiv.querySelector(`[name="${name}"]`);
+            if (input) {
+                input.value = value || '';
+            } else {
+                console.warn(`Input não encontrado: ${name}`);
+            }
+        };
+        
+        setInputValue(`socios[${socioIndex}][nome]`, socio.nome);
+        setInputValue(`socios[${socioIndex}][cpf]`, socio.cpf);
+        setInputValue(`socios[${socioIndex}][rg]`, socio.rg);
+        setInputValue(`socios[${socioIndex}][orgao_emissor]`, socio.orgao_emissor);
+        setInputValue(`socios[${socioIndex}][estado_emissor]`, socio.estado_emissor);
+        setInputValue(`socios[${socioIndex}][data_nascimento]`, socio.data_nascimento ? socio.data_nascimento.split('T')[0] : '');
+        setInputValue(`socios[${socioIndex}][genero]`, socio.genero || 'masculino');
+        setInputValue(`socios[${socioIndex}][is_admin]`, socio.is_admin || 'nao');
 
         const estadoCivilSelect = newSocioDiv.querySelector(`select[name="socios[${socioIndex}][estado_civil]"]`);
-        if (socio.estado_civil) {
+        if (estadoCivilSelect && socio.estado_civil) {
             estadoCivilSelect.value = socio.estado_civil;
             toggleRegimeCasamento(estadoCivilSelect);
-            newSocioDiv.querySelector(`select[name="socios[${socioIndex}][regime_casamento]"]`).value = socio.regime_casamento || 'comunhao_parcial';
+            setInputValue(`socios[${socioIndex}][regime_casamento]`, socio.regime_casamento || 'comunhao_parcial');
         }
 
         if (socio.endereco) {
-            newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][cep]"]`).value = socio.endereco.cep || '';
-            newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][rua]"]`).value = socio.endereco.rua || '';
-            newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][numero]"]`).value = socio.endereco.numero || '';
-            newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][complemento]"]`).value = socio.endereco.complemento || '';
-            newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][bairro]"]`).value = socio.endereco.bairro || '';
-            newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][cidade]"]`).value = socio.endereco.cidade || '';
-            newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][estado]"]`).value = socio.endereco.estado || '';
+            setInputValue(`socios[${socioIndex}][endereco][cep]`, socio.endereco.cep);
+            setInputValue(`socios[${socioIndex}][endereco][rua]`, socio.endereco.rua);
+            setInputValue(`socios[${socioIndex}][endereco][numero]`, socio.endereco.numero);
+            setInputValue(`socios[${socioIndex}][endereco][complemento]`, socio.endereco.complemento);
+            setInputValue(`socios[${socioIndex}][endereco][bairro]`, socio.endereco.bairro);
+            setInputValue(`socios[${socioIndex}][endereco][cidade]`, socio.endereco.cidade);
+            setInputValue(`socios[${socioIndex}][endereco][estado]`, socio.endereco.estado);
         }
     }
 
