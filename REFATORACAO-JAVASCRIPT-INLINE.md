@@ -8,26 +8,20 @@ Remover todo JavaScript inline (onclick, onchange, onsubmit, etc.) dos arquivos 
 ### ✅ Concluído
 - [x] `home.html` + `home.js` - 5 ocorrências removidas
 - [x] `configuracoes-conta.html` + `account-settings.js` - 1 ocorrência removida
-- [x] `empresas.html` - 4 ocorrências removidas (headers, botões de paginação e cadastro)
+- [x] `empresas.html` + `empresas.js` - 7 ocorrências removidas (4 HTML + 3 JS dinâmico)
+- [x] `admin-dashboard.html` - 10 ocorrências removidas (modais, filtros, backups)
+- [x] `detalhes-empresa.html` + `detalhes-empresa.js` - 14 ocorrências removidas (script inline extraído para JS separado)
 - [x] `server.js` - Graceful shutdown do Mongoose corrigido
 
 ### ⏳ Em Andamento
-- [ ] `empresas.js` - Atualizar botões dinâmicos gerados no código (3 onclick em template strings)
 
-### 📋 Pendente (83 ocorrências restantes)
+Nenhum arquivo em progresso no momento.
+
+### 📋 Pendente (60 ocorrências restantes)
 
 #### Alta Prioridade (páginas administrativas)
-- [ ] `admin-dashboard.html` - 19 ocorrências
-  - Botões de backup (criar, carregar, baixar, restaurar, excluir, analisar)
-  - Filtros de log
-  - Exportações CSV
-  - Modais
 
-- [ ] `detalhes-empresa.html` - 14 ocorrências
-  - Ações em documentos
-  - Seleção múltipla
-  - Modal de autenticação
-  - Botões de ação
+Todas as páginas de alta prioridade foram concluídas! ✅
 
 #### Média Prioridade (formulários complexos)
 - [ ] `cliente-formulario.html` - 10 ocorrências
