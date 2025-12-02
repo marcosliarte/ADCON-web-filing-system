@@ -254,33 +254,32 @@ router.post(
             }
           });
         }
-      }
 
-          // Processa os documentos diversos
-          if (req.body.documento_diverso) {
-            const diversosInfo = req.body.documento_diverso; // Array de {nome, validade}
+        // Processa os documentos diversos
+        if (req.body.documento_diverso) {
+          const diversosInfo = req.body.documento_diverso; // Array de {nome, validade}
 
-            diversosInfo.forEach((info, index) => {
-              const file = req.files[`documento_diverso[${index}][arquivo]`]?.[0];
+          diversosInfo.forEach((info, index) => {
+            const file = req.files[`documento_diverso[${index}][arquivo]`]?.[0];
             
-              // Só adiciona se houver arquivo e nome
-              if (file && info.nome) {
-                const newDiverso = {
-                  nomeDocumento: info.nome,
-                  nomeArquivo: file.originalname,
-                  caminhoArquivo: `/uploads/documentos_diversos/${file.filename}`,
-                };
+            // Só adiciona se houver arquivo e nome
+            if (file && info.nome) {
+              const newDiverso = {
+                nomeDocumento: info.nome,
+                nomeArquivo: file.originalname,
+                caminhoArquivo: `/uploads/documentos_diversos/${file.filename}`,
+              };
               
-                // Adiciona validade se fornecida
-                if (info.validade) {
-                  newDiverso.dataValidade = info.validade;
-                }
-              
-                dadosEmpresa.documentos.documentosDiversos.push(newDiverso);
+              // Adiciona validade se fornecida
+              if (info.validade) {
+                newDiverso.dataValidade = info.validade;
               }
-            });
-          }
+              
+              dadosEmpresa.documentos.documentosDiversos.push(newDiverso);
+            }
+          });
         }
+      }
 
       const novaEmpresa = new Empresa(dadosEmpresa);
 
