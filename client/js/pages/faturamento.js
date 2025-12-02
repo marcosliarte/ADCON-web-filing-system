@@ -538,26 +538,20 @@ function logout() {
 function setupEventListeners() {
     document.getElementById('empresa-select').addEventListener('change', selecionarEmpresaDaLista);
     document.getElementById('periodo-select').addEventListener('change', atualizarPeriodo);
-    
-    const btnGerarIndex = 0;
-    const btnSalvarIndex = 1;
-    const btnImprimirIndex = 0;
-    const btnLimparIndex = 1;
-    
-    const configButtons = document.querySelectorAll('.config-section button');
-    if (configButtons[btnGerarIndex]) {
-        configButtons[btnGerarIndex].addEventListener('click', gerarFaturamento);
-    }
-    if (configButtons[btnSalvarIndex]) {
-        configButtons[btnSalvarIndex].addEventListener('click', salvarFaturamento);
-    }
+
+    // Botões da seção de filtros/ações superiores
+    const btnGerar = document.getElementById('btn-gerar');
+    if (btnGerar) btnGerar.addEventListener('click', gerarFaturamento);
+
+    const btnSalvar = document.getElementById('btn-salvar');
+    if (btnSalvar) btnSalvar.addEventListener('click', salvarFaturamento);
     
     const printAreaButtons = document.querySelectorAll('.print-area button');
-    if (printAreaButtons[btnImprimirIndex]) {
-        printAreaButtons[btnImprimirIndex].addEventListener('click', () => window.print());
+    if (printAreaButtons[0]) {
+        printAreaButtons[0].addEventListener('click', () => window.print());
     }
-    if (printAreaButtons[btnLimparIndex]) {
-        printAreaButtons[btnLimparIndex].addEventListener('click', limparFaturamento);
+    if (printAreaButtons[1]) {
+        printAreaButtons[1].addEventListener('click', limparFaturamento);
     }
     
     document.addEventListener('click', (e) => {
