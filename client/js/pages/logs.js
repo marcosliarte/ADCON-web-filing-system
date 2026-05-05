@@ -40,7 +40,7 @@ async function carregarLogs() {
         const response = await fetchWithAuth(`/api/auth/admin/logs?${params.toString()}`);
         if (!response.ok) throw new Error('Falha ao carregar logs.');
 
-        const logs = await response.json();
+        const { data: logs } = await response.json();
 
         if (logs.length === 0) {
             tbody.innerHTML = '<tr><td colspan="4">Nenhum registro de log encontrado.</td></tr>';

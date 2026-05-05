@@ -179,8 +179,8 @@ async function createHeader(placeholderId, usuario) {
     // Carrega contagem inicial de notificações
     updateNotificationBadge();
     
-    // Atualiza contagem a cada 30 segundos
-    setInterval(updateNotificationBadge, 30000);
+    // Atualiza contagem a cada 60 segundos
+    setInterval(updateNotificationBadge, 60000);
 }
 
 /**
@@ -463,10 +463,6 @@ function openConfirmModal(message, options = {}) {
     });
 }
 
-/**
- * Insere o rodapé padrão. Se placeholderId for fornecido, insere no elemento;
- * caso contrário, adiciona ao final do body.
- */
 function createFooter(placeholderId) {
     const html = `<div class="footer">&copy; 2025 ADCON. Todos os direitos reservados.</div>`;
     if (placeholderId) {
@@ -475,3 +471,14 @@ function createFooter(placeholderId) {
     }
     document.body.insertAdjacentHTML('beforeend', html);
 }
+
+// Injeta rodapé automaticamente em todas as páginas que carregam shared.js
+document.addEventListener('DOMContentLoaded', () => {
+    if (!document.querySelector('.footer, footer')) {
+        const footer = document.createElement('div');
+        footer.className = 'footer';
+        footer.style.cssText = 'background:#fff;color:#6c757d;text-align:center;padding:1rem;font-size:0.85rem;border-top:1px solid #e4eaf3;margin-top:auto;';
+        footer.innerHTML = '&copy; 2025 ADCON. Todos os direitos reservados.';
+        document.body.appendChild(footer);
+    }
+});

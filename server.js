@@ -199,10 +199,14 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🔐 JWT_SECRET: ${process.env.JWT_SECRET ? '✅ Configurado' : '❌ NÃO CONFIGURADO'}`);
     console.log(`💾 MongoDB: ${MONGODB_URI.includes('127.0.0.1') ? '🏠 Local' : '☁️ Atlas'}`);
     
+    const hostname = os.hostname();
     console.log('\n📡 URLs de Acesso:');
-    console.log(`   Local:  http://localhost:${PORT}/login.html`);
-    console.log(`   Rede:   http://${localIpAddress}:${PORT}/login.html`);
-    
+    console.log(`   Local:    http://localhost:${PORT}/login.html`);
+    console.log(`   Hostname: http://${hostname}:${PORT}/login.html`);
+    console.log(`   IP:       http://${localIpAddress}:${PORT}/login.html`);
+    console.log(`\n   👉 Compartilhe na rede local:`);
+    console.log(`      http://${localIpAddress}:${PORT}/login.html`);
+
     if (process.env.RENDER_EXTERNAL_URL) {
         console.log(`   Online: ${process.env.RENDER_EXTERNAL_URL}`);
     }

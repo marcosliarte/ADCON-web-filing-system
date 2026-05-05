@@ -1,5 +1,4 @@
-/* Importar estilos base do sistema */
-@import url('../style.css');
+@import url('/css/pages/common-page.css');
 
 /* ============================================
    ENVIAR-NOTIFICACOES.HTML - Estilos Específicos

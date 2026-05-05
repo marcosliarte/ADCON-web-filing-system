@@ -23,6 +23,16 @@ async function getUsuario() {
             roleEl.textContent = usuario.role.charAt(0).toUpperCase() + usuario.role.slice(1);
             roleEl.classList.remove('skeleton');
 
+            const hour = new Date().getHours();
+            const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
+            const greetingEl = document.getElementById('welcome-greeting');
+            if (greetingEl) greetingEl.textContent = greeting + ',';
+            const welcomeNameEl = document.getElementById('welcome-name');
+            if (welcomeNameEl) {
+                welcomeNameEl.textContent = usuario.nome.split(' ')[0];
+                welcomeNameEl.classList.remove('skeleton');
+            }
+
             // Carrega a foto de perfil do usuário ou a imagem padrão
             const profilePicElement = document.getElementById('profile-pic');
             const defaultProfilePic = '/uploads/profile-pics/no-profile.png';
@@ -40,7 +50,7 @@ async function getUsuario() {
 
             // Funcionalidades para Admin e Gerente
             if (['admin', 'gerente'].includes(usuario.role)) {
-                document.getElementById('admin-links').style.display = 'block';
+                document.getElementById('admin-links').style.display = 'flex';
                 document.getElementById('card-ver-relatorios').style.display = 'flex';
                 document.getElementById('card-gerenciar-funcionarios').style.display = 'flex';
                 document.getElementById('card-config-empresa').style.display = 'flex';

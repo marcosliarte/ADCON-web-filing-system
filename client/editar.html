@@ -6,7 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/pages/editar.css">
 </head>
-<body>
+<body style="display: none;">
+    <script>
+        if (!localStorage.getItem('token')) window.location.replace('login.html');
+        else document.body.style.display = 'block';
+    </script>
+    <script src="shared.js"></script>
     <div id="header-placeholder"></div>
 
     <div class="container">
@@ -488,7 +493,6 @@
         </div>
     </template>
 
-    <script type="module" src="js/pages/editar.js"></script>
     <script src="js/pages/editar.js"></script>
 </body>
 </html>

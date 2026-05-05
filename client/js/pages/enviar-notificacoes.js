@@ -1,15 +1,14 @@
-// === enviar-notificacoes.js ===
-// Lógica da página de envio de notificações administrativas
-
 let usuarios = [];
 
-// === INICIALIZAÇÃO ===
 document.addEventListener('DOMContentLoaded', async () => {
     const userResponse = await fetchWithAuth('/api/auth');
-    if (!userResponse) return;
+    if (!userResponse || !userResponse.ok) {
+        window.location.replace('login.html');
+        return;
+    }
 
     const usuario = await userResponse.json();
-    
+
     if (usuario.role !== 'admin') {
         document.body.innerHTML = '<div class="container"><h1>Acesso Negado</h1><p>Apenas administradores podem acessar esta página.</p></div>';
         document.body.style.display = 'block';
@@ -18,23 +17,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     createHeader('header-placeholder', usuario);
     document.body.style.display = 'block';
-    
-    carregarUsuarios();
+
     setupEventListeners();
+    carregarUsuarios();
 });
 
-// === CARREGAR USUÁRIOS ===
 async function carregarUsuarios() {
     try {
-        const response = await fetchWithAuth('/api/auth/admin/users?limit=1000');
+        const response = await fetchWithAuth('/api/auth/admin/users?limit=100');
         if (!response.ok) throw new Error('Falha ao carregar usuários');
-        
+
         const data = await response.json();
         usuarios = data.usuarios || data;
-        
+
         renderizarListaUsuarios();
     } catch (err) {
         console.error('Erro ao carregar usuários:', err);
+        const container = document.getElementById('userSelection');
+        if (container) {
+            container.innerHTML = '<p style="text-align: center; color: #dc3545;">Erro ao carregar usuários. Tente recarregar a página.</p>';
+        }
     }
 }
 
@@ -72,14 +74,12 @@ function renderizarListaUsuarios() {
     `;
 }
 
-// === SELECIONAR TODOS ===
 function selecionarTodos() {
     const selectAll = document.getElementById('selectAll');
     const checkboxes = document.querySelectorAll('.user-checkbox');
     checkboxes.forEach(cb => cb.checked = selectAll.checked);
 }
 
-// === ALTERAR DESTINATÁRIOS ===
 function alterarDestinatarios() {
     const tipo = document.querySelector('input[name="destinatarios"]:checked').value;
     
@@ -87,7 +87,6 @@ function alterarDestinatarios() {
     document.getElementById('usuariosList').style.display = tipo === 'especificos' ? 'block' : 'none';
 }
 
-// === ENVIAR NOTIFICAÇÃO ===
 async function enviarNotificacao(e) {
     e.preventDefault();
     
@@ -113,7 +112,6 @@ async function enviarNotificacao(e) {
         if (tipo === 'todos') {
             response = await fetchWithAuth('/api/notificacoes/admin/enviar', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ destinatarios: 'todos', titulo, mensagem, link })
             });
         } else if (tipo === 'role') {
@@ -126,7 +124,6 @@ async function enviarNotificacao(e) {
             }
             response = await fetchWithAuth('/api/notificacoes/admin/enviar-role', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ role, titulo, mensagem, link })
             });
         } else {
@@ -140,7 +137,6 @@ async function enviarNotificacao(e) {
             const destinatarios = Array.from(checkboxes).map(cb => cb.value);
             response = await fetchWithAuth('/api/notificacoes/admin/enviar', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ destinatarios, titulo, mensagem, link })
             });
         }
@@ -151,7 +147,7 @@ async function enviarNotificacao(e) {
         }
 
         const result = await response.json();
-        mostrarMensagem(`✓ ${result.msg}`, 'success');
+        mostrarMensagem(`Notificação enviada para ${result.count} usuário(s) com sucesso!`, 'success');
         limparFormulario();
         
     } catch (err) {
@@ -162,15 +158,14 @@ async function enviarNotificacao(e) {
     }
 }
 
-// === LIMPAR FORMULÁRIO ===
 function limparFormulario() {
     document.getElementById('notificationForm').reset();
     document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
-    document.getElementById('selectAll').checked = false;
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) selectAll.checked = false;
     alterarDestinatarios();
 }
 
-// === MENSAGENS ===
 function mostrarMensagem(texto, tipo) {
     const statusDiv = document.getElementById('messageStatus');
     statusDiv.className = tipo === 'success' ? 'success-message' : 'error-message';
@@ -182,26 +177,18 @@ function mostrarMensagem(texto, tipo) {
     }, 5000);
 }
 
-// === EVENT LISTENERS ===
 function setupEventListeners() {
-    // Radios de destinatários
     document.querySelectorAll('input[name="destinatarios"]').forEach(radio => {
         radio.addEventListener('change', alterarDestinatarios);
     });
-    
-    // Botão limpar (é o segundo button no form)
-    const buttons = document.querySelectorAll('#notificationForm button');
-    if (buttons[1]) {
-        buttons[1].addEventListener('click', limparFormulario);
-    }
-    
-    // Form submit
+
+    document.getElementById('btnLimpar').addEventListener('click', limparFormulario);
     document.getElementById('notificationForm').addEventListener('submit', enviarNotificacao);
-    
-    // Select all (delegação pois é criado dinamicamente)
+
+    // Delegação pois #selectAll é criado dinamicamente
     document.addEventListener('change', (e) => {
-        if (e.target.id === 'selectAll') {
-            selecionarTodos();
-        }
+        if (e.target.id === 'selectAll') selecionarTodos();
     });
+
+    alterarDestinatarios();
 }

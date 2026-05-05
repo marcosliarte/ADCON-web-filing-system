@@ -7,12 +7,8 @@
     <link rel="stylesheet" href="css/pages/mensalidades.css">
 </head>
 <body style="display: none;">
-    <!-- Script de bloqueio de acesso e exibição de conteúdo -->
     <script>
-        // Este script é executado antes de tudo. Se não houver token, redireciona.
-        if (!localStorage.getItem('token')) {
-            window.location.replace('login.html');
-        }
+        if (!localStorage.getItem('token')) window.location.replace('login.html');
     </script>
     <div id="header-placeholder"></div>
 
@@ -20,50 +16,84 @@
         <h1 class="page-title">Gerenciamento de Mensalidades</h1>
 
         <div class="filtros">
-            <label for="filtro-mes">Mês:</label>
-            <select id="filtro-mes"></select>
-            <label for="filtro-ano">Ano:</label>
-            <input type="number" id="filtro-ano" min="2020" max="2050">
-            <button>Filtrar</button>
+            <div class="filtro-grupo">
+                <label for="filtro-mes">Mês</label>
+                <select id="filtro-mes"></select>
+            </div>
+            <div class="filtro-grupo">
+                <label for="filtro-ano">Ano</label>
+                <input type="number" id="filtro-ano" min="2020" max="2050">
+            </div>
+            <div class="filtro-grupo filtro-busca">
+                <label for="filtro-busca">Buscar empresa</label>
+                <input type="text" id="filtro-busca" placeholder="Nome ou CNPJ...">
+            </div>
+            <button id="btn-filtrar" class="btn-filtrar">Filtrar</button>
+        </div>
+
+        <div class="stats-bar" id="stats-bar" style="display: none;">
+            <div class="stat-card">
+                <span class="stat-label">Total</span>
+                <span class="stat-value" id="stat-total">0</span>
+            </div>
+            <div class="stat-card stat-pago">
+                <span class="stat-label">Pagas</span>
+                <span class="stat-value" id="stat-pago">0</span>
+            </div>
+            <div class="stat-card stat-pendente">
+                <span class="stat-label">Pendentes</span>
+                <span class="stat-value" id="stat-pendente">0</span>
+            </div>
+            <div class="stat-card stat-atrasado">
+                <span class="stat-label">Atrasadas</span>
+                <span class="stat-value" id="stat-atrasado">0</span>
+            </div>
+            <div class="stat-card stat-nao-gerada">
+                <span class="stat-label">Não Geradas</span>
+                <span class="stat-value" id="stat-nao-gerada">0</span>
+            </div>
         </div>
 
         <div class="table-responsive">
-        <table id="tabela-mensalidades">
-            <thead>
-                <tr>
-                    <th>Empresa</th>
-                    <th>CNPJ</th>
-                    <th>Status</th>
-                    <th>Valor</th>
-                    <th>Data de Vencimento</th>
-                    <th>Data de Pagamento</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td colspan="7">Carregando...</td></tr>
-            </tbody>
-        </table>
+            <table id="tabela-mensalidades">
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>CNPJ</th>
+                        <th>Status</th>
+                        <th>Valor</th>
+                        <th>Vencimento</th>
+                        <th>Pagamento</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="7">Carregando...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Modal para Ações -->
+    <!-- Modal -->
     <div id="acao-modal" class="modal">
-        <div class="modal-content" style="max-width: 95%; box-sizing: border-box;">
-            <span class="close-btn">&times;</span>
+        <div class="modal-content">
+            <button class="close-btn" id="modal-close-btn" aria-label="Fechar">&times;</button>
             <h2 id="modal-titulo"></h2>
             <form id="modal-form" class="modal-form">
                 <input type="hidden" id="modal-mensalidade-id">
                 <input type="hidden" id="modal-empresa-id">
                 <div class="form-group">
                     <label for="modal-valor">Valor (R$)</label>
-                    <input type="number" id="modal-valor" step="0.01" required>
+                    <input type="number" id="modal-valor" step="0.01" min="0" required placeholder="0,00">
                 </div>
-                <div class="form-group" style="display: none;">
+                <div class="form-group" id="grupo-data-vencimento" style="display: none;">
                     <label for="modal-data-vencimento">Data de Vencimento</label>
                     <input type="date" id="modal-data-vencimento">
                 </div>
-                <button type="submit" id="modal-submit-btn">Salvar</button>
+                <div class="modal-actions">
+                    <button type="submit" id="modal-submit-btn">Salvar</button>
+                    <button type="button" class="btn-cancelar" id="modal-cancel-btn">Cancelar</button>
+                </div>
             </form>
         </div>
     </div>
