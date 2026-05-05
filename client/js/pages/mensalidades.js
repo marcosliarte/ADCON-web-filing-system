@@ -158,7 +158,7 @@ function renderizarTabela(dados, mesFiltro, anoFiltro) {
             `;
         } else {
             statusCell.innerHTML = `<span class="status-badge status-nao-gerada">Não Gerada</span>`;
-            valorCell.textContent = mensalidade?.valor ? formatarMoeda(mensalidade.valor) : '—';
+            valorCell.textContent = '—';
             vencimentoCell.textContent = '—';
             pagamentoCell.textContent = '—';
             acoesCell.innerHTML = `
