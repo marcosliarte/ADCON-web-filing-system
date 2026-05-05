@@ -1,44 +1,90 @@
-checkAuth();
-
 let currentUser; // Usuário logado (admin)
 
 async function setupPage() {
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/auth`);
-    if (response) {
-        currentUser = await response.json();
-        createHeader('header-placeholder', currentUser);
-        if (currentUser.role !== 'admin') {
-            alert('Acesso negado. Apenas administradores podem gerenciar usuários.');
-            window.location.href = 'home.html';
-            return;
+    console.log('🔍 setupPage called');
+    console.log('🔑 Token exists:', !!localStorage.getItem('token'));
+    console.log('🌐 API_BASE_URL:', API_BASE_URL);
+
+    try {
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/auth`);
+        console.log('📡 fetchWithAuth response:', response);
+
+        if (response) {
+            currentUser = await response.json();
+            console.log('👤 currentUser:', currentUser);
+            console.log('🔒 User role:', currentUser.role);
+
+            createHeader('header-placeholder', currentUser);
+
+            if (currentUser.role !== 'admin') {
+                console.log('❌ User is not admin, redirecting');
+                alert('Acesso negado. Apenas administradores podem gerenciar usuários.');
+                window.location.href = 'home.html';
+                return;
+            }
+
+            console.log('✅ User is admin, showing page');
+            document.body.style.display = 'block';
+            console.log('📋 Calling loadUsers');
+            await loadUsers();
+        } else {
+            console.error('❌ No response from fetchWithAuth');
         }
-        document.body.style.display = 'block';
-        loadUsers();
+    } catch (error) {
+        console.error('💥 Error in setupPage:', error);
+        alert('Erro ao carregar dados do usuário. Verifique sua conexão.');
     }
 }
 
 async function loadUsers() {
+    console.log('📋 loadUsers called');
+
     try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/admin/users`);
+        const url = `${API_BASE_URL}/api/auth/admin/users`;
+        console.log('🔗 Fetching URL:', url);
+
+        const response = await fetchWithAuth(url);
+        console.log('📡 loadUsers response:', response);
+        console.log('📊 Response status:', response.status);
+        console.log('📝 Response ok:', response.ok);
+
         if (response && response.ok) {
-            const users = await response.json();
+            const data = await response.json();
+            console.log('📦 Raw data received:', data);
+
+            // A API retorna { usuarios: [], paginacao: {...} }
+            const users = data.usuarios || data;
+            console.log('👥 Users array:', users);
+            console.log('📊 Users type:', typeof users);
+            console.log('📏 Users length:', Array.isArray(users) ? users.length : 'not array');
+
             const tbody = document.querySelector('#usersTable tbody');
+            console.log('📋 Table body found:', !!tbody);
+
+            if (!Array.isArray(users)) {
+                console.error('❌ users is not an array:', typeof users, users);
+                alert('Erro: resposta da API inválida');
+                return;
+            }
+
             tbody.innerHTML = '';
-            users.forEach(user => {
+
+            users.forEach((user, index) => {
+                console.log(`👤 Processing user ${index}:`, user);
                 const row = tbody.insertRow();
-                row.dataset.userId = user._id; // Adiciona o ID à linha
+                row.dataset.userId = user._id;
                 row.insertCell(0).textContent = user.nome;
                 row.insertCell(1).textContent = user.email;
                 row.insertCell(2).textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
                 const actionsCell = row.insertCell(3);
 
                 // CORREÇÃO: Define a condição para mostrar o botão de exclusão.
-                const podeExcluir = 
+                const podeExcluir =
                     // 1. Não pode excluir a si mesmo.
-                    user._id !== currentUser._id && 
+                    user._id !== currentUser._id &&
                     // 2. Um gerente não pode excluir um administrador.
-                    !(currentUser.role === 'gerente' && user.role === 'admin'); 
-                
+                    !(currentUser.role === 'gerente' && user.role === 'admin');
+
                 // Um admin não pode personificar a si mesmo.
                 const podePersonificar = user._id !== currentUser._id;
 
@@ -51,10 +97,16 @@ async function loadUsers() {
                 }
                 actionsCell.innerHTML = buttonsHtml || ((user._id === currentUser._id) ? 'Você' : 'Ação não permitida');
             });
+
+            console.log('✅ Users table loaded successfully');
+        } else {
+            console.error('❌ Response not ok:', response.status, response.statusText);
+            const errorText = await response.text();
+            console.error('❌ Error response:', errorText);
         }
     } catch (error) {
-        console.error('Erro ao carregar usuários:', error);
-        alert('Erro ao carregar usuários.');
+        console.error('💥 Error in loadUsers:', error);
+        alert('Erro ao carregar usuários: ' + error.message);
     }
 }
 
