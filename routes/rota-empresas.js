@@ -4,11 +4,12 @@ const { check, validationResult } = require('express-validator');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const mongoose = require('mongoose'); // Adicionado para usar o Schema
+const mongoose = require('mongoose');
 
 const auth = require('../middleware/auth');
 const Empresa = require('../models/model-empresa');
 const Usuario = require('../models/model-usuario');
+const { encrypt, decrypt } = require('../utils/crypto');
 
 // --- NOVA: Função Auxiliar para Registrar Log ---
 async function registrarLog(usuarioId, acao, entidade) {
@@ -175,11 +176,11 @@ router.post(
         }
         if (req.files.certificado_digital) {
           const file = req.files.certificado_digital[0];
-          dadosEmpresa.documentos.certificadoDigital = { 
-            nomeArquivo: file.originalname, 
+          dadosEmpresa.documentos.certificadoDigital = {
+            nomeArquivo: file.originalname,
             caminhoArquivo: `/uploads/certificados/${file.filename}`,
             dataValidade: req.body.certificado_validade,
-            senha: req.body.certificado_senha // Salva a senha do certificado
+            senha: req.body.certificado_senha ? encrypt(req.body.certificado_senha) : null,
           };
         }
         if (req.files.alvara_arquivo) {
@@ -359,17 +360,24 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    // CORREÇÃO: Adicionado .select('+documentos.certificadoDigital.senha') para incluir a senha na resposta
-    const empresa = await Empresa.findById(req.params.id).select('+documentos.certificadoDigital.senha').populate('matriz_id', 'nome _id cnpj').lean();
+    const empresa = await Empresa.findById(req.params.id)
+      .select('+documentos.certificadoDigital.senha')
+      .populate('matriz_id', 'nome _id cnpj')
+      .lean();
 
     if (!empresa) {
       return res.status(404).json({ msg: 'Empresa não encontrada' });
     }
 
-    // Nota: Empresas não têm campo ownerId, acesso é controlado apenas por role
-    // Empresários podem ver todas as empresas (conforme regras de negócio atuais)
-    
-    // Renomeia 'matriz_id' para 'matriz' para clareza no frontend
+    // Descriptografa a senha do certificado antes de enviar ao frontend
+    if (empresa.documentos?.certificadoDigital?.senha) {
+      try {
+        empresa.documentos.certificadoDigital.senha = decrypt(empresa.documentos.certificadoDigital.senha);
+      } catch (e) {
+        empresa.documentos.certificadoDigital.senha = null;
+      }
+    }
+
     empresa.matriz = empresa.matriz_id || null;
     // Busca as filiais SE a empresa for uma matriz
     empresa.filiais = (empresa.tipo === 'matriz' || !empresa.tipo) ? await Empresa.find({ matriz_id: req.params.id }).select('nome nome_fantasia cnpj _id').lean() : [];
@@ -396,23 +404,29 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Empresa não encontrada' });
     }
 
-    // Função auxiliar para deletar um arquivo de forma segura
-    const deletarArquivo = (caminhoRelativo) => {
-      if (!caminhoRelativo) return;
-      const caminhoCompleto = path.join(__dirname, '..', caminhoRelativo);
-      if (fs.existsSync(caminhoCompleto)) {
-        fs.unlinkSync(caminhoCompleto);
-        console.log(`Arquivo deletado: ${caminhoCompleto}`);
-      }
+    // Função auxiliar para deletar arquivos de forma assíncrona (não bloqueia o event loop)
+    const deletarArquivos = (caminhos) => {
+      const validos = caminhos.filter(Boolean).map(c => path.join(__dirname, '..', c));
+      return Promise.all(validos.map(p => fs.promises.unlink(p).catch(() => {})));
     };
 
-    // Coleta e deleta todos os arquivos associados
     if (empresa.documentos) {
-      deletarArquivo(empresa.documentos.cartaoCnpj?.caminhoArquivo);
-      deletarArquivo(empresa.documentos.certificadoDigital?.caminhoArquivo);
-      if (empresa.documentos.contratos && empresa.documentos.contratos.length > 0) {
-        empresa.documentos.contratos.forEach(contrato => deletarArquivo(contrato.caminhoArquivo));
-      }
+      const caminhos = [
+        empresa.documentos.cartaoCnpj?.caminhoArquivo,
+        empresa.documentos.certificadoDigital?.caminhoArquivo,
+        empresa.documentos.alvara?.caminhoArquivo,
+        empresa.documentos.certidaoPrefeitura?.caminhoArquivo,
+        empresa.documentos.certidaoReceita?.caminhoArquivo,
+        empresa.documentos.certidaoFGTS?.caminhoArquivo,
+        empresa.documentos.certidaoSefaz?.caminhoArquivo,
+        empresa.documentos.inscricaoEstadual?.caminhoArquivo,
+        empresa.documentos.certidaoTrabalhista?.caminhoArquivo,
+        empresa.documentos.certidaoFalencia?.caminhoArquivo,
+        ...(empresa.documentos.contratos || []).map(c => c.caminhoArquivo),
+        ...(empresa.documentos.balancosPatrimoniais || []).map(b => b.caminhoArquivo),
+        ...(empresa.documentos.documentosDiversos || []).map(d => d.caminhoArquivo),
+      ];
+      await deletarArquivos(caminhos);
     }
 
     // Após deletar os arquivos, remove o registro do banco de dados
@@ -629,11 +643,11 @@ router.put(
         }
         if (filesMap.certificado_digital) {
             const file = filesMap.certificado_digital;
-            empresa.documentos.certificadoDigital = { 
-                nomeArquivo: file.originalname, 
+            empresa.documentos.certificadoDigital = {
+                nomeArquivo: file.originalname,
                 caminhoArquivo: `/uploads/certificados/${file.filename}`,
                 dataValidade: req.body.certificado_validade,
-                senha: req.body.certificado_senha // Salva a nova senha ao atualizar
+                senha: req.body.certificado_senha ? encrypt(req.body.certificado_senha) : null,
             };
         }
         if (filesMap.alvara_arquivo) {

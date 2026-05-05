@@ -1,18 +1,20 @@
 const jwt = require('jsonwebtoken');
 const Usuario = require('../models/model-usuario');
+const tokenBlacklist = require('../utils/tokenBlacklist');
 
 module.exports = function (req, res, next) {
-  // Obter o token do cabeçalho
   const token = req.header('x-auth-token');
 
-  // Verificar se não há token
   if (!token) {
     return res.status(401).json({ msg: 'Nenhum token, autorização negada' });
   }
 
-  // Verificar token
+  // Rejeita tokens que foram explicitamente revogados (logout)
+  if (tokenBlacklist.has(token)) {
+    return res.status(401).json({ msg: 'Token revogado. Faça login novamente.', expired: true });
+  }
+
   try {
-    // Validar JWT_SECRET está configurado
     if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
       console.error('⚠️ JWT_SECRET não configurado corretamente!');
       return res.status(500).json({ msg: 'Erro de configuração do servidor' });

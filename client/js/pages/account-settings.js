@@ -7,9 +7,7 @@ async function getUsuarioConta() {
     const response = await fetchWithAuth('/api/auth');
     if (response && response.ok) {
       usuario = await response.json();
-      const headerEl = document.getElementById('header-user-name');
-      headerEl.textContent = `Olá, ${usuario.nome.split(' ')[0]}!`;
-      headerEl.classList.remove('skeleton');
+      await createHeader('header-placeholder', usuario);
     }
   } catch (e) {
     localStorage.removeItem('token');
@@ -19,31 +17,6 @@ async function getUsuarioConta() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await getUsuarioConta();
-
-  // Event listener para logout
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      logout();
-    });
-  }
-
-  // Dropdown Header
-  const userMenuBtn = document.getElementById('userMenuBtn');
-  const userMenu = document.getElementById('userMenu');
-  const userActionsDropdown = userMenuBtn?.closest('.dropdown');
-  if (userMenuBtn && userMenu && userActionsDropdown) {
-    userMenuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      userActionsDropdown.classList.toggle('show');
-    });
-    document.addEventListener('click', (e) => {
-      if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
-        userActionsDropdown.classList.remove('show');
-      }
-    });
-  }
 
   // Se hash indicar uma seção, rola até ela
   const hash = (location.hash || '').replace('#','');

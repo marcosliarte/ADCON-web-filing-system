@@ -12,13 +12,15 @@ const Usuario = require('../models/model-usuario');
 // @access  Private (Admin ou Gerente)
 router.get('/status-geral', auth, async (req, res) => {
   const usuarioLogado = await Usuario.findById(req.usuario.id);
-  // CORREÇÃO: Completa a verificação de permissão.
   if (!['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
     return res.status(403).json({ msg: 'Acesso negado para este recurso.' });
   }
   try {
     const mes = parseInt(req.query.mes);
     const ano = parseInt(req.query.ano);
+    const pagina = Math.max(1, parseInt(req.query.pagina) || 1);
+    const limite = Math.min(100, Math.max(1, parseInt(req.query.limite) || 50));
+    const skip = (pagina - 1) * limite;
 
     if (!mes || !ano) {
       return res.status(400).json({ msg: 'Mês e ano são obrigatórios.' });
@@ -26,9 +28,8 @@ router.get('/status-geral', auth, async (req, res) => {
 
     const dataFiltro = new Date(ano, mes - 1, 1);
 
-    const empresasComMensalidade = await Empresa.aggregate([
+    const pipeline = [
       {
-        // Passo 1: Buscar a mensalidade EXATA do período para cada empresa.
         $lookup: {
           from: 'mensalidades',
           let: { empresaId: '$_id' },
@@ -39,7 +40,6 @@ router.get('/status-geral', auth, async (req, res) => {
         },
       },
       {
-        // Passo 2: Se não houver mensalidade exata, buscar a MAIS RECENTE ANTERIOR ao período.
         $lookup: {
           from: 'mensalidades',
           let: { empresaId: '$_id' },
@@ -54,7 +54,6 @@ router.get('/status-geral', auth, async (req, res) => {
       { $unwind: { path: '$mensalidadeExata', preserveNullAndEmptyArrays: true } },
       { $unwind: { path: '$mensalidadeAnterior', preserveNullAndEmptyArrays: true } },
       {
-        // Passo 3: Projetar o resultado final.
         $project: {
           nome: 1,
           cnpj: 1,
@@ -62,10 +61,10 @@ router.get('/status-geral', auth, async (req, res) => {
           mensalidade: {
             $cond: {
               if: '$mensalidadeExata',
-              then: '$mensalidadeExata', // Se a mensalidade do mês existe, use-a.
-              else: { // Se não, crie uma "virtual" para exibição.
+              then: '$mensalidadeExata',
+              else: {
                 _id: null,
-                valor: { $ifNull: ['$mensalidadeAnterior.valor', '$valorPadraoMensalidade'] }, // Usa o valor anterior ou o padrão da empresa.
+                valor: { $ifNull: ['$mensalidadeAnterior.valor', '$valorPadraoMensalidade'] },
                 status: 'Não Gerada',
               }
             }
@@ -73,8 +72,19 @@ router.get('/status-geral', auth, async (req, res) => {
         }
       },
       { $sort: { nome: 1 } },
+    ];
+
+    // Contagem total e dados paginados em paralelo
+    const [totalResult, empresas] = await Promise.all([
+      Empresa.aggregate([...pipeline, { $count: 'total' }]),
+      Empresa.aggregate([...pipeline, { $skip: skip }, { $limit: limite }]),
     ]);
-    res.json(empresasComMensalidade);
+
+    const total = totalResult[0]?.total ?? 0;
+    res.json({
+      data: empresas,
+      paginacao: { total, pagina, limite, totalPaginas: Math.ceil(total / limite) },
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: 'Erro no servidor' });

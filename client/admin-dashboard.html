@@ -750,12 +750,12 @@
                     body: JSON.stringify({ filename })
                 });
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.msg || 'Falha ao restaurar.');
+                if (!response.ok) throw new Error((result.msg || 'Falha ao restaurar.') + (result.error ? `\nDetalhe: ${result.error}` : ''));
 
                 alert(result.msg); // Alerta de sucesso
                 window.location.reload(); // Recarrega a página para refletir os dados restaurados
             } catch (error) {
-                statusDiv.innerHTML = `<p style="color: red;">${error.message}</p>`;
+                statusDiv.innerHTML = `<p style="color: red; white-space: pre-wrap;">${error.message}</p>`;
             }
         }
 

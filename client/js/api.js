@@ -2,10 +2,10 @@
    API UTILITIES - Centralized API calls
    ======================================== */
 
-// Configuração base da API
+// Configuração base da API — usa URL relativa para funcionar em qualquer porta/protocolo
 const API_CONFIG = {
-    baseURL: `http://${window.location.hostname}:3000/api`,
-    timeout: 30000, // 30 segundos
+    baseURL: '/api',
+    timeout: 30000,
 };
 
 /**

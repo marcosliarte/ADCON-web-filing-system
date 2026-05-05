@@ -6,13 +6,14 @@ const path = require('path');
 const os = require('os');
 const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
-const { exec } = require('child_process'); // Para executar comandos do sistema (mongodump/mongorestore)
-const archiver = require('archiver'); // Para criar arquivos .zip
-const unzipper = require('unzipper'); // Para extrair arquivos .zip
-const multer = require('multer'); // Para lidar com upload de arquivos
+const { exec } = require('child_process');
+const archiver = require('archiver');
+const unzipper = require('unzipper');
+const multer = require('multer');
+const cache = require('../utils/cache');
 
 const Empresa = require('../models/model-empresa');
-const Usuario = require('../models/model-usuario'); // Adicionado para contagem de usuários
+const Usuario = require('../models/model-usuario');
 
 // Middleware para garantir que apenas admins acessem estas rotas
 router.use(auth, adminAuth);
@@ -67,18 +68,14 @@ router.get('/dashboard/status', async (req, res) => {
             case 3: dbStatus = 'Desconectando'; break;
         }
 
-        // 2. Uso de espaço em disco pela pasta de uploads (assíncrono e em cache para evitar varreduras pesadas)
+        // 2. Uso de espaço em disco — cacheado por 60s para evitar varreduras frequentes
         const uploadsDir = path.join(__dirname, '../uploads');
         let diskUsage = 0;
         let backupDiskUsage = 0;
 
-        const CACHE_TTL_MS = 30 * 1000; // 30 segundos
-        if (!router._statusCache) router._statusCache = { ts: 0, diskUsage: 0, backupDiskUsage: 0 };
-
-        const now = Date.now();
-        if (router._statusCache.ts && (now - router._statusCache.ts) < CACHE_TTL_MS) {
-            diskUsage = router._statusCache.diskUsage;
-            backupDiskUsage = router._statusCache.backupDiskUsage;
+        const cachedDisk = cache.get('dashboard:diskUsage');
+        if (cachedDisk) {
+            ({ diskUsage, backupDiskUsage } = cachedDisk);
         } else {
             const getDirSizeAsync = async (dirPath) => {
                 let total = 0;
@@ -93,28 +90,31 @@ router.get('/dashboard/status', async (req, res) => {
                             total += stats.size;
                         }
                     }
-                } catch (e) {
-                    // Se o diretório sumir ou ocorrer erro, ignora e segue
-                }
+                } catch (e) {}
                 return total;
             };
 
             try {
-                if (fs.existsSync(uploadsDir)) {
-                    diskUsage = await getDirSizeAsync(uploadsDir);
-                }
-                if (fs.existsSync(backupDir)) {
-                    backupDiskUsage = await getDirSizeAsync(backupDir);
-                }
-                router._statusCache = { ts: Date.now(), diskUsage, backupDiskUsage };
+                if (fs.existsSync(uploadsDir)) diskUsage = await getDirSizeAsync(uploadsDir);
+                if (fs.existsSync(backupDir)) backupDiskUsage = await getDirSizeAsync(backupDir);
+                cache.set('dashboard:diskUsage', { diskUsage, backupDiskUsage }, 60 * 1000);
             } catch (e) {
                 console.error('Erro ao calcular tamanho de diretórios:', e.message);
             }
         }
 
-        // 4. Contagem de entidades
-        const totalUsuarios = await Usuario.countDocuments();
-        const totalEmpresas = await Empresa.countDocuments();
+        // 4. Contagem de entidades — cacheado por 30s
+        let totalUsuarios, totalEmpresas;
+        const cachedCounts = cache.get('dashboard:counts');
+        if (cachedCounts) {
+            ({ totalUsuarios, totalEmpresas } = cachedCounts);
+        } else {
+            [totalUsuarios, totalEmpresas] = await Promise.all([
+                Usuario.countDocuments(),
+                Empresa.countDocuments(),
+            ]);
+            cache.set('dashboard:counts', { totalUsuarios, totalEmpresas }, 30 * 1000);
+        }
 
         // Dados do sistema
         const totalMem = os.totalmem();
@@ -600,6 +600,7 @@ router.get('/backup/analyze/:filename', async (req, res) => {
 // @route   POST api/admin/backup/restore
 // @desc    Restaurar o banco de dados a partir de um backup
 router.post('/backup/restore', async (req, res) => {
+    let tempRestoreDir = null;
     try {
         const { filename } = req.body;
         if (!filename) {
@@ -611,14 +612,14 @@ router.post('/backup/restore', async (req, res) => {
             return res.status(404).json({ msg: 'Arquivo de backup não encontrado.' });
         }
 
-        const tempRestoreDir = path.join(backupDir, `temp-restore-${Date.now()}`);
+        tempRestoreDir = path.join(backupDir, `temp-restore-${Date.now()}`);
         fs.mkdirSync(tempRestoreDir, { recursive: true });
 
         // Extrair o ZIP usando Promise
         await new Promise((resolve, reject) => {
             fs.createReadStream(backupFilePath)
                 .pipe(unzipper.Extract({ path: tempRestoreDir }))
-                .on('finish', resolve)
+                .on('close', resolve)
                 .on('error', reject);
         });
 
@@ -637,10 +638,12 @@ router.post('/backup/restore', async (req, res) => {
 
         // Executar restore usando Promise
         await new Promise((resolve, reject) => {
-            exec(restoreCommand, (restoreError, stdout, stderr) => {
+            exec(restoreCommand, { maxBuffer: 50 * 1024 * 1024 }, (restoreError, stdout, stderr) => {
+                if (stdout) console.log('[RESTORE] mongorestore output:', stdout);
+                if (stderr) console.log('[RESTORE] mongorestore stderr:', stderr);
                 if (restoreError) {
-                    console.error(`Erro ao restaurar banco de dados: ${stderr}`);
-                    reject(new Error(stderr || 'Falha ao restaurar o banco de dados'));
+                    console.error(`[RESTORE ERROR] Erro ao restaurar banco de dados: ${restoreError.message}`);
+                    reject(new Error(stderr || restoreError.message || 'Falha ao restaurar o banco de dados'));
                 } else {
                     resolve();
                 }
@@ -688,9 +691,12 @@ router.post('/backup/restore', async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao restaurar backup:', error);
-        res.status(500).json({ 
-            msg: 'Erro ao restaurar backup.', 
-            error: error.message 
+        if (tempRestoreDir && fs.existsSync(tempRestoreDir)) {
+            try { fs.rmSync(tempRestoreDir, { recursive: true, force: true }); } catch (e) {}
+        }
+        res.status(500).json({
+            msg: 'Erro ao restaurar backup.',
+            error: error.message
         });
     }
 });

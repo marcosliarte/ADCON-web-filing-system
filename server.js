@@ -1,6 +1,7 @@
-require('dotenv').config(); // Carrega .env localmente, se existir
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const mongoose = require('mongoose');
 const path = require('path');
 const os = require('os');
@@ -125,6 +126,11 @@ const generalLimiter = rateLimit({
 });
 
 app.use(generalLimiter);
+
+// -----------------------------
+//    COMPRESSÃO HTTP (gzip/brotli)
+// -----------------------------
+app.use(compression());
 
 // -----------------------------
 //    CORS E PARSING

@@ -194,12 +194,14 @@ function atualizarPeriodo() {
         customRange.style.display = 'grid';
     } else {
         customRange.style.display = 'none';
-        
+        // Encerrar no último mês fechado (se dia >= 20, mês atual conta como fechado)
         const hoje = new Date();
-        const mesFim = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
-        
+        const isDia20OuMais = hoje.getDate() >= 20;
+        const ultimoFechado = new Date(hoje.getFullYear(), isDia20OuMais ? hoje.getMonth() : hoje.getMonth() - 1, 1);
+        const mesFim = `${ultimoFechado.getFullYear()}-${(ultimoFechado.getMonth() + 1).toString().padStart(2, '0')}`;
+
         const mesesAtras = parseInt(periodo);
-        const dataInicio = new Date(hoje.getFullYear(), hoje.getMonth() - mesesAtras + 1, 1);
+        const dataInicio = new Date(ultimoFechado.getFullYear(), ultimoFechado.getMonth() - mesesAtras + 1, 1);
         const mesInicio = `${dataInicio.getFullYear()}-${(dataInicio.getMonth() + 1).toString().padStart(2, '0')}`;
         
         document.getElementById('mes-inicio').value = mesInicio;
@@ -265,7 +267,19 @@ async function gerarFaturamento() {
     try {
         const empresaId = document.getElementById('empresa-id').value;
         const mesInicio = document.getElementById('mes-inicio').value;
-        const mesFim = document.getElementById('mes-fim').value;
+        let mesFim = document.getElementById('mes-fim').value;
+
+        // Garantir que o mês final não ultrapasse o último mês fechado
+        const hoje = new Date();
+        const isDia20OuMais = hoje.getDate() >= 20;
+        const ultimoFechado = new Date(hoje.getFullYear(), isDia20OuMais ? hoje.getMonth() : hoje.getMonth() - 1, 1);
+        const [anoFimSel, mesFimSel] = mesFim.split('-').map(Number);
+        const dataFimSel = new Date(anoFimSel, mesFimSel - 1, 1);
+        if (dataFimSel > ultimoFechado) {
+            mesFim = `${ultimoFechado.getFullYear()}-${(ultimoFechado.getMonth() + 1).toString().padStart(2, '0')}`;
+            document.getElementById('mes-fim').value = mesFim;
+            mostrarSucesso('O mês final foi ajustado automaticamente para o último mês fechado.');
+        }
 
         if (!empresaId) {
             mostrarErro('Por favor, selecione uma empresa.');
@@ -320,15 +334,31 @@ async function gerarFaturamento() {
         }
         tableBody.innerHTML = '';
 
+        // Inserir cabeçalho "Previsão de Faturamento" antes do primeiro mês futuro
+        const anoAtual = hoje.getFullYear();
+        const mesAtual = hoje.getMonth() + 1; // 1-12
+        const diaAtual = hoje.getDate();
+        let previsaoInserida = false;
+
         meses.forEach(mes => {
+            const isFuturo = (mes.ano > anoAtual) || (mes.ano === anoAtual && mes.mes > mesAtual);
+            const isPrevisaoAtual = (mes.ano === anoAtual && mes.mes === mesAtual && diaAtual < 20);
+            if (isFuturo && !previsaoInserida) {
+                const sepRow = document.createElement('tr');
+                sepRow.className = 'section-row';
+                sepRow.innerHTML = `<td colspan="2">Previsão de Faturamento</td>`;
+                tableBody.appendChild(sepRow);
+                previsaoInserida = true;
+            }
             const historicoMes = historico.find(h => h.mes === mes.mes && h.ano === mes.ano);
             const valorFormatado = historicoMes ? 
                 historicoMes.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '';
 
             const row = document.createElement('tr');
+            row.className = (isFuturo || isPrevisaoAtual) ? 'future-row' : '';
             row.innerHTML = `
-                <td>${mes.label}</td>
-                <td><input type="text" class="input-valor" placeholder="R$ 0,00" value="${valorFormatado}" data-mes="${mes.mes}" data-ano="${mes.ano}"></td>
+                <td>${mes.label}${(isFuturo || isPrevisaoAtual) ? ' (Previsão)' : ''}</td>
+                <td><input type="text" class="input-valor" placeholder="R$ 0,00" value="${valorFormatado}" data-mes="${mes.mes}" data-ano="${mes.ano}" data-futuro="${(isFuturo || isPrevisaoAtual)}"></td>
             `;
             tableBody.appendChild(row);
         });
@@ -382,9 +412,16 @@ async function gerarFaturamento() {
             `;
         }
 
-        document.getElementById('print-area').classList.add('active');
+        const printArea = document.getElementById('print-area');
+        printArea.classList.add('active');
+        // Garantir que 12 meses caibam em uma única página na impressão
+        if (meses.length <= 12) {
+            printArea.classList.add('compact-12');
+        } else {
+            printArea.classList.remove('compact-12');
+        }
         document.getElementById('btn-salvar').style.display = 'inline-block';
-        document.getElementById('print-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        printArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
         limparMensagens();
     } catch (error) {

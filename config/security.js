@@ -12,8 +12,8 @@ module.exports = {
 
   // Rate Limiting
   rateLimit: {
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 1 * 60 * 1000, // 1 minuto (para desenvolvimento)
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000, // 1000 requisições por minuto (desenvolvimento)
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 200, // 200 requisições por janela
     login: {
       windowMs: 15 * 60 * 1000, // 15 minutos
       max: parseInt(process.env.RATE_LIMIT_LOGIN_MAX) || 5, // 5 tentativas
@@ -42,10 +42,11 @@ module.exports = {
     },
   },
 
-  // CORS
+  // CORS — em produção, defina CORS_ORIGIN no .env (ex: "https://meudominio.com")
   cors: {
-    // Em produção, especificar domínios permitidos
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+      : (process.env.NODE_ENV === 'production' ? false : '*'),
     credentials: true,
   },
 

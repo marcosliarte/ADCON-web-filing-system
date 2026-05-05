@@ -8,14 +8,8 @@ async function getUsuario() {
         const response = await fetchWithAuth('/api/auth');
         if (response && response.ok) {
             usuario = await response.json();
-                
-            // Verificar se está em modo de personificação
-            checkImpersonation();
-            
-            // Preenche cabeçalho e remove skeletons
-            const headerEl = document.getElementById('header-user-name');
-            headerEl.textContent = `Olá, ${usuario.nome.split(' ')[0]}!`;
-            headerEl.classList.remove('skeleton');
+
+            await createHeader('header-placeholder', usuario);
 
             const nameEl = document.getElementById('user-name');
             nameEl.textContent = usuario.nome;
@@ -76,12 +70,6 @@ async function getUsuario() {
         localStorage.removeItem('token');
         window.location.replace('login.html');
     }
-}
-
-// Função de logout
-function logout() {
-    localStorage.removeItem('token');
-    window.location.replace('login.html');
 }
 
 // Função para salvar foto de perfil
@@ -155,66 +143,9 @@ async function deleteProfilePic() {
     }
 }
 
-// Verificar se está em modo de personificação
-function checkImpersonation() {
-    let impersonatorId = null;
-    const token = localStorage.getItem('token');
-    
-    try {
-        const payloadBase64 = token.split('.')[1];
-        const decodedPayload = JSON.parse(atob(payloadBase64));
-        if (decodedPayload.usuario && decodedPayload.usuario.impersonatorId) {
-            impersonatorId = decodedPayload.usuario.impersonatorId;
-        }
-    } catch (e) {
-        console.error("Erro ao decodificar token para personificação:", e);
-    }
-
-    const bannerDiv = document.getElementById('impersonation-banner');
-    if (impersonatorId && usuario) {
-        bannerDiv.innerHTML = `
-            <div style="background-color: #ffc107; color: #333; text-align: center; padding: 0.5rem; font-weight: bold;">
-                Você está navegando como ${usuario.nome}. 
-                <a href="#" onclick="stopImpersonating(event)" style="color: #007bff; text-decoration: underline;">Voltar para sua conta</a>.
-            </div>
-        `;
-    } else {
-        bannerDiv.innerHTML = '';
-    }
-}
-
-// Parar personificação
-async function stopImpersonating(event) {
-    event.preventDefault();
-    try {
-        const response = await fetchWithAuth('/api/auth/admin/stop-impersonating', {
-            method: 'POST'
-        });
-        if (!response || !response.ok) {
-            throw new Error('Falha ao retornar para a conta original.');
-        }
-
-        const { token } = await response.json();
-        localStorage.setItem('token', token);
-        window.location.href = 'user-management.html';
-    } catch (error) {
-        console.error('Erro ao sair da personificação:', error);
-        alert(`Erro: ${error.message}`);
-    }
-}
-
 // Inicialização da página
 document.addEventListener('DOMContentLoaded', async () => {
     await getUsuario();
-
-    // Event listener para logout
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            logout();
-        });
-    }
 
     // Event listeners para foto de perfil
     const editPicIcon = document.getElementById('editPicIcon');
@@ -457,25 +388,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    // Adiciona a lógica do dropdown do menu de usuário
-    const userMenuBtn = document.getElementById('userMenuBtn');
-    const userMenu = document.getElementById('userMenu');
-    const userActionsDropdown = userMenuBtn?.closest('.dropdown');
-    
-    if (userMenuBtn && userMenu && userActionsDropdown) {
-        userMenuBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            userActionsDropdown.classList.toggle('show');
-        });
-
-        // Fecha dropdown ao clicar fora
-        document.addEventListener('click', (e) => {
-            if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
-                userActionsDropdown.classList.remove('show');
-            }
-        });
-    }
-    // Inicializa estados de validação ao abrir a página
-    try { if (document.getElementById('changePasswordForm')) updatePwUI(); } catch (_) {}
-    try { if (document.getElementById('changeEmailForm')) updateEmailUI(); } catch (_) {}
 });

@@ -27,8 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.textContent = 'Entrando...';
         
         try {
-            // Construir URL da API dinamicamente
-            const apiUrl = `http://${window.location.hostname}:3000/api/auth/login`;
+            const apiUrl = '/api/auth/login';
             
             const response = await fetch(apiUrl, {
                 method: 'POST',
