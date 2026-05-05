@@ -463,6 +463,19 @@ function openConfirmModal(message, options = {}) {
     });
 }
 
+/**
+ * Aplica um tema de cores ao :root da página via CSS custom properties.
+ * @param {object} tema - { primary, primaryDark, bg }
+ */
+function applyTheme(tema) {
+    if (!tema) return;
+    const root = document.documentElement;
+    if (tema.primary)     root.style.setProperty('--primary', tema.primary);
+    if (tema.primaryDark) root.style.setProperty('--primary-600', tema.primaryDark);
+    if (tema.bg)          root.style.setProperty('--bg', tema.bg);
+    if (tema.primary)     root.style.setProperty('--bg-header', tema.primary);
+}
+
 function createFooter(placeholderId) {
     const html = `<div class="footer">&copy; 2025 ADCON. Todos os direitos reservados.</div>`;
     if (placeholderId) {
@@ -472,8 +485,14 @@ function createFooter(placeholderId) {
     document.body.insertAdjacentHTML('beforeend', html);
 }
 
-// Injeta rodapé automaticamente em todas as páginas que carregam shared.js
+// Injeta rodapé e aplica tema salvo em todas as páginas que carregam shared.js
 document.addEventListener('DOMContentLoaded', () => {
+    // Aplica tema de cores salvo no localStorage
+    try {
+        const savedTheme = localStorage.getItem('adcon_tema');
+        if (savedTheme) applyTheme(JSON.parse(savedTheme));
+    } catch(e) {}
+
     if (!document.querySelector('.footer, footer')) {
         const footer = document.createElement('div');
         footer.className = 'footer';

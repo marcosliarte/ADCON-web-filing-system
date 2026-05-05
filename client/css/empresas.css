@@ -169,7 +169,7 @@ button.delete-btn:hover {
     padding: 0.6rem 1.1rem;
     font-size: 0.9rem;
     font-weight: 500;
-    background-color: var(--primary, #2563eb);
+    background-color: var(--primary-600, #1E88E5);
     color: #fff;
     border: none;
     border-radius: 6px;
@@ -178,7 +178,7 @@ button.delete-btn:hover {
 }
 
 .pagination button:hover:not(:disabled) {
-    background-color: var(--primary-dark, #1d4ed8);
+    background-color: #1565C0;
 }
 
 .pagination button:disabled {

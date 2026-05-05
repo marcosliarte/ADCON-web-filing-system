@@ -171,7 +171,84 @@
             </div>
         </form>
         <div id="message"></div>
+
+        <!-- ── Tema de Cores ───────────────────────────────────────── -->
+        <div id="tema-section" style="display:none; margin-top:2.5rem;">
+            <h2>Tema de Cores</h2>
+
+            <!-- Paletas rápidas -->
+            <p style="color:#666; margin-bottom:0.75rem; font-size:0.9rem;">Escolha uma paleta ou personalize as cores abaixo:</p>
+            <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.5rem;" id="paletas">
+                <button type="button" class="btn-paleta" data-primary="#3BA3FF" data-dark="#1E88E5" data-bg="#f7fbff"
+                    style="background:#3BA3FF;" title="Azul (padrão)">Azul</button>
+                <button type="button" class="btn-paleta" data-primary="#2ECC71" data-dark="#27AE60" data-bg="#f7fff9"
+                    style="background:#2ECC71;" title="Verde">Verde</button>
+                <button type="button" class="btn-paleta" data-primary="#9B59B6" data-dark="#7D3C98" data-bg="#fdf7ff"
+                    style="background:#9B59B6;" title="Roxo">Roxo</button>
+                <button type="button" class="btn-paleta" data-primary="#E67E22" data-dark="#CA6F1E" data-bg="#fffaf5"
+                    style="background:#E67E22;" title="Laranja">Laranja</button>
+                <button type="button" class="btn-paleta" data-primary="#607D8B" data-dark="#455A64" data-bg="#f5f7f9"
+                    style="background:#607D8B;" title="Cinza">Cinza</button>
+                <button type="button" class="btn-paleta" data-primary="#E74C3C" data-dark="#C0392B" data-bg="#fff7f7"
+                    style="background:#E74C3C;" title="Vermelho">Vermelho</button>
+            </div>
+
+            <!-- Cores personalizadas -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1.25rem; margin-bottom:1.5rem;">
+                <div class="form-group">
+                    <label for="cor-primary">Cor Principal</label>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <input type="color" id="cor-primary" style="width:44px; height:38px; padding:2px; border-radius:4px; border:1px solid #ccc; cursor:pointer;">
+                        <input type="text" id="cor-primary-text" maxlength="7" placeholder="#3BA3FF" style="flex:1;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="cor-dark">Cor Escura / Hover</label>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <input type="color" id="cor-dark" style="width:44px; height:38px; padding:2px; border-radius:4px; border:1px solid #ccc; cursor:pointer;">
+                        <input type="text" id="cor-dark-text" maxlength="7" placeholder="#1E88E5" style="flex:1;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="cor-bg">Fundo da Página</label>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <input type="color" id="cor-bg" style="width:44px; height:38px; padding:2px; border-radius:4px; border:1px solid #ccc; cursor:pointer;">
+                        <input type="text" id="cor-bg-text" maxlength="7" placeholder="#f7fbff" style="flex:1;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div id="tema-preview" style="border:1px solid #ddd; border-radius:8px; overflow:hidden; margin-bottom:1.5rem;">
+                <div id="preview-header" style="padding:0.75rem 1rem; color:#fff; font-weight:600; font-size:0.95rem;">
+                    Cabeçalho — ADCON
+                </div>
+                <div id="preview-body" style="padding:1rem; display:flex; gap:0.75rem; align-items:center;">
+                    <button id="preview-btn" type="button" style="padding:0.5rem 1rem; border:none; border-radius:5px; color:#fff; cursor:default;">Botão</button>
+                    <span id="preview-text" style="font-size:0.9rem; font-weight:500;">Texto de exemplo na aplicação</span>
+                </div>
+            </div>
+
+            <button type="button" id="btnSalvarTema" style="background:#28a745;">Salvar Tema</button>
+            <button type="button" id="btnResetTema" class="btn-secondary" style="margin-left:0.75rem;">Restaurar Padrão</button>
+        </div>
     </div>
+
+    <style>
+        .btn-paleta {
+            color: #fff;
+            border: none;
+            padding: 0.45rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: opacity 0.15s, transform 0.1s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+        }
+        .btn-paleta:hover { opacity: 0.88; transform: scale(1.04); }
+        .btn-paleta.ativa { outline: 3px solid #333; outline-offset: 2px; }
+    </style>
 
     <script src="shared.js"></script>
     <script>
@@ -188,9 +265,13 @@
                 document.querySelector('.container').innerHTML = '<h1>Acesso Negado</h1><p>Você não tem permissão para visualizar ou editar estas configurações.</p>';
                 return;
             }
-            
+
             document.body.style.display = 'block';
             loadConfigData();
+
+            // Exibe a seção de tema e inicializa os campos
+            document.getElementById('tema-section').style.display = 'block';
+            inicializarTema();
 
             document.getElementById('editBtn').addEventListener('click', () => toggleEditMode(true));
             document.getElementById('cancelBtn').addEventListener('click', () => {
@@ -378,6 +459,119 @@
             messageEl.style.display = 'block';
             setTimeout(() => { messageEl.style.display = 'none'; }, 4000);
         }
+
+        // ── Tema de Cores ───────────────────────────────────────────────
+        function hexValido(hex) { return /^#[0-9A-Fa-f]{6}$/.test(hex); }
+
+        function aplicarPreviewTema(primary, dark, bg) {
+            document.getElementById('preview-header').style.backgroundColor = primary;
+            document.getElementById('preview-body').style.backgroundColor = bg;
+            document.getElementById('preview-btn').style.backgroundColor = dark;
+            document.getElementById('preview-text').style.color = '#333';
+        }
+
+        function sincronizarCamposCor(id, valor) {
+            document.getElementById(id).value = valor;
+            document.getElementById(id + '-text').value = valor;
+        }
+
+        function lerCores() {
+            return {
+                primary:     document.getElementById('cor-primary').value,
+                primaryDark: document.getElementById('cor-dark').value,
+                bg:          document.getElementById('cor-bg').value,
+            };
+        }
+
+        function inicializarTema() {
+            // Carrega do localStorage ou usa padrão
+            let tema = { primary: '#3BA3FF', primaryDark: '#1E88E5', bg: '#f7fbff' };
+            try {
+                const saved = localStorage.getItem('adcon_tema');
+                if (saved) tema = { ...tema, ...JSON.parse(saved) };
+            } catch(e) {}
+
+            sincronizarCamposCor('cor-primary', tema.primary);
+            sincronizarCamposCor('cor-dark',    tema.primaryDark);
+            sincronizarCamposCor('cor-bg',      tema.bg);
+            aplicarPreviewTema(tema.primary, tema.primaryDark, tema.bg);
+        }
+
+        // Sincroniza input[type=color] <-> input[type=text]
+        ['primary', 'dark', 'bg'].forEach(key => {
+            const picker = document.getElementById(`cor-${key}`);
+            const text   = document.getElementById(`cor-${key}-text`);
+            picker.addEventListener('input', () => {
+                text.value = picker.value;
+                const cores = lerCores();
+                aplicarPreviewTema(cores.primary, cores.primaryDark, cores.bg);
+            });
+            text.addEventListener('input', () => {
+                if (hexValido(text.value)) {
+                    picker.value = text.value;
+                    const cores = lerCores();
+                    aplicarPreviewTema(cores.primary, cores.primaryDark, cores.bg);
+                }
+            });
+        });
+
+        // Paletas rápidas
+        document.querySelectorAll('.btn-paleta').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const p = btn.dataset.primary, d = btn.dataset.dark, b = btn.dataset.bg;
+                sincronizarCamposCor('cor-primary', p);
+                sincronizarCamposCor('cor-dark',    d);
+                sincronizarCamposCor('cor-bg',      b);
+                aplicarPreviewTema(p, d, b);
+                document.querySelectorAll('.btn-paleta').forEach(x => x.classList.remove('ativa'));
+                btn.classList.add('ativa');
+            });
+        });
+
+        document.getElementById('btnSalvarTema').addEventListener('click', async () => {
+            const cores = lerCores();
+            if (!hexValido(cores.primary) || !hexValido(cores.primaryDark) || !hexValido(cores.bg)) {
+                showToast('Insira cores no formato hexadecimal (#RRGGBB)', 'error');
+                return;
+            }
+
+            const tema = { primary: cores.primary, primaryDark: cores.primaryDark, bg: cores.bg };
+
+            try {
+                const resp = await fetchWithAuth('/api/configuracao', {
+                    method: 'PUT',
+                    body: JSON.stringify({ tema })
+                });
+                if (!resp.ok) throw new Error('Erro ao salvar');
+
+                localStorage.setItem('adcon_tema', JSON.stringify(tema));
+                applyTheme(tema);
+                showToast('Tema salvo e aplicado!', 'success');
+            } catch(e) {
+                showToast('Erro ao salvar o tema', 'error');
+            }
+        });
+
+        document.getElementById('btnResetTema').addEventListener('click', async () => {
+            const padrao = { primary: '#3BA3FF', primaryDark: '#1E88E5', bg: '#f7fbff' };
+            sincronizarCamposCor('cor-primary', padrao.primary);
+            sincronizarCamposCor('cor-dark',    padrao.primaryDark);
+            sincronizarCamposCor('cor-bg',      padrao.bg);
+            aplicarPreviewTema(padrao.primary, padrao.primaryDark, padrao.bg);
+
+            try {
+                await fetchWithAuth('/api/configuracao', {
+                    method: 'PUT',
+                    body: JSON.stringify({ tema: padrao })
+                });
+                localStorage.setItem('adcon_tema', JSON.stringify(padrao));
+                applyTheme(padrao);
+                showToast('Tema restaurado para o padrão!', 'success');
+            } catch(e) {
+                showToast('Erro ao restaurar o tema', 'error');
+            }
+        });
+        // ───────────────────────────────────────────────────────────────
 
         function toggleEditMode(isEditing) {
             const form = document.getElementById('form-configuracao');
