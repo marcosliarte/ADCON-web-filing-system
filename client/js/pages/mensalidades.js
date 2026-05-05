@@ -142,10 +142,12 @@ function renderizarTabela(dados, mesFiltro, anoFiltro) {
 
         if (mensalidade && mensalidade._id) {
             const status = mensalidade.status;
-            const statusClass = status.toLowerCase().replace(' ', '-');
+            const statusClass = status.toLowerCase()
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/\s+/g, '-');
 
             statusCell.innerHTML = `<span class="status-badge status-${statusClass}">${status}</span>`;
-            valorCell.textContent = `R$ ${parseFloat(mensalidade.valor).toFixed(2)}`;
+            valorCell.textContent = formatarMoeda(mensalidade.valor);
             vencimentoCell.textContent = formatarData(mensalidade.dataVencimento);
             pagamentoCell.textContent = status === 'Pago' ? formatarData(mensalidade.dataPagamento) : '—';
 
@@ -156,7 +158,7 @@ function renderizarTabela(dados, mesFiltro, anoFiltro) {
             `;
         } else {
             statusCell.innerHTML = `<span class="status-badge status-nao-gerada">Não Gerada</span>`;
-            valorCell.textContent = mensalidade?.valor ? `R$ ${parseFloat(mensalidade.valor).toFixed(2)}` : '—';
+            valorCell.textContent = mensalidade?.valor ? formatarMoeda(mensalidade.valor) : '—';
             vencimentoCell.textContent = '—';
             pagamentoCell.textContent = '—';
             acoesCell.innerHTML = `
@@ -194,7 +196,7 @@ function abrirModalEditar(mensalidadeId, valor, dataVencimento) {
 }
 
 function abrirModalPagar(mensalidadeId, valor) {
-    if (!confirm(`Confirmar pagamento no valor de R$ ${parseFloat(valor).toFixed(2)}?`)) return;
+    if (!confirm(`Confirmar pagamento no valor de ${formatarMoeda(valor)}?`)) return;
     handlePagamento(mensalidadeId);
 }
 
@@ -281,6 +283,10 @@ async function excluirMensalidade(mensalidadeId) {
 }
 
 // --- Auxiliares ---
+
+function formatarMoeda(valor) {
+    return parseFloat(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
 
 function formatarCNPJ(cnpj) {
     if (!cnpj) return '';
