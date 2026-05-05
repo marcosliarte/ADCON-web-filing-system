@@ -174,7 +174,7 @@ function abrirModalGerar(empresaId, empresaNome, valorSugerido) {
     document.getElementById('modal-titulo').textContent = `Gerar Mensalidade — ${empresaNome}`;
     document.getElementById('modal-mensalidade-id').value = '';
     document.getElementById('modal-empresa-id').value = empresaId;
-    document.getElementById('modal-valor').value = valorSugerido > 0 ? parseFloat(valorSugerido).toFixed(2) : '';
+    document.getElementById('modal-valor').value = '';
     document.getElementById('modal-valor').readOnly = false;
     document.getElementById('modal-submit-btn').textContent = 'Gerar Mensalidade';
     document.getElementById('grupo-data-vencimento').style.display = 'none';

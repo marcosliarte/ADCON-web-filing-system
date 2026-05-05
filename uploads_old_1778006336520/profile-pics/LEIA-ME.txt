@@ -1,0 +1,27 @@
+INSTRUÇÕES - Imagem de Perfil Padrão
+=====================================
+
+IMPORTANTE: Este sistema agora usa uma imagem padrão personalizada para usuários sem foto de perfil.
+
+ARQUIVO NECESSÁRIO:
+- Nome: no-profile.png
+- Local: Esta pasta (uploads/profile-pics/)
+- Formato: PNG
+- Tamanho recomendado: 200x200 pixels ou maior
+- Transparência: Sim (recomendado)
+
+ONDE COLOCAR:
+Coloque o arquivo "no-profile.png" diretamente nesta pasta:
+C:\Users\Marcos\Documents\sistema\ADCON-web-filing-system\uploads\profile-pics\no-profile.png
+
+COMO CRIAR/OBTER A IMAGEM:
+1. Use uma imagem de avatar genérico (ex: silhueta de pessoa)
+2. Baixe de sites gratuitos como: flaticon.com, iconarchive.com, etc.
+3. Ou crie uma imagem simples no Photoshop/GIMP/Canva
+
+SUGESTÕES DE DESIGN:
+- Fundo transparente ou cor sólida (branco/cinza claro)
+- Ícone de pessoa/usuário no centro
+- Estilo minimalista e profissional
+
+NOTA: Enquanto o arquivo não existir, o sistema tentará carregá-lo e pode mostrar erro de imagem quebrada.
