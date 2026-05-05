@@ -1,344 +1,456 @@
-# 📁 ADCON Web Filing System
+# ADCON Web Filing System
 
-Sistema de gerenciamento de arquivos e documentos para o escritório ADCON.
+Sistema de gestão documental e administrativa para escritórios de contabilidade. Gerencia empresas clientes, documentos com controle de vencimento, mensalidades, funcionários, faturamento e notificações — tudo em uma interface web.
 
-## 🚀 Início Rápido
+---
 
-### 1. Instalação
+## Sumário
 
-```powershell
-# Clonar repositório
-git clone <url-do-repositorio>
+- [Requisitos](#requisitos)
+- [Instalação e Configuração](#instalação-e-configuração)
+- [Rodando Localmente](#rodando-localmente)
+- [Variáveis de Ambiente (.env)](#variáveis-de-ambiente-env)
+- [Perfis de Acesso](#perfis-de-acesso)
+- [Funcionalidades](#funcionalidades)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [API — Endpoints](#api--endpoints)
+- [Deploy em Produção (Render.com)](#deploy-em-produção-rendercom)
+- [Backup e Restauração](#backup-e-restauração)
+- [Segurança](#segurança)
+
+---
+
+## Requisitos
+
+| Ferramenta | Versão mínima |
+|---|---|
+| [Node.js](https://nodejs.org) | 18.x ou superior |
+| [MongoDB](https://www.mongodb.com/try/download/community) | 6.x ou superior |
+| [MongoDB Database Tools](https://www.mongodb.com/try/download/database-tools) | 100.x (para backup/restore) |
+
+---
+
+## Instalação e Configuração
+
+### 1. Clone o repositório
+
+```bash
+git clone https://github.com/marcosliarte/ADCON-web-filing-system.git
 cd ADCON-web-filing-system
+```
 
-# Instalar dependências
+### 2. Instale as dependências
+
+```bash
 npm install
-
-# Instalar melhorias de segurança
-.\instalar-seguranca.ps1
 ```
 
-### 2. Configuração
+### 3. Configure o arquivo `.env`
 
-```powershell
-# Copiar arquivo de configuração
-Copy-Item .env.example .env
+Copie o arquivo de exemplo e preencha com seus valores:
 
-# Editar .env e configurar:
-# - JWT_SECRET (gerar com o comando abaixo)
-# - MONGODB_URI (suas credenciais)
-notepad .env
+```bash
+cp .env.example .env
 ```
 
-**Gerar JWT_SECRET forte:**
-```powershell
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-```
+Edite o `.env` conforme a seção [Variáveis de Ambiente](#variáveis-de-ambiente-env) abaixo.
 
-### 3. Executar
+### 4. Certifique-se de que o MongoDB está rodando
 
-```powershell
-# Iniciar servidor
+- **Windows (local):** o serviço `MongoDB` deve estar iniciado (via Services ou MongoDB Compass).
+- **Atlas (nuvem):** use a URI de conexão do painel do Atlas no campo `MONGODB_URI`.
+
+---
+
+## Rodando Localmente
+
+### Opção A — Script automático (recomendado no Windows)
+
+Dê duplo clique em **`start.bat`**. Ele irá:
+
+1. Solicitar permissão de Administrador (UAC) — necessário para registrar o domínio no hosts.
+2. Registrar `adcon` no arquivo `hosts` do Windows (apenas na primeira execução).
+3. Encerrar qualquer processo que esteja usando a porta configurada.
+4. Iniciar o servidor Node.js.
+
+Após iniciar, acesse: `http://adcon:3000/login.html`
+
+### Opção B — Manual
+
+```bash
 node server.js
-
-# Ou usar nodemon para desenvolvimento
-npm install -g nodemon
-nodemon server.js
 ```
 
 Acesse: `http://localhost:3000/login.html`
 
 ---
 
-## 📋 Funcionalidades
+## Variáveis de Ambiente (.env)
 
-- ✅ **Gestão de Empresas** - Cadastro, edição e exclusão
-- ✅ **Documentos** - Upload e organização por tipo
-- ✅ **Vencimentos** - Alertas de documentos vencendo
-- ✅ **Usuários** - Controle de acesso (admin, gerente, funcionário)
-- ✅ **Mensalidades** - Controle de pagamentos
-- ✅ **Backup/Restore** - Sistema automatizado
-- ✅ **Relatórios** - Dashboards e análises
-- ✅ **Notificações** - Sistema de alertas
+| Variável | Obrigatório | Descrição |
+|---|---|---|
+| `MONGODB_URI` | Sim | URI de conexão com o MongoDB |
+| `JWT_SECRET` | Sim | Chave secreta para assinar tokens JWT (mínimo 64 chars) |
+| `ENCRYPTION_KEY` | Sim | Chave AES-256 em hex (64 chars) para criptografar senhas de certificados digitais |
+| `PORT` | Não | Porta do servidor (padrão: `3000`) |
+| `MONGODUMP_PATH` | Não | Caminho do executável `mongodump` (para backups) |
+| `MONGORESTORE_PATH` | Não | Caminho do executável `mongorestore` (para restauração) |
+| `CORS_ORIGIN` | Não | Domínio(s) permitidos no CORS em produção (ex: `https://meudominio.com`) |
+| `RATE_LIMIT_MAX_REQUESTS` | Não | Máximo de requisições por janela de tempo (padrão: `1000`) |
+| `RATE_LIMIT_LOGIN_MAX` | Não | Máximo de tentativas de login (padrão: `5`) |
+| `MAX_FILE_SIZE_MB` | Não | Limite de tamanho de upload em MB (padrão: `50`) |
+| `JWT_EXPIRES_IN` | Não | Expiração do token JWT (padrão: `24h`) |
+| `NODE_ENV` | Não | `production` ativa HSTS e CSP; ausente = modo desenvolvimento |
 
----
+### Gerando chaves seguras
 
-## 🔒 Segurança
+```bash
+# JWT_SECRET (64 bytes)
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 
-Este sistema implementa as melhores práticas de segurança:
-
-- 🛡️ **Proteção contra Command Injection** (spawn ao invés de exec)
-- 🛡️ **Proteção contra NoSQL Injection** (express-mongo-sanitize)
-- 🛡️ **Proteção contra XSS** (Helmet + CSP)
-- 🛡️ **Rate Limiting** (proteção contra força bruta)
-- 🛡️ **Validação rigorosa de uploads** (MIME type + extensão)
-- 🛡️ **JWT com expiração** (tokens seguros)
-- 🛡️ **Tratamento seguro de erros** (sem stack traces em produção)
-
-### 🚨 Importante
-
-⚠️ **NUNCA** commite o arquivo `.env` para o Git!  
-⚠️ **SEMPRE** use senhas fortes (64+ caracteres para JWT_SECRET)  
-⚠️ **LEIA** o arquivo `SEGURANÇA.md` antes de fazer deploy
-
-📖 **Documentação de Segurança:**
-- [SEGURANÇA.md](SEGURANÇA.md) - Guia completo de segurança
-- [REFATORACAO-RESUMO.md](REFATORACAO-RESUMO.md) - Detalhes técnicos
-- [CHECKLIST-SEGURANCA.md](CHECKLIST-SEGURANCA.md) - Checklist de verificação
-
----
-
-## 📦 Dependências Principais
-
-```json
-{
-  "express": "^4.x",
-  "mongoose": "^8.x",
-  "bcryptjs": "^2.x",
-  "jsonwebtoken": "^9.x",
-  "helmet": "^7.x",
-  "express-rate-limit": "^7.x",
-  "express-mongo-sanitize": "^2.x",
-  "multer": "^1.x",
-  "cors": "^2.x"
-}
+# ENCRYPTION_KEY (32 bytes)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
+> **Atenção:** Nunca altere `ENCRYPTION_KEY` após cadastrar empresas. Os dados de certificados digitais existentes ficam ilegíveis.
+
 ---
 
-## 🗂️ Estrutura do Projeto
+## Perfis de Acesso
+
+| Perfil | Descrição | Permissões principais |
+|---|---|---|
+| `admin` | Administrador do sistema | Acesso total: usuários, backups, logs, configurações, notificações |
+| `gerente` | Gerente | Empresas, mensalidades, funcionários, relatórios |
+| `funcionario` | Funcionário interno | Empresas, mensalidades (consulta) |
+| `empresario` | Cliente/empresário | Acesso restrito às próprias informações |
+
+O primeiro usuário deve ser criado via `POST /api/auth/register` e depois ter o role alterado para `admin` diretamente no banco ou via painel admin.
+
+---
+
+## Funcionalidades
+
+### Gestão de Empresas
+- Cadastro completo com CNPJ, sócios, filiais, endereço e natureza jurídica
+- Consulta automática de CEP (ViaCEP) e CNAE (IBGE) ao digitar
+- Upload de documentos por categoria: contrato social, alvarás, certidões, balanços, certificado digital, etc.
+- Controle de validade por documento com alertas de vencimento
+- Gerenciamento de filiais vinculadas à matriz
+
+### Documentos com Vencimento
+- Painel dedicado listando todos os documentos que vencem nos próximos 30 dias
+- Alertas automáticos por notificação interna
+
+### Mensalidades
+- Geração de cobranças mensais por empresa com valor e data de vencimento configuráveis
+- Status: **Não Gerada**, **Pendente**, **Pago**, **Atrasada**
+- Filtros por mês/ano, status e busca por nome ou CNPJ
+- Cards de resumo (total, pagas, pendentes, atrasadas, não geradas)
+- Edição e exclusão de mensalidades
+
+### Faturamento
+- Registro do valor faturado por empresa por mês
+- Histórico dos últimos N meses por empresa
+- Geração de relatório de faturamento
+
+### Funcionários e Folha de Pagamento
+- Cadastro de funcionários com cargo, salário bruto, descontos fixos e chave Pix
+- Registro mensal de pagamentos com adicionais e descontos variáveis
+- Cálculo automático de salário líquido
+- Histórico de pagamentos por funcionário
+- Página "Meus Pagamentos" para o próprio funcionário consultar seus holerites
+
+### Notificações
+- Sistema de notificações internas por usuário
+- Tipos: documento vencendo, documento vencido, pagamento recebido, mensagem admin, sistema
+- Badge de contagem não lidas no cabeçalho (atualização a cada 60 segundos)
+- Admin pode enviar notificações para usuários específicos ou por perfil
+
+### Painel Administrativo
+- Dashboard com status do sistema (banco de dados, memória, disco)
+- Estatísticas: usuários por perfil, empresas por estado
+- Documentos vencendo nos próximos 30 dias
+- Logs de atividade com exportação CSV
+- Gerenciamento de usuários: criar, editar, excluir, trocar role, resetar senha
+- Impersonação de usuário (admin assume sessão de outro usuário)
+- Lista de usuários online (ativos nos últimos 5 minutos)
+- Exportação de usuários como CSV
+
+### Backup e Restauração
+- Criação de backup completo (dump do MongoDB + pasta `/uploads/`) em arquivo ZIP
+- Lista de backups com tamanho e data
+- Análise do conteúdo de um backup antes de restaurar
+- Restauração com um clique
+- Upload de backup externo para restauração
+- Download do arquivo de backup
+
+### Configuração da Empresa
+- Dados do escritório (nome, CNPJ, endereço, contato)
+- Upload de logotipo
+
+### Conta e Segurança
+- Alteração de senha com confirmação da senha atual
+- Troca de e-mail com verificação por token
+- Upload ou seleção de ícone de perfil
+
+---
+
+## Estrutura do Projeto
 
 ```
 ADCON-web-filing-system/
-├── client/              # Frontend (HTML, CSS, JS)
-├── routes/              # Rotas da API
-├── models/              # Modelos do MongoDB
-├── middleware/          # Middlewares (auth, validação, erros)
-├── config/              # Configurações (db, segurança)
-├── utils/               # Utilitários (uploads, comandos MongoDB)
-├── uploads/             # Arquivos enviados pelos usuários
-├── _backups/            # Backups do sistema
-├── .env.example         # Template de configuração
-├── server.js            # Ponto de entrada
-└── package.json         # Dependências
+├── server.js                  # Entry point do servidor Express
+├── start.bat                  # Script de inicialização Windows (com elevação UAC)
+├── render.yaml                # Configuração de deploy no Render.com
+├── .env                       # Variáveis de ambiente (não versionar)
+├── .env.example               # Modelo do .env
+│
+├── config/
+│   ├── db.js                  # Conexão com MongoDB
+│   └── security.js            # JWT, rate limit, CORS, uploads
+│
+├── middleware/
+│   ├── auth.js                # Validação de JWT
+│   ├── adminAuth.js           # Verificação de permissão admin/gerente
+│   ├── errorHandler.js        # Handler global de erros
+│   └── validators.js          # Regras de validação de entrada
+│
+├── models/
+│   ├── model-usuario.js       # Usuários do sistema
+│   ├── model-empresa.js       # Empresas clientes (com documentos embutidos)
+│   ├── model-mensalidade.js   # Mensalidades por empresa/mês/ano
+│   ├── model-funcionario.js   # Funcionários e histórico de pagamentos
+│   ├── model-notificacao.js   # Notificações internas
+│   ├── model-faturamento.js   # Faturamento mensal por empresa
+│   ├── model-configuracao.js  # Configuração do escritório
+│   ├── model-despesa.js       # Registro de despesas
+│   └── model-receita.js       # Registro de receitas
+│
+├── routes/
+│   ├── rota-auth.js           # Autenticação e gerenciamento de usuários
+│   ├── rota-empresas.js       # CRUD de empresas e documentos
+│   ├── rota-mensalidades.js   # Mensalidades
+│   ├── rota-funcionarios.js   # Funcionários e pagamentos
+│   ├── rota-faturamento.js    # Faturamento
+│   ├── rota-relatorios.js     # Relatórios gerenciais
+│   ├── rota-notificacoes.js   # Notificações
+│   ├── rota-admin.js          # Dashboard admin e backups
+│   ├── rota-configuracao.js   # Configuração da empresa
+│   └── rota-pagamentos.js     # Histórico de pagamentos do funcionário
+│
+├── client/                    # Frontend estático
+│   ├── login.html
+│   ├── home.html
+│   ├── empresas.html
+│   ├── cadastrar-empresa.html
+│   ├── detalhes-empresa.html
+│   ├── documentos-vencendo.html
+│   ├── mensalidades.html
+│   ├── faturamento.html
+│   ├── relatorios.html
+│   ├── funcionarios-pagamentos.html
+│   ├── meus-pagamentos.html
+│   ├── notificacoes.html
+│   ├── enviar-notificacoes.html
+│   ├── user-management.html
+│   ├── admin-dashboard.html
+│   ├── configuracao-empresa.html
+│   ├── configuracoes-conta.html
+│   ├── logs.html
+│   ├── shared.js              # Utilitários globais (auth, header, footer, toast)
+│   ├── css/
+│   └── js/pages/              # Scripts de cada página
+│
+├── uploads/                   # Arquivos enviados (documentos, logos, fotos)
+└── _backups/                  # Arquivos de backup gerados
 ```
 
 ---
 
-## 🔧 Configuração Avançada
+## API — Endpoints
 
-### Variáveis de Ambiente (.env)
+Todas as rotas protegidas exigem o header:
 
-```bash
-# MongoDB
-MONGODB_URI=mongodb://127.0.0.1:27017/system_adcon  # ou MongoDB Atlas
-
-# JWT
-JWT_SECRET=<64_caracteres_aleatorios>
-JWT_EXPIRES_IN=24h
-JWT_REFRESH_EXPIRES_IN=7d
-
-# Servidor
-PORT=3000
-NODE_ENV=development  # ou production
-
-# MongoDB Tools (Windows)
-MONGODUMP_PATH=C:\Program Files\MongoDB\Tools\100\bin\mongodump.exe
-MONGORESTORE_PATH=C:\Program Files\MongoDB\Tools\100\bin\mongorestore.exe
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000      # 15 minutos
-RATE_LIMIT_MAX_REQUESTS=100       # 100 requisições
-RATE_LIMIT_LOGIN_MAX=5            # 5 tentativas de login
-
-# Uploads
-MAX_FILE_SIZE_MB=50               # Tamanho máximo de arquivo
+```
+x-auth-token: <seu_jwt_token>
 ```
 
-### CORS (Produção)
+O token é retornado no campo `token` da resposta do `POST /api/auth/login`.
 
-Em produção, configure domínios permitidos no `.env`:
+### Autenticação (`/api/auth`)
 
-```bash
-CORS_ORIGIN=https://seu-dominio.com,https://www.seu-dominio.com
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| POST | `/api/auth/register` | Público | Registrar novo usuário |
+| POST | `/api/auth/login` | Público | Login — retorna token JWT |
+| POST | `/api/auth/logout` | Privado | Revogar token |
+| GET | `/api/auth` | Privado | Dados do usuário logado |
+| PUT | `/api/auth/change-password` | Privado | Alterar senha |
+| PUT | `/api/auth/change-email` | Privado | Solicitar troca de e-mail |
+| POST | `/api/auth/verify-email` | Privado | Confirmar troca de e-mail |
+| POST | `/api/auth/profile-pic` | Privado | Upload de foto de perfil |
+| PUT | `/api/auth/profile-icon` | Privado | Selecionar ícone de perfil |
+| DELETE | `/api/auth/profile-pic` | Privado | Remover foto de perfil |
+
+### Gerenciamento de Usuários (`/api/auth/admin`)
+
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| POST | `/api/auth/admin/users` | Admin | Criar usuário |
+| GET | `/api/auth/admin/users` | Admin | Listar usuários (paginado) |
+| PUT | `/api/auth/admin/users/:id` | Admin | Editar nome/e-mail |
+| PUT | `/api/auth/admin/users/:id/role` | Admin | Alterar perfil do usuário |
+| DELETE | `/api/auth/admin/users/:id` | Admin | Excluir usuário |
+| POST | `/api/auth/admin/users/:id/reset-password` | Admin | Resetar senha |
+| POST | `/api/auth/admin/impersonate/:id` | Admin | Impersonar usuário |
+| POST | `/api/auth/admin/stop-impersonating` | Admin | Parar impersonação |
+| GET | `/api/auth/admin/online-users` | Admin | Usuários online (últimos 5 min) |
+| GET | `/api/auth/admin/unlinked-users` | Admin | Usuários sem funcionário vinculado |
+| GET | `/api/auth/admin/logs` | Admin | Logs de atividade |
+| GET | `/api/auth/admin/logs.csv` | Admin | Exportar logs como CSV |
+| GET | `/api/auth/admin/users.csv` | Admin | Exportar usuários como CSV |
+
+### Empresas (`/api/empresas`)
+
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| POST | `/api/empresa` | Privado | Cadastrar empresa |
+| GET | `/api/empresas` | Privado | Listar empresas (busca + paginação) |
+| GET | `/api/empresa/:id` | Privado | Detalhes da empresa |
+| PUT | `/api/empresa/:id` | Privado | Atualizar empresa |
+| DELETE | `/api/empresa/:id` | Privado | Excluir empresa |
+| GET | `/api/empresas/cep/:cep` | Privado | Consultar CEP (proxy ViaCEP) |
+| GET | `/api/empresas/cnae/:codigo` | Privado | Consultar CNAE (proxy IBGE) |
+| GET | `/api/empresas/cnpj/:cnpj` | Privado | Buscar empresa por CNPJ |
+| GET | `/api/empresas/documentos/vencendo` | Privado | Documentos vencendo em 30 dias |
+| DELETE | `/api/empresas/:id/documentos/excluir` | Privado | Excluir documentos selecionados |
+
+### Mensalidades (`/api/mensalidades`)
+
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| GET | `/api/mensalidades/status-geral` | Admin/Gerente/Funcionário | Status de todas as empresas no mês/ano |
+| POST | `/api/mensalidades` | Admin/Gerente/Funcionário | Criar mensalidade |
+| PUT | `/api/mensalidades/:id` | Admin/Gerente/Funcionário | Atualizar (pagar, editar valor/vencimento) |
+| DELETE | `/api/mensalidades/:id` | Admin/Gerente/Funcionário | Excluir mensalidade |
+
+### Funcionários (`/api/funcionarios`)
+
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| POST | `/api/funcionarios` | Admin/Gerente | Cadastrar funcionário |
+| GET | `/api/funcionarios` | Admin/Gerente | Listar funcionários |
+| GET | `/api/funcionarios/:id` | Admin/Gerente | Detalhes do funcionário |
+| PUT | `/api/funcionarios/:id` | Admin/Gerente | Atualizar funcionário |
+| DELETE | `/api/funcionarios/:id` | Admin/Gerente | Excluir funcionário |
+| POST | `/api/funcionarios/:id/pagamentos` | Admin/Gerente | Registrar pagamento mensal |
+| DELETE | `/api/funcionarios/:id/pagamentos/:pagamentoId` | Admin/Gerente | Excluir registro de pagamento |
+| PUT | `/api/funcionarios/:id/vincular-usuario` | Admin | Vincular usuário ao funcionário |
+| GET | `/api/pagamentos/meus-pagamentos` | Funcionário | Ver próprios pagamentos/holerites |
+
+### Faturamento (`/api/faturamento`)
+
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| POST | `/api/faturamento` | Privado | Salvar faturamento do mês |
+| GET | `/api/faturamento/:empresaId` | Privado | Histórico completo de faturamento |
+| GET | `/api/faturamento/:empresaId/ultimos/:n` | Privado | Últimos N meses |
+| DELETE | `/api/faturamento/:empresaId/:ano/:mes` | Privado | Excluir faturamento do mês |
+
+### Notificações (`/api/notificacoes`)
+
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| GET | `/api/notificacoes` | Privado | Listar notificações do usuário |
+| GET | `/api/notificacoes/count` | Privado | Contar notificações não lidas |
+| PUT | `/api/notificacoes/:id/ler` | Privado | Marcar como lida |
+| PUT | `/api/notificacoes/ler-todas` | Privado | Marcar todas como lidas |
+| DELETE | `/api/notificacoes/:id` | Privado | Excluir notificação |
+| DELETE | `/api/notificacoes/limpar/lidas` | Privado | Excluir todas as lidas |
+| POST | `/api/notificacoes/admin/enviar` | Admin | Enviar para usuários específicos |
+| POST | `/api/notificacoes/admin/enviar-role` | Admin | Enviar para todos de um perfil |
+
+### Painel Admin (`/api/admin`)
+
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| GET | `/api/admin/dashboard/status` | Admin | Status do sistema (DB, memória, disco) |
+| GET | `/api/admin/dashboard/stats` | Admin | Estatísticas gerais |
+| GET | `/api/admin/dashboard/expiring-docs` | Admin | Documentos vencendo em 30 dias |
+| GET | `/api/admin/logs/recent` | Admin | 5 logs mais recentes |
+| POST | `/api/admin/backup/create` | Admin | Criar backup completo |
+| GET | `/api/admin/backup/list` | Admin | Listar backups disponíveis |
+| GET | `/api/admin/backup/analyze/:filename` | Admin | Analisar conteúdo de um backup |
+| POST | `/api/admin/backup/restore` | Admin | Restaurar backup |
+| GET | `/api/admin/backup/download/:filename` | Admin | Baixar arquivo de backup |
+| DELETE | `/api/admin/backup/delete/:filename` | Admin | Excluir backup |
+| POST | `/api/admin/backup/upload` | Admin | Enviar backup externo e restaurar |
+
+### Configuração e Relatórios
+
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| GET | `/api/configuracao` | Privado | Dados do escritório |
+| PUT | `/api/configuracao` | Admin | Atualizar dados do escritório |
+| POST | `/api/configuracao/logotipo` | Admin | Upload de logotipo |
+| GET | `/api/relatorios/geral` | Admin | Relatório geral |
+| POST | `/api/relatorios/despesas` | Admin | Registrar despesa |
+| POST | `/api/relatorios/receitas` | Admin | Registrar receita |
+
+---
+
+## Deploy em Produção (Render.com)
+
+O projeto inclui `render.yaml` configurado. Para fazer deploy:
+
+1. Crie uma conta em [render.com](https://render.com) e conecte o repositório GitHub.
+2. O Render detecta o `render.yaml` automaticamente e configura o serviço.
+3. No painel do Render, preencha manualmente as variáveis secretas (aba **Environment**):
+   - `MONGODB_URI` — URI do MongoDB Atlas
+   - `JWT_SECRET` — chave JWT gerada
+   - `ENCRYPTION_KEY` — chave AES-256 gerada
+   - `CORS_ORIGIN` — domínio do app (ex: `https://adcon.onrender.com`)
+4. Clique em **Deploy**. O servidor sobe na porta `10000`.
+
+> O servidor detecta automaticamente `NODE_ENV=production` e ativa HSTS e CSP.
+
+---
+
+## Backup e Restauração
+
+### Criar backup
+
+No **Painel Admin > Backups**, clique em **Criar Backup**. O sistema gera um `.zip` contendo:
+- Dump do banco de dados MongoDB (comprimido)
+- Pasta `/uploads/` com todos os arquivos enviados
+
+### Restaurar backup
+
+1. Na lista de backups, clique em **Restaurar** (ou faça upload de um `.zip` externo).
+2. O sistema faz o drop das coleções existentes e reimporta os dados.
+3. Os arquivos de uploads são restaurados automaticamente.
+
+> **Atenção:** a restauração substitui todos os dados atuais. Sempre crie um backup antes de restaurar.
+
+### Requisitos para backup
+
+Os executáveis `mongodump` e `mongorestore` devem estar instalados. Configure os caminhos no `.env`:
+
+```env
+MONGODUMP_PATH="C:\Program Files\MongoDB\Tools\100\bin\mongodump.exe"
+MONGORESTORE_PATH="C:\Program Files\MongoDB\Tools\100\bin\mongorestore.exe"
 ```
 
 ---
 
-## 🧪 Testes
+## Segurança
 
-```powershell
-# Executar auditoriacomo de segurança
-npm audit
-
-# Corrigir vulnerabilidades automaticamente
-npm audit fix
-
-# Testar servidor
-node server.js
-# Deve exibir:
-# ✅ MongoDB conectado
-# ✅ Helmet ativado
-# ✅ Rate limiting ativado
-```
-
----
-
-## 📖 Uso da API
-
-### Autenticação
-
-```javascript
-// Login
-POST /api/auth/login
-Body: { "email": "user@example.com", "senha": "senha123" }
-Response: { "token": "jwt_token_here" }
-
-// Usar token nas requisições
-Headers: { "x-auth-token": "jwt_token_here" }
-```
-
-### Empresas
-
-```javascript
-// Listar empresas
-GET /api/empresas
-Headers: { "x-auth-token": "token" }
-
-// Criar empresa
-POST /api/empresas
-Headers: { "x-auth-token": "token" }
-Body: { "nome": "Empresa XYZ", "cnpj": "00.000.000/0000-00", ... }
-```
-
-### Upload de Arquivos
-
-```javascript
-// Upload de foto de perfil
-POST /api/auth/profile-pic
-Headers: { "x-auth-token": "token" }
-Body: FormData com campo "profilePic"
-```
-
-📚 **Documentação completa da API:** (em desenvolvimento)
-
----
-
-## 🔄 Backup e Restore
-
-### Criar Backup
-
-```javascript
-POST /api/admin/backup/create
-Headers: { "x-auth-token": "admin_token" }
-```
-
-Backup inclui:
-- ✅ Dados do MongoDB (compactado .gz)
-- ✅ Arquivos da pasta `uploads/`
-- ✅ Gerado em `_backups/backup-YYYYMMDD-HHMMSS.zip`
-
-### Restaurar Backup
-
-```javascript
-POST /api/admin/backup/upload
-Headers: { "x-auth-token": "admin_token" }
-Body: FormData com arquivo .zip
-```
-
-⚠️ **ATENÇÃO:** Restore sobrescreve dados existentes!
-
----
-
-## 🚀 Deploy
-
-### Render / Heroku
-
-1. Configure variáveis de ambiente no painel
-2. Adicione MongoDB Atlas URI
-3. Configure `NODE_ENV=production`
-4. Deploy!
-
-### VPS (Linux)
-
-```bash
-# Instalar Node.js e MongoDB
-sudo apt update
-sudo apt install nodejs npm mongodb
-
-# Clonar e configurar
-git clone <repo>
-cd ADCON-web-filing-system
-npm install
-cp .env.example .env
-nano .env  # Configurar
-
-# Usar PM2 para manter rodando
-npm install -g pm2
-pm2 start server.js --name adcon
-pm2 startup
-pm2 save
-```
-
----
-
-## 🐛 Troubleshooting
-
-### "JWT_SECRET não configurado"
-- Verifique que `.env` existe e tem `JWT_SECRET` com 32+ caracteres
-
-### "MongoDB connection failed"
-- MongoDB local: Verifique se está rodando (`mongod`)
-- MongoDB Atlas: Verifique credenciais e whitelist de IP
-
-### "Arquivo muito grande"
-- Aumente `MAX_FILE_SIZE_MB` no `.env`
-
-### Uploads não funcionam
-- Verifique permissões da pasta `uploads/`
-- Windows: `icacls uploads /grant Everyone:F`
-- Linux: `chmod -R 777 uploads/`
-
----
-
-## 📞 Suporte
-
-- 📧 Email: suporte@adcon.com.br
-- 📖 Wiki: (em desenvolvimento)
-- 🐛 Issues: Use o GitHub Issues
-
----
-
-## 📄 Licença
-
-Propriedade de ADCON - Todos os direitos reservados
-
----
-
-## 👥 Contribuidores
-
-- **Marcos Liarte Neves** - Desenvolvimento inicial
-
----
-
-## 🔖 Versão
-
-**v2.0.0** - Refatoração de segurança completa (2025)
-
-### Changelog
-
-#### v2.0.0 (2025)
-- ✅ Refatoração completa de segurança
-- ✅ Proteção contra command injection (spawn)
-- ✅ Proteção contra NoSQL injection
-- ✅ Rate limiting global
-- ✅ Validação rigorosa de uploads
-- ✅ Tratamento centralizado de erros
-- ✅ Helmet com CSP e HSTS
-- ✅ Documentação de segurança
-
-#### v1.0.0
-- ✅ Sistema base funcional
-- ✅ CRUD de empresas e documentos
-- ✅ Sistema de backup/restore
-- ✅ Autenticação JWT
+- **JWT** com blacklist de tokens (logout real, token invalidado no servidor)
+- **Helmet** com CSP e HSTS ativados em produção
+- **Rate limiting**: 1000 req/15min geral, 5 tentativas de login por IP
+- **express-mongo-sanitize**: proteção contra NoSQL Injection
+- **bcryptjs**: senhas com salt de 10 rounds
+- **AES-256**: senhas de certificados digitais criptografadas no banco de dados
+- **CORS** configurável por domínio em produção
+- **Logs de auditoria** com TTL de 90 dias para todas as ações críticas
