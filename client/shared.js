@@ -260,9 +260,12 @@ async function abrirNotificacao(id, link) {
     try {
         await fetchWithAuth(`/api/notificacoes/${id}/ler`, { method: 'PUT' });
         updateNotificationBadge();
-        
-        if (link && link !== '#') {
+
+        const isValidLink = link && link !== '#' && (link.includes('.html') || link.startsWith('http'));
+        if (isValidLink) {
             window.location.href = link;
+        } else {
+            loadNotifications();
         }
     } catch (err) {
         console.error('Erro ao abrir notificação:', err);

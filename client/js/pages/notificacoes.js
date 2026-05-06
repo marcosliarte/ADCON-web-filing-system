@@ -106,7 +106,8 @@ async function abrirNotificacaoCompleta(id, link, jaLida) {
         await marcarComoLida(id);
     }
     
-    if (link && link !== '' && link !== 'null') {
+    const isValidLink = link && link !== '' && link !== 'null' && (link.includes('.html') || link.startsWith('http'));
+    if (isValidLink) {
         window.location.href = link;
     }
 }
