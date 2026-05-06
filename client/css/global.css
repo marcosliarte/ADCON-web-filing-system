@@ -11,8 +11,8 @@
 
 :root {
     /* Cores Principais */
-    --primary: #007bff;
-    --primary-hover: #0056b3;
+    --primary: #3BA3FF;
+    --primary-hover: #1E88E5;
     --secondary: #6c757d;
     --success: #28a745;
     --danger: #dc3545;
@@ -20,12 +20,12 @@
     --info: #17a2b8;
     --light: #f8f9fa;
     --dark: #343a40;
-    
+
     /* Cores de Fundo */
-    --bg-body: #f4f7f6;
+    --bg-body: #f4f7fb;
     --bg-card: #ffffff;
     --bg-sidebar: #2c3e50;
-    --bg-header: #007bff;
+    --bg-header: var(--primary);
     
     /* Sombras */
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);

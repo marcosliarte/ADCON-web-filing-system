@@ -845,6 +845,7 @@ function setupEventListeners() {
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     await getUsuario();
+    if (usuario) await createHeader('header-placeholder', usuario);
     carregarDadosEmpresa();
     setupEventListeners();
 });

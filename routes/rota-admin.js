@@ -11,9 +11,65 @@ const archiver = require('archiver');
 const unzipper = require('unzipper');
 const multer = require('multer');
 const cache = require('../utils/cache');
+const zlib = require('zlib');
 
 const Empresa = require('../models/model-empresa');
 const Usuario = require('../models/model-usuario');
+
+function getDbNameFromUri(uri) {
+    const match = uri.match(/\/([^/?@]+)(\?|$)/);
+    return (match && match[1]) ? match[1] : null;
+}
+
+function getBaseUri(uri) {
+    return uri.replace(/\/([^/?@]+)(\?|$)/, '/$2');
+}
+
+async function getSourceDbFromArchive(archivePath) {
+    return new Promise((resolve) => {
+        const input = fs.createReadStream(archivePath);
+        const gz = zlib.createGunzip();
+        let buf = Buffer.alloc(0);
+        let done = false;
+
+        const finish = (result) => {
+            if (done) return;
+            done = true;
+            resolve(result);
+            input.destroy();
+            gz.destroy();
+        };
+
+        gz.on('data', (chunk) => {
+            buf = Buffer.concat([buf, chunk]);
+            const marker = Buffer.from([0x02, 0x64, 0x62, 0x00]); // \x02 "db" \x00
+            const idx = buf.indexOf(marker);
+            if (idx !== -1 && buf.length >= idx + 8) {
+                const strLen = buf.readInt32LE(idx + 4);
+                if (buf.length >= idx + 8 + strLen) {
+                    finish(buf.slice(idx + 8, idx + 8 + strLen - 1).toString('utf8'));
+                }
+            }
+            if (buf.length > 4096) finish(null);
+        });
+
+        gz.on('error', () => finish(null));
+        gz.on('end', () => finish(null));
+        input.on('error', () => finish(null));
+        input.pipe(gz);
+    });
+}
+
+function buildRestoreCommand(executable, uri, archivePath) {
+    const targetDb = getDbNameFromUri(uri);
+    return async () => {
+        const sourceDb = await getSourceDbFromArchive(archivePath);
+        const needsRemap = targetDb && sourceDb && targetDb !== sourceDb;
+        const connUri = needsRemap ? getBaseUri(uri) : uri;
+        const nsFlags = needsRemap ? `--nsFrom="${sourceDb}.*" --nsTo="${targetDb}.*"` : '';
+        return `${executable} --uri="${connUri}" --archive="${archivePath}" --gzip --drop ${nsFlags}`.trimEnd();
+    };
+}
 
 // Middleware para garantir que apenas admins acessem estas rotas
 router.use(auth, adminAuth);
@@ -634,7 +690,7 @@ router.post('/backup/restore', async (req, res) => {
         const dbDumpFilePath = path.join(tempRestoreDir, dbDumpFile);
         const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
         const mongorestoreExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 'mongorestore';
-        const restoreCommand = `${mongorestoreExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip --drop`;
+        const restoreCommand = await buildRestoreCommand(mongorestoreExecutable, MONGODB_URI_PARA_BACKUP, dbDumpFilePath)();
 
         // Executar restore usando Promise
         await new Promise((resolve, reject) => {
@@ -815,10 +871,10 @@ router.post('/backup/upload', upload.single('backupFile'), async (req, res) => {
         const dbDumpFilePath = path.join(tempRestoreDir, dbDumpFile);
         const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
         const mongorestoreExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 'mongorestore';
-        const restoreCommand = `${mongorestoreExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip --drop`;
+        const restoreCommand = await buildRestoreCommand(mongorestoreExecutable, MONGODB_URI_PARA_BACKUP, dbDumpFilePath)();
 
         console.log('[BACKUP UPLOAD] Executando mongorestore...');
-        
+
         // Executar restore usando Promise
         await new Promise((resolve, reject) => {
             exec(restoreCommand, (restoreError, stdout, stderr) => {

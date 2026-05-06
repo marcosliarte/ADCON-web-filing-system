@@ -275,7 +275,7 @@ router.post(
               if (info.validade) {
                 newDiverso.dataValidade = info.validade;
               }
-              
+
               dadosEmpresa.documentos.documentosDiversos.push(newDiverso);
             }
           });
