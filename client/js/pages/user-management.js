@@ -1,156 +1,211 @@
-let currentUser; // Usuário logado (admin)
+let currentUser;
+let loadedUsers = [];
+let editingUserId = null;
+
+const roleLabels = {
+    admin: 'Administrador',
+    gerente: 'Gerente',
+    funcionario: 'Funcionário',
+    empresario: 'Empresário'
+};
+
+function roleBadge(role) {
+    return `<span class="role-badge role-${role}">${roleLabels[role] || role}</span>`;
+}
 
 async function setupPage() {
-    console.log('🔍 setupPage called');
-    console.log('🔑 Token exists:', !!localStorage.getItem('token'));
-    console.log('🌐 API_BASE_URL:', API_BASE_URL);
-
     try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/api/auth`);
-        console.log('📡 fetchWithAuth response:', response);
+        const response = await fetchWithAuth('/api/auth');
+        if (!response) return;
 
-        if (response) {
-            currentUser = await response.json();
-            console.log('👤 currentUser:', currentUser);
-            console.log('🔒 User role:', currentUser.role);
+        currentUser = await response.json();
+        createHeader('header-placeholder', currentUser);
 
-            createHeader('header-placeholder', currentUser);
-
-            if (currentUser.role !== 'admin') {
-                console.log('❌ User is not admin, redirecting');
-                alert('Acesso negado. Apenas administradores podem gerenciar usuários.');
-                window.location.href = 'home.html';
-                return;
-            }
-
-            console.log('✅ User is admin, showing page');
-            document.body.style.display = 'block';
-            console.log('📋 Calling loadUsers');
-            await loadUsers();
-        } else {
-            console.error('❌ No response from fetchWithAuth');
+        if (currentUser.role !== 'admin') {
+            showToast('Acesso negado. Apenas administradores podem gerenciar usuários.', 'error');
+            setTimeout(() => { window.location.href = 'home.html'; }, 1500);
+            return;
         }
+
+        loadUsers();
     } catch (error) {
-        console.error('💥 Error in setupPage:', error);
-        alert('Erro ao carregar dados do usuário. Verifique sua conexão.');
+        console.error('Erro ao carregar dados do usuário:', error);
     }
 }
 
 async function loadUsers() {
-    console.log('📋 loadUsers called');
+    const tbody = document.querySelector('#usersTable tbody');
+    tbody.innerHTML = '<tr><td colspan="4" class="table-empty">Carregando...</td></tr>';
 
     try {
-        const url = `${API_BASE_URL}/api/auth/admin/users`;
-        console.log('🔗 Fetching URL:', url);
+        const response = await fetchWithAuth('/api/auth/admin/users');
+        if (!response || !response.ok) throw new Error('Falha ao carregar usuários');
 
-        const response = await fetchWithAuth(url);
-        console.log('📡 loadUsers response:', response);
-        console.log('📊 Response status:', response.status);
-        console.log('📝 Response ok:', response.ok);
+        const data = await response.json();
+        loadedUsers = data.usuarios || data;
 
-        if (response && response.ok) {
-            const data = await response.json();
-            console.log('📦 Raw data received:', data);
+        const countBadge = document.getElementById('userCount');
+        countBadge.textContent = loadedUsers.length;
+        countBadge.style.display = loadedUsers.length ? 'inline' : 'none';
 
-            // A API retorna { usuarios: [], paginacao: {...} }
-            const users = data.usuarios || data;
-            console.log('👥 Users array:', users);
-            console.log('📊 Users type:', typeof users);
-            console.log('📏 Users length:', Array.isArray(users) ? users.length : 'not array');
+        if (loadedUsers.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="table-empty">Nenhum usuário cadastrado</td></tr>';
+            return;
+        }
 
-            const tbody = document.querySelector('#usersTable tbody');
-            console.log('📋 Table body found:', !!tbody);
+        tbody.innerHTML = '';
+        loadedUsers.forEach(user => {
+            const isSelf = user._id === currentUser._id;
+            const podeExcluir = !isSelf;
 
-            if (!Array.isArray(users)) {
-                console.error('❌ users is not an array:', typeof users, users);
-                alert('Erro: resposta da API inválida');
-                return;
+            let actions;
+            if (isSelf) {
+                actions = '<span class="you-badge">Você</span>';
+            } else {
+                actions = `
+                    <div class="table-actions">
+                        <button class="btn-action btn-edit edit-btn"
+                            data-id="${user._id}"
+                            data-nome="${user.nome.replace(/"/g, '&quot;')}"
+                            data-email="${user.email.replace(/"/g, '&quot;')}"
+                            data-role="${user.role}">✏️ Editar</button>
+                        <button class="btn-action btn-impersonate impersonate-btn" data-id="${user._id}">👁️ Personificar</button>
+                        ${podeExcluir ? `<button class="btn-action btn-delete delete-btn" data-id="${user._id}">🗑️ Excluir</button>` : ''}
+                    </div>`;
             }
 
-            tbody.innerHTML = '';
-
-            users.forEach((user, index) => {
-                console.log(`👤 Processing user ${index}:`, user);
-                const row = tbody.insertRow();
-                row.dataset.userId = user._id;
-                row.insertCell(0).textContent = user.nome;
-                row.insertCell(1).textContent = user.email;
-                row.insertCell(2).textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
-                const actionsCell = row.insertCell(3);
-
-                // CORREÇÃO: Define a condição para mostrar o botão de exclusão.
-                const podeExcluir =
-                    // 1. Não pode excluir a si mesmo.
-                    user._id !== currentUser._id &&
-                    // 2. Um gerente não pode excluir um administrador.
-                    !(currentUser.role === 'gerente' && user.role === 'admin');
-
-                // Um admin não pode personificar a si mesmo.
-                const podePersonificar = user._id !== currentUser._id;
-
-                let buttonsHtml = '';
-                if (podePersonificar) {
-                    buttonsHtml += `<button class="impersonate-btn">Personificar</button>`;
-                }
-                if (podeExcluir) {
-                    buttonsHtml += `<button class="delete-btn">Excluir</button>`;
-                }
-                actionsCell.innerHTML = buttonsHtml || ((user._id === currentUser._id) ? 'Você' : 'Ação não permitida');
-            });
-
-            console.log('✅ Users table loaded successfully');
-        } else {
-            console.error('❌ Response not ok:', response.status, response.statusText);
-            const errorText = await response.text();
-            console.error('❌ Error response:', errorText);
-        }
+            const tr = document.createElement('tr');
+            tr.dataset.userId = user._id;
+            tr.innerHTML = `
+                <td>
+                    <div class="user-name">${user.nome}</div>
+                </td>
+                <td>
+                    <div class="user-email">${user.email}</div>
+                </td>
+                <td>${roleBadge(user.role)}</td>
+                <td>${actions}</td>
+            `;
+            tbody.appendChild(tr);
+        });
     } catch (error) {
-        console.error('💥 Error in loadUsers:', error);
-        alert('Erro ao carregar usuários: ' + error.message);
+        showToast('Erro ao carregar usuários', 'error');
+        tbody.innerHTML = '<tr><td colspan="4" class="table-empty">Erro ao carregar usuários</td></tr>';
+    }
+}
+
+function openEditModal(btn) {
+    editingUserId = btn.dataset.id;
+    document.getElementById('modal-nome').value = btn.dataset.nome;
+    document.getElementById('modal-email').value = btn.dataset.email;
+    document.getElementById('modal-role').value = btn.dataset.role;
+    document.getElementById('editUserModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editUserModal').style.display = 'none';
+    editingUserId = null;
+}
+
+async function saveEdit() {
+    if (!editingUserId) return;
+
+    const nome = document.getElementById('modal-nome').value.trim();
+    const email = document.getElementById('modal-email').value.trim();
+    const newRole = document.getElementById('modal-role').value;
+
+    if (!nome || !email) {
+        showToast('Nome e email são obrigatórios', 'error');
+        return;
+    }
+
+    const original = loadedUsers.find(u => u._id === editingUserId);
+    const savBtn = document.getElementById('modal-save');
+    savBtn.disabled = true;
+    savBtn.textContent = 'Salvando...';
+
+    try {
+        // Atualiza nome e email
+        const resNome = await fetchWithAuth(`/api/auth/admin/users/${editingUserId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ nome, email })
+        });
+        if (!resNome.ok) {
+            const err = await resNome.json();
+            throw new Error(err.msg || 'Erro ao atualizar nome/email');
+        }
+
+        // Atualiza perfil se mudou
+        if (original && newRole !== original.role) {
+            const resRole = await fetchWithAuth(`/api/auth/admin/users/${editingUserId}/role`, {
+                method: 'PUT',
+                body: JSON.stringify({ role: newRole })
+            });
+            if (!resRole.ok) {
+                const err = await resRole.json();
+                throw new Error(err.msg || 'Erro ao atualizar perfil');
+            }
+        }
+
+        showToast('Usuário atualizado com sucesso!', 'success');
+        closeEditModal();
+        loadUsers();
+    } catch (error) {
+        showToast(error.message, 'error');
+    } finally {
+        savBtn.disabled = false;
+        savBtn.textContent = 'Salvar Alterações';
     }
 }
 
 async function deleteUser(userId) {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+    const confirmed = await showConfirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.');
+    if (!confirmed) return;
 
     try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/admin/users/${userId}`, { method: 'DELETE' });
+        const response = await fetchWithAuth(`/api/auth/admin/users/${userId}`, { method: 'DELETE' });
         if (response && response.ok) {
-            alert('Usuário excluído com sucesso!');
+            showToast('Usuário excluído com sucesso!', 'success');
             loadUsers();
         } else {
-            const errorData = await response.json();
-            throw new Error(errorData.msg || 'Falha ao excluir usuário.');
+            const err = await response.json();
+            throw new Error(err.msg || 'Falha ao excluir usuário');
         }
     } catch (error) {
-        console.error('Erro ao excluir usuário:', error);
-        alert(`Erro: ${error.message}`);
+        showToast(error.message, 'error');
     }
 }
 
 async function impersonateUser(userId) {
-    if (!confirm('Tem certeza que deseja personificar este usuário? Você será redirecionado para a página inicial como se fosse ele.')) return;
+    const confirmed = await showConfirm('Deseja personificar este usuário? Você será redirecionado como ele.');
+    if (!confirmed) return;
 
     try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/admin/impersonate/${userId}`, {
-            method: 'POST'
-        });
-
+        const response = await fetchWithAuth(`/api/auth/admin/impersonate/${userId}`, { method: 'POST' });
         if (response && response.ok) {
             const { token } = await response.json();
-            localStorage.setItem('token', token); // Substitui o token atual pelo token de personificação
-            window.location.href = 'home.html'; // Redireciona para a home
+            localStorage.setItem('token', token);
+            window.location.href = 'home.html';
         } else {
-            const errorData = await response.json();
-            throw new Error(errorData.msg || 'Falha ao tentar personificar o usuário.');
+            const err = await response.json();
+            throw new Error(err.msg || 'Falha ao personificar usuário');
         }
     } catch (error) {
-        console.error('Erro ao personificar usuário:', error);
-        alert(`Erro: ${error.message}`);
+        showToast(error.message, 'error');
     }
 }
 
+// Event delegation na tabela
+document.querySelector('#usersTable tbody').addEventListener('click', function(e) {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (btn.classList.contains('delete-btn')) deleteUser(id);
+    else if (btn.classList.contains('impersonate-btn')) impersonateUser(id);
+    else if (btn.classList.contains('edit-btn')) openEditModal(btn);
+});
 
+// Formulário de criação
 document.getElementById('createUserForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const nome = document.getElementById('nome').value;
@@ -158,36 +213,42 @@ document.getElementById('createUserForm').addEventListener('submit', async funct
     const senha = document.getElementById('senha').value;
     const role = document.getElementById('role').value;
     const createMessage = document.getElementById('createMessage');
+    const btnCriar = document.getElementById('btnCriar');
+
+    btnCriar.disabled = true;
+    btnCriar.textContent = 'Criando...';
+    createMessage.className = 'form-message';
+    createMessage.textContent = '';
 
     try {
-        const response = await fetchWithAuth(`${API_BASE_URL}/api/auth/admin/users`, {
+        const response = await fetchWithAuth('/api/auth/admin/users', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nome, email, senha, role })
         });
         const data = await response.json();
         if (response.ok) {
-            createMessage.className = 'message success';
+            createMessage.className = 'form-message success';
             createMessage.textContent = 'Usuário criado com sucesso!';
             this.reset();
             loadUsers();
         } else {
-            throw new Error(data.msg || data.errors?.[0]?.msg || 'Erro ao criar usuário.');
+            throw new Error(data.msg || data.errors?.[0]?.msg || 'Erro ao criar usuário');
         }
     } catch (error) {
-        createMessage.className = 'message error';
+        createMessage.className = 'form-message error';
         createMessage.textContent = error.message;
+    } finally {
+        btnCriar.disabled = false;
+        btnCriar.textContent = 'Criar Usuário';
     }
 });
 
-document.querySelector('#usersTable tbody').addEventListener('click', function(e) {
-    if (e.target.classList.contains('delete-btn')) {
-        const userId = e.target.closest('tr').dataset.userId;
-        deleteUser(userId);
-    } else if (e.target.classList.contains('impersonate-btn')) {
-        const userId = e.target.closest('tr').dataset.userId;
-        impersonateUser(userId);
-    }
+// Modal
+document.getElementById('modal-close-x').addEventListener('click', closeEditModal);
+document.getElementById('modal-cancel-btn').addEventListener('click', closeEditModal);
+document.getElementById('modal-save').addEventListener('click', saveEdit);
+document.getElementById('editUserModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
 });
 
 document.addEventListener('DOMContentLoaded', setupPage);

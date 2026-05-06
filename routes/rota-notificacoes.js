@@ -257,7 +257,7 @@ async function criarNotificacaoPagamentoRecebido(usuarioId, empresaId, empresaNo
       tipo: 'pagamento_recebido',
       titulo: '💰 Pagamento Recebido',
       mensagem: `Pagamento de R$ ${valor.toFixed(2)} recebido da empresa ${empresaNome}.`,
-      link: `/detalhes-empresa.html?id=${empresaId}`,
+      link: `/meus-pagamentos.html`,
       dadosAdicionais: {
         empresaId,
         empresaNome,
