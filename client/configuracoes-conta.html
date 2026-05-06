@@ -23,6 +23,18 @@
     <a class="back-btn" href="home.html">Voltar para Home</a>
 
     <div class="card">
+      <h2 id="sec-nome">Alterar Nome</h2>
+      <form id="changeNameForm">
+        <div class="input-group">
+          <label for="novoNome">Nome</label>
+          <input type="text" id="novoNome" autocomplete="name" required maxlength="100">
+          <small id="nomeMsg" class="helper-text"></small>
+        </div>
+        <button type="submit" id="btnSubmitNome">Salvar Nome</button>
+      </form>
+    </div>
+
+    <div class="card">
       <h2 id="sec-senha">Alterar Senha</h2>
       <form id="changePasswordForm">
         <div class="input-group">

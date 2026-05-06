@@ -18,13 +18,55 @@ async function getUsuarioConta() {
 document.addEventListener('DOMContentLoaded', async () => {
   await getUsuarioConta();
 
+  // Pré-preenche o campo de nome com o nome atual
+  if (usuario && usuario.nome) {
+    const novoNomeInput = document.getElementById('novoNome');
+    if (novoNomeInput) novoNomeInput.value = usuario.nome;
+  }
+
   // Se hash indicar uma seção, rola até ela
   const hash = (location.hash || '').replace('#','');
-  if (hash === 'senha') {
+  if (hash === 'nome') {
+    document.getElementById('sec-nome')?.scrollIntoView({behavior:'smooth'});
+  } else if (hash === 'senha') {
     document.getElementById('sec-senha')?.scrollIntoView({behavior:'smooth'});
   } else if (hash === 'email') {
     document.getElementById('sec-email')?.scrollIntoView({behavior:'smooth'});
   }
+
+  // ===== Alterar Nome =====
+  document.getElementById('changeNameForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const novoNome = document.getElementById('novoNome').value.trim();
+    const btn = document.getElementById('btnSubmitNome');
+
+    if (!novoNome) {
+      showToast('O nome não pode estar vazio.', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      const response = await fetchWithAuth('/api/auth/change-name', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: novoNome })
+      });
+
+      if (response && response.ok) {
+        const data = await response.json();
+        showToast(data.msg || 'Nome alterado com sucesso!', 'success');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        const data = response ? await response.json().catch(() => ({msg:'Erro'})) : {msg:'Erro'};
+        showToast(data.msg || 'Erro ao alterar o nome.', 'error');
+        btn.disabled = false;
+      }
+    } catch (err) {
+      showToast(err.message || 'Erro ao alterar o nome.', 'error');
+      btn.disabled = false;
+    }
+  });
 
   // ===== Validação Senha =====
   const hasUpper = (s) => /[A-Z]/.test(s);

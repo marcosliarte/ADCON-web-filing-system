@@ -48,21 +48,22 @@ async function createHeader(placeholderId, usuario) {
 
     const nomeAbreviado = usuario ? `Olá, ${usuario.nome.split(' ')[0]}!` : '';
 
-    // --- NOVA FUNCIONALIDADE: Busca o nome da empresa para o cabeçalho ---
-    let nomeFantasia = 'ADCON - Painel'; // Nome padrão
-    // CORREÇÃO: Apenas admin e gerente podem acessar a rota de configuração.
-    if (usuario && ['admin', 'gerente'].includes(usuario.role)) {
-        try {
-            const configResponse = await fetchWithAuth('/api/configuracao');
-            if (configResponse && configResponse.ok) {
-                const configData = await configResponse.json();
-                if (configData && configData.nome_fantasia) {
-                    nomeFantasia = configData.nome_fantasia;
-                }
+    // Busca nome e logotipo da empresa para o cabeçalho
+    let nomeFantasia = 'ADCON - Painel';
+    let logotipoUrl = null;
+    try {
+        const configResponse = await fetchWithAuth('/api/configuracao');
+        if (configResponse && configResponse.ok) {
+            const configData = await configResponse.json();
+            if (configData && configData.nome_fantasia) {
+                nomeFantasia = configData.nome_fantasia;
             }
-        } catch (e) {
-            console.error("Não foi possível carregar o nome da empresa para o cabeçalho.", e);
+            if (configData && configData.logotipoUrl) {
+                logotipoUrl = configData.logotipoUrl;
+            }
         }
+    } catch (e) {
+        console.error("Não foi possível carregar configuração para o cabeçalho.", e);
     }
 
     // --- LÓGICA DE PERSONIFICAÇÃO ---
@@ -109,7 +110,10 @@ async function createHeader(placeholderId, usuario) {
         </style>
         <div class="header">
             ${impersonationBanner}
-            <h1><a href="home.html" style="color: white; text-decoration: none;">${nomeFantasia}</a></h1>
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                ${logotipoUrl ? `<a href="home.html"><img src="${logotipoUrl}" alt="Logo" style="height: 38px; max-width: 110px; object-fit: contain; border-radius: 4px; background: rgba(255,255,255,0.15); padding: 2px 4px;"></a>` : ''}
+                <h1 style="margin: 0;"><a href="home.html" style="color: white; text-decoration: none;">${nomeFantasia}</a></h1>
+            </div>
             <div style="display: flex; align-items: center;">
                 <div class="notification-icon" id="notificationIcon">
                     <span style="font-size: 1.5rem;">🔔</span>
@@ -135,6 +139,7 @@ async function createHeader(placeholderId, usuario) {
                     <div id="userMenu" class="dropdown-content">
                         <a href="home.html"><span>🏠</span> Início</a>
                         ${relatoriosLink}
+                        <a href="configuracoes-conta.html"><span>⚙️</span> Configurações da Conta</a>
                         <hr style="margin: 0;">
                         <a href="#" onclick="logout()"><span>⏻</span> Sair</a>
                     </div>

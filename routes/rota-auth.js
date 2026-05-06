@@ -340,6 +340,39 @@ router.put(
   }
 );
 
+// @route   PUT api/auth/change-name
+// @desc    Alterar o nome do usuário logado
+// @access  Private
+router.put(
+  '/change-name',
+  [
+    auth,
+    check('nome', 'O nome é obrigatório').not().isEmpty().trim(),
+    check('nome', 'O nome deve ter no máximo 100 caracteres').isLength({ max: 100 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { nome } = req.body;
+
+    try {
+      const usuario = await Usuario.findById(req.usuario.id);
+      if (!usuario) return res.status(404).json({ msg: 'Usuário não encontrado.' });
+
+      usuario.nome = nome.trim();
+      await usuario.save();
+
+      res.json({ msg: 'Nome alterado com sucesso!' });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ msg: 'Erro no servidor' });
+    }
+  }
+);
+
 // @route   PUT api/auth/change-email
 // @desc    Solicitar mudança de e-mail — gera token de verificação (expira em 1h)
 // @access  Private
