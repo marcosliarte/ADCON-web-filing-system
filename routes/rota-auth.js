@@ -2,17 +2,19 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { check, validationResult } = require('express-validator');
-// Importe o modelo de usuário
 const Usuario = require('../models/model-usuario');
-const Funcionario = require('../models/model-funcionario'); // Adicionado para buscar funcionários
+const Funcionario = require('../models/model-funcionario');
 const auth = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
-const adminAuth = require('../middleware/adminAuth'); // Novo middleware
+const adminAuth = require('../middleware/adminAuth');
 const multer = require('multer');
 const path = require('path');
-const mongoose = require('mongoose'); // Adicionado para definir o Schema
+const mongoose = require('mongoose');
 const fs = require('fs');
+
+const tokenBlacklist = require('../utils/tokenBlacklist');
 
 // --- CENTRALIZANDO O MODELO DE LOG ---
 const LogAcaoSchema = new mongoose.Schema({
@@ -22,9 +24,14 @@ const LogAcaoSchema = new mongoose.Schema({
   entidade: { type: String, default: 'Empresa' },
   entidadeId: { type: mongoose.Schema.Types.ObjectId },
   entidadeNome: { type: String },
-  dispositivo: { type: String }, // NOVO CAMPO: Armazena o User-Agent
+  dispositivo: { type: String },
 }, { timestamps: true });
-mongoose.model('LogAcao', LogAcaoSchema); // Compila o modelo para uso global
+
+// TTL automático: logs expiram após 90 dias
+LogAcaoSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
+
+mongoose.model('LogAcao', LogAcaoSchema);
+
 
 // --- NOVA: Função Auxiliar para Registrar Log de Ações de Usuário ---
 async function registrarLogUsuario(req, acao, usuarioAlvo) {
@@ -243,9 +250,7 @@ router.post(
       // Remove a foto antiga, se existir e não for um ícone pré-definido
       if (usuario.fotoPerfilUrl && usuario.fotoPerfilUrl.startsWith('/uploads/')) {
         const oldPath = path.join(__dirname, '..', usuario.fotoPerfilUrl);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
-        }
+        fs.promises.unlink(oldPath).catch(() => {}); // não bloqueia se o arquivo já não existir
       }
 
       const newFotoUrl = `/uploads/profile-pics/${req.file.filename}`;
@@ -336,20 +341,91 @@ router.put(
 );
 
 // @route   PUT api/auth/change-email
-// @desc    Alterar o email do usuário logado
+// @desc    Solicitar mudança de e-mail — gera token de verificação (expira em 1h)
 // @access  Private
 router.put(
   '/change-email',
-  [auth, check('novoEmail', 'Por favor, inclua um email válido').isEmail()],
+  [
+    auth,
+    check('novoEmail', 'Por favor, inclua um email válido').isEmail().normalizeEmail(),
+    check('senhaAtual', 'Senha atual é obrigatória').notEmpty(),
+  ],
   async (req, res) => {
-    // Lógica para alterar email (simplificada)
-    // Em um sistema de produção, você enviaria um email de confirmação para o novo endereço.
-    const { novoEmail } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { novoEmail, senhaAtual } = req.body;
     try {
-      const usuario = await Usuario.findByIdAndUpdate(req.usuario.id, { email: novoEmail }, { new: true }).select('-senha');
-      res.json({ msg: 'Email alterado com sucesso!', usuario });
-    } catch (err) { // Loga o erro
-      res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
+      const usuario = await Usuario.findById(req.usuario.id);
+      if (!usuario) return res.status(404).json({ msg: 'Usuário não encontrado.' });
+
+      const senhaOk = await usuario.comparePassword(senhaAtual);
+      if (!senhaOk) return res.status(400).json({ msg: 'Senha atual incorreta.' });
+
+      const emailEmUso = await Usuario.findOne({ email: novoEmail });
+      if (emailEmUso) return res.status(400).json({ msg: 'Este e-mail já está em uso.' });
+
+      // Gera token de 6 dígitos e armazena seu hash
+      const token = crypto.randomInt(100000, 999999).toString();
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+      usuario.emailPendente = novoEmail;
+      usuario.emailVerificacaoToken = tokenHash;
+      usuario.emailVerificacaoExpira = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+      await usuario.save();
+
+      // Em produção: envie 'token' por e-mail para novoEmail.
+      // Por ora, retorna o código para o admin entregar manualmente.
+      res.json({
+        msg: `Código de verificação gerado. Entregue ao usuário: ${token}. Válido por 1 hora.`,
+        codigoVerificacao: token,
+      });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ msg: 'Erro no servidor' });
+    }
+  }
+);
+
+// @route   POST api/auth/verify-email
+// @desc    Confirmar mudança de e-mail com o código recebido
+// @access  Private
+router.post(
+  '/verify-email',
+  [auth, check('codigo', 'Código de verificação é obrigatório').notEmpty()],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const { codigo } = req.body;
+    try {
+      const usuario = await Usuario.findById(req.usuario.id);
+      if (!usuario || !usuario.emailPendente || !usuario.emailVerificacaoToken) {
+        return res.status(400).json({ msg: 'Nenhuma mudança de e-mail pendente.' });
+      }
+      if (usuario.emailVerificacaoExpira < new Date()) {
+        usuario.emailPendente = null;
+        usuario.emailVerificacaoToken = null;
+        usuario.emailVerificacaoExpira = null;
+        await usuario.save();
+        return res.status(400).json({ msg: 'Código expirado. Solicite uma nova mudança de e-mail.' });
+      }
+
+      const codigoHash = crypto.createHash('sha256').update(codigo.trim()).digest('hex');
+      if (codigoHash !== usuario.emailVerificacaoToken) {
+        return res.status(400).json({ msg: 'Código inválido.' });
+      }
+
+      usuario.email = usuario.emailPendente;
+      usuario.emailPendente = null;
+      usuario.emailVerificacaoToken = null;
+      usuario.emailVerificacaoExpira = null;
+      await usuario.save();
+
+      res.json({ msg: 'E-mail alterado com sucesso!' });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ msg: 'Erro no servidor' });
     }
   }
 );
@@ -588,12 +664,17 @@ router.get('/admin/logs', [auth, adminAuth], async (req, res) => {
       query.createdAt = { $lte: new Date(dataFim + 'T23:59:59') };
     }
 
-    const LogAcao = mongoose.model('LogAcao');
-    const logs = await LogAcao.find(query)
-      .sort({ createdAt: -1 }) // Ordena dos mais recentes para os mais antigos
-      .limit(500); // Aumenta o limite para 500 registros
+    const pagina = Math.max(1, parseInt(req.query.pagina) || 1);
+    const limite = Math.min(200, Math.max(1, parseInt(req.query.limite) || 50));
+    const skip = (pagina - 1) * limite;
 
-    res.json(logs);
+    const LogAcao = mongoose.model('LogAcao');
+    const [total, logs] = await Promise.all([
+      LogAcao.countDocuments(query),
+      LogAcao.find(query).sort({ createdAt: -1 }).skip(skip).limit(limite),
+    ]);
+
+    res.json({ data: logs, paginacao: { total, pagina, limite, totalPaginas: Math.ceil(total / limite) } });
   } catch (err) {
     res.status(500).json({ msg: 'Erro no servidor ao buscar logs.' });
   }
@@ -604,6 +685,11 @@ router.get('/admin/logs', [auth, adminAuth], async (req, res) => {
 // @access  Private (Admin)
 router.post('/admin/impersonate/:id', [auth, adminAuth], async (req, res) => {
     try {
+        // Impede personificação encadeada (admin personificando já está personificando alguém)
+        if (req.usuario.impersonatorId) {
+            return res.status(400).json({ msg: 'Encerre a personificação atual antes de iniciar outra.' });
+        }
+
         const adminId = req.usuario.id;
         const targetUserId = req.params.id;
 
@@ -679,12 +765,12 @@ router.post('/admin/users/:id/reset-password', [auth, adminAuth], async (req, re
         const targetUser = await Usuario.findById(req.params.id);
         if (!targetUser) return res.status(404).json({ msg: 'Usuário não encontrado.' });
 
-        // Gera uma senha aleatória simples
-        const tempPassword = Math.random().toString(36).slice(-8);
-        targetUser.senha = tempPassword; // O hook pre-save no modelo irá hashear
+        // Gera senha temporária segura (criptograficamente aleatória)
+        const tempPassword = crypto.randomBytes(8).toString('base64url').slice(0, 12);
+        targetUser.senha = tempPassword; // O hook pre-save irá hashear
         await targetUser.save();
 
-        res.json({ msg: `A senha de ${targetUser.nome} foi resetada.`, tempPassword: tempPassword });
+        res.json({ msg: `A senha de ${targetUser.nome} foi resetada.`, tempPassword });
 
     } catch (err) {
         console.error(err.message);
@@ -828,6 +914,15 @@ router.get('/admin/logs.csv', [auth, adminAuth], async (req, res) => {
     console.error(err.message);
     res.status(500).json({ msg: 'Erro no servidor ao exportar logs.' });
   }
+});
+
+// @route   POST api/auth/logout
+// @desc    Revoga o token atual (adiciona à blacklist)
+// @access  Private
+router.post('/logout', auth, (req, res) => {
+    const token = req.header('x-auth-token');
+    if (token) tokenBlacklist.add(token);
+    res.json({ msg: 'Logout realizado com sucesso.' });
 });
 
 module.exports = router;

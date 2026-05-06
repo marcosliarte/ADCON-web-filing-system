@@ -4,50 +4,7 @@
     <meta charset="UTF-8">
     <title>ADCON - Enviar Notificações</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-        .page-title { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-        
-        .form-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 1.5rem; }
-        .form-group { margin-bottom: 1.5rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: #333; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.75rem; 
-            border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 1rem; }
-        .form-group textarea { resize: vertical; min-height: 120px; }
-        .form-group small { color: #666; display: block; margin-top: 0.25rem; }
-        
-        .radio-group { display: flex; gap: 1.5rem; flex-wrap: wrap; }
-        .radio-group label { display: flex; align-items: center; gap: 0.5rem; font-weight: normal; }
-        .radio-group input[type="radio"] { width: auto; }
-        
-        .user-selection { max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 0.5rem; }
-        .user-item { padding: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-        .user-item:hover { background: #f8f9fa; }
-        .user-item input[type="checkbox"] { width: auto; }
-        .user-item label { margin: 0; font-weight: normal; cursor: pointer; flex: 1; }
-        
-        .btn-primary { background: #007bff; color: white; padding: 0.75rem 2rem; border: none; 
-            border-radius: 4px; font-size: 1rem; cursor: pointer; font-weight: 600; }
-        .btn-primary:hover { background: #0056b3; }
-        .btn-primary:disabled { background: #6c757d; cursor: not-allowed; }
-        
-        .btn-secondary { background: #6c757d; color: white; padding: 0.75rem 2rem; border: none; 
-            border-radius: 4px; font-size: 1rem; cursor: pointer; margin-left: 0.5rem; }
-        .btn-secondary:hover { background: #5a6268; }
-        
-        .success-message { background: #d4edda; color: #155724; padding: 1rem; border-radius: 4px; 
-            margin-bottom: 1rem; border: 1px solid #c3e6cb; }
-        .error-message { background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 4px; 
-            margin-bottom: 1rem; border: 1px solid #f5c6cb; }
-        
-        #usuariosList { display: none; }
-        #roleSelect { display: none; }
-        
-        .info-box { background: #e7f3ff; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; 
-            border-left: 4px solid #007bff; }
-        .info-box h3 { margin-top: 0; color: #007bff; }
-    </style>
+    <link rel="stylesheet" href="css/pages/enviar-notificacoes.css">
 </head>
 <body style="display: none;">
     <script>
@@ -73,15 +30,15 @@
                     <label>Destinatários</label>
                     <div class="radio-group">
                         <label>
-                            <input type="radio" name="destinatarios" value="todos" checked onchange="alterarDestinatarios()">
+                            <input type="radio" name="destinatarios" value="todos" checked>
                             Todos os usuários
                         </label>
                         <label>
-                            <input type="radio" name="destinatarios" value="role" onchange="alterarDestinatarios()">
+                            <input type="radio" name="destinatarios" value="role">
                             Por perfil (role)
                         </label>
                         <label>
-                            <input type="radio" name="destinatarios" value="especificos" onchange="alterarDestinatarios()">
+                            <input type="radio" name="destinatarios" value="especificos">
                             Usuários específicos
                         </label>
                     </div>
@@ -127,7 +84,7 @@
                     <button type="submit" class="btn-primary" id="btnEnviar">
                         📤 Enviar Notificação
                     </button>
-                    <button type="button" class="btn-secondary" onclick="limparFormulario()">
+                    <button type="button" class="btn-secondary" id="btnLimpar">
                         🔄 Limpar
                     </button>
                     <span id="loadingSpinner" style="display: none;">Enviando...</span>
@@ -137,179 +94,6 @@
     </div>
 
     <script src="shared.js"></script>
-    <script>
-        let usuarios = [];
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            const userResponse = await fetchWithAuth('/api/auth');
-            if (!userResponse) return;
-
-            const usuario = await userResponse.json();
-            
-            if (usuario.role !== 'admin') {
-                document.body.innerHTML = '<div class="container"><h1>Acesso Negado</h1><p>Apenas administradores podem acessar esta página.</p></div>';
-                document.body.style.display = 'block';
-                return;
-            }
-
-            createHeader('header-placeholder', usuario);
-            document.body.style.display = 'block';
-            
-            carregarUsuarios();
-        });
-
-        async function carregarUsuarios() {
-            try {
-                const response = await fetchWithAuth('/api/auth/admin/users?limit=1000');
-                if (!response.ok) throw new Error('Falha ao carregar usuários');
-                
-                const data = await response.json();
-                usuarios = data.usuarios || data;
-                
-                renderizarListaUsuarios();
-            } catch (err) {
-                console.error('Erro ao carregar usuários:', err);
-            }
-        }
-
-        function renderizarListaUsuarios() {
-            const container = document.getElementById('userSelection');
-            
-            if (usuarios.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #999;">Nenhum usuário encontrado</p>';
-                return;
-            }
-
-            const roleNames = {
-                'admin': 'Administrador',
-                'gerente': 'Gerente',
-                'funcionario': 'Funcionário',
-                'empresario': 'Empresário'
-            };
-
-            container.innerHTML = `
-                <div style="padding: 0.5rem; border-bottom: 1px solid #ddd; background: #f8f9fa;">
-                    <label style="font-weight: 600; cursor: pointer;">
-                        <input type="checkbox" id="selectAll" onchange="selecionarTodos()">
-                        Selecionar todos
-                    </label>
-                </div>
-                ${usuarios.map(u => `
-                    <div class="user-item">
-                        <input type="checkbox" id="user_${u._id}" value="${u._id}" class="user-checkbox">
-                        <label for="user_${u._id}">
-                            ${u.nome} 
-                            <small style="color: #666;">(${roleNames[u.role] || u.role}) - ${u.email}</small>
-                        </label>
-                    </div>
-                `).join('')}
-            `;
-        }
-
-        function selecionarTodos() {
-            const selectAll = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.user-checkbox');
-            checkboxes.forEach(cb => cb.checked = selectAll.checked);
-        }
-
-        function alterarDestinatarios() {
-            const tipo = document.querySelector('input[name="destinatarios"]:checked').value;
-            
-            document.getElementById('roleSelect').style.display = tipo === 'role' ? 'block' : 'none';
-            document.getElementById('usuariosList').style.display = tipo === 'especificos' ? 'block' : 'none';
-        }
-
-        document.getElementById('notificationForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const tipo = document.querySelector('input[name="destinatarios"]:checked').value;
-            const titulo = document.getElementById('titulo').value.trim();
-            const mensagem = document.getElementById('mensagem').value.trim();
-            const link = document.getElementById('link').value.trim();
-            
-            if (!titulo || !mensagem) {
-                mostrarMensagem('Título e mensagem são obrigatórios', 'error');
-                return;
-            }
-
-            const btnEnviar = document.getElementById('btnEnviar');
-            const spinner = document.getElementById('loadingSpinner');
-            
-            btnEnviar.disabled = true;
-            spinner.style.display = 'inline';
-
-            try {
-                let response;
-                
-                if (tipo === 'todos') {
-                    response = await fetchWithAuth('/api/notificacoes/admin/enviar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ destinatarios: 'todos', titulo, mensagem, link })
-                    });
-                } else if (tipo === 'role') {
-                    const role = document.getElementById('role').value;
-                    if (!role) {
-                        mostrarMensagem('Selecione um perfil', 'error');
-                        btnEnviar.disabled = false;
-                        spinner.style.display = 'none';
-                        return;
-                    }
-                    response = await fetchWithAuth('/api/notificacoes/admin/enviar-role', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ role, titulo, mensagem, link })
-                    });
-                } else {
-                    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
-                    if (checkboxes.length === 0) {
-                        mostrarMensagem('Selecione pelo menos um usuário', 'error');
-                        btnEnviar.disabled = false;
-                        spinner.style.display = 'none';
-                        return;
-                    }
-                    const destinatarios = Array.from(checkboxes).map(cb => cb.value);
-                    response = await fetchWithAuth('/api/notificacoes/admin/enviar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ destinatarios, titulo, mensagem, link })
-                    });
-                }
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.msg || 'Erro ao enviar notificação');
-                }
-
-                const result = await response.json();
-                mostrarMensagem(`✓ ${result.msg}`, 'success');
-                limparFormulario();
-                
-            } catch (err) {
-                mostrarMensagem(`Erro: ${err.message}`, 'error');
-            } finally {
-                btnEnviar.disabled = false;
-                spinner.style.display = 'none';
-            }
-        });
-
-        function limparFormulario() {
-            document.getElementById('notificationForm').reset();
-            document.querySelectorAll('.user-checkbox').forEach(cb => cb.checked = false);
-            document.getElementById('selectAll').checked = false;
-            alterarDestinatarios();
-        }
-
-        function mostrarMensagem(texto, tipo) {
-            const statusDiv = document.getElementById('messageStatus');
-            statusDiv.className = tipo === 'success' ? 'success-message' : 'error-message';
-            statusDiv.textContent = texto;
-            statusDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 5000);
-        }
-    </script>
+    <script src="js/pages/enviar-notificacoes.js"></script>
 </body>
 </html>

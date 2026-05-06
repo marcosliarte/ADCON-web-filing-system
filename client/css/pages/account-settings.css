@@ -1,0 +1,57 @@
+/* Paleta e base */
+:root{
+  --primary:#3BA3FF; --primary-600:#1E88E5; --muted:#6b7280; --bg:#f7fbff; --border:#e9eef5; --card-shadow:0 2px 8px rgba(0,0,0,.06)
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:#333a40;min-height:100vh;display:flex;flex-direction:column}
+
+/* Header e dropdown */
+.header{background:var(--primary);color:#fff;padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.08);position:sticky;top:0;z-index:10}
+.header h1{font-size:1.4rem}
+.dropdown{position:relative;display:inline-block}
+.dropdown-toggle{background:transparent;border:none;color:#fff;padding:.5rem;display:flex;align-items:center;cursor:pointer}
+.dropdown-content{display:none;position:absolute;right:0;background:#fff;min-width:180px;box-shadow:0 8px 16px rgba(0,0,0,.2);border-radius:5px;overflow:hidden;z-index:20}
+.dropdown-content a{color:#333a40;padding:12px 16px;text-decoration:none;display:flex;align-items:center;gap:10px}
+.dropdown-content a:hover{background:#f1f1f1}
+.dropdown.show .dropdown-content{display:block}
+
+/* Layout */
+.container{max-width:800px;width:100%;margin:2rem auto;padding:0 1rem;display:flex;flex-direction:column;gap:1.5rem}
+.back-btn{align-self:flex-start;background:#eef6ff;border:1px solid #d5e7ff;color:var(--primary-600);padding:.45rem .7rem;border-radius:6px;text-decoration:none}
+.back-btn:hover{background:#e2f0ff}
+.card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:1.25rem;box-shadow:var(--card-shadow)}
+.card h2{color:var(--primary-600);border-bottom:2px solid var(--primary);padding-bottom:.4rem;margin-bottom:1rem}
+
+/* Inputs e botões */
+button{background:var(--primary);color:#fff;border:none;padding:.6rem 1.1rem;border-radius:6px;cursor:pointer;font-weight:500}
+button[disabled]{opacity:.6;cursor:not-allowed}
+button:hover{background:var(--primary-600)}
+.input-group{margin-bottom:.9rem}
+.input-group label{display:block;font-weight:600;margin-bottom:.35rem;color:#374151}
+.input-with-action{display:flex;align-items:center}
+.input-with-action input{flex:1}
+.toggle-visibility{margin-left:.5rem;background:#eef6ff;border:1px solid #d5e7ff;color:var(--primary-600);border-radius:6px;padding:.45rem .65rem;font-size:.85rem}
+.toggle-visibility:hover{background:#e2f0ff}
+.helper-text{display:block;margin-top:.35rem;font-size:.85rem;color:#6b7280}
+input[type="password"],input[type="email"]{width:100%;padding:.6rem;border:1px solid #ced4da;border-radius:6px;font-size:1rem}
+input:focus{outline:none;border-color:#80bdff;box-shadow:0 0 0 .2rem rgba(0,123,255,.15)}
+
+/* Força de senha */
+.strength-meter{display:flex;gap:6px;margin-top:.5rem}
+.strength-meter .bar{flex:1;height:6px;background:#e5e7eb;border-radius:4px;transition:background-color .2s}
+.strength-1 #pw-bar-1{background:#ef4444}
+.strength-2 #pw-bar-1,.strength-2 #pw-bar-2{background:#f59e0b}
+.strength-3 #pw-bar-1,.strength-3 #pw-bar-2,.strength-3 #pw-bar-3{background:#10b981}
+.strength-4 #pw-bar-1,.strength-4 #pw-bar-2,.strength-4 #pw-bar-3,.strength-4 #pw-bar-4{background:#059669}
+.validation-list{list-style:none;padding-left:0;margin-top:.5rem;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:6px}
+.validation-list li{font-size:.85rem;padding-left:22px;position:relative;color:#6b7280}
+.validation-list li::before{content:'•';position:absolute;left:8px;color:#9ca3af}
+.validation-list li.valid{color:#0f766e}
+.validation-list li.valid::before{content:'\2713';color:#0ea5e9;left:4px}
+
+/* Footer */
+.footer{background:#fff;color:#6c757d;text-align:center;padding:1rem;margin-top:auto;border-top:1px solid var(--border)}
+
+/* Skeleton simples */
+.skeleton{background:linear-gradient(90deg,#eee,#f6f6f6,#eee);background-size:200% 100%;animation:shimmer 1.2s infinite;color:transparent!important}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}

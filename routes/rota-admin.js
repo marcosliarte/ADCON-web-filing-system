@@ -6,13 +6,70 @@ const path = require('path');
 const os = require('os');
 const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
-const { exec } = require('child_process'); // Para executar comandos do sistema (mongodump/mongorestore)
-const archiver = require('archiver'); // Para criar arquivos .zip
-const unzipper = require('unzipper'); // Para extrair arquivos .zip
-const multer = require('multer'); // Para lidar com upload de arquivos
+const { exec } = require('child_process');
+const archiver = require('archiver');
+const unzipper = require('unzipper');
+const multer = require('multer');
+const cache = require('../utils/cache');
+const zlib = require('zlib');
 
 const Empresa = require('../models/model-empresa');
-const Usuario = require('../models/model-usuario'); // Adicionado para contagem de usuários
+const Usuario = require('../models/model-usuario');
+
+function getDbNameFromUri(uri) {
+    const match = uri.match(/\/([^/?@]+)(\?|$)/);
+    return (match && match[1]) ? match[1] : null;
+}
+
+function getBaseUri(uri) {
+    return uri.replace(/\/([^/?@]+)(\?|$)/, '/$2');
+}
+
+async function getSourceDbFromArchive(archivePath) {
+    return new Promise((resolve) => {
+        const input = fs.createReadStream(archivePath);
+        const gz = zlib.createGunzip();
+        let buf = Buffer.alloc(0);
+        let done = false;
+
+        const finish = (result) => {
+            if (done) return;
+            done = true;
+            resolve(result);
+            input.destroy();
+            gz.destroy();
+        };
+
+        gz.on('data', (chunk) => {
+            buf = Buffer.concat([buf, chunk]);
+            const marker = Buffer.from([0x02, 0x64, 0x62, 0x00]); // \x02 "db" \x00
+            const idx = buf.indexOf(marker);
+            if (idx !== -1 && buf.length >= idx + 8) {
+                const strLen = buf.readInt32LE(idx + 4);
+                if (buf.length >= idx + 8 + strLen) {
+                    finish(buf.slice(idx + 8, idx + 8 + strLen - 1).toString('utf8'));
+                }
+            }
+            if (buf.length > 4096) finish(null);
+        });
+
+        gz.on('error', () => finish(null));
+        gz.on('end', () => finish(null));
+        input.on('error', () => finish(null));
+        input.pipe(gz);
+    });
+}
+
+function buildRestoreCommand(executable, uri, archivePath) {
+    const targetDb = getDbNameFromUri(uri);
+    return async () => {
+        const sourceDb = await getSourceDbFromArchive(archivePath);
+        const needsRemap = targetDb && sourceDb && targetDb !== sourceDb;
+        const connUri = needsRemap ? getBaseUri(uri) : uri;
+        const nsFlags = needsRemap ? `--nsFrom="${sourceDb}.*" --nsTo="${targetDb}.*"` : '';
+        return `${executable} --uri="${connUri}" --archive="${archivePath}" --gzip --drop ${nsFlags}`.trimEnd();
+    };
+}
 
 // Middleware para garantir que apenas admins acessem estas rotas
 router.use(auth, adminAuth);
@@ -67,18 +124,14 @@ router.get('/dashboard/status', async (req, res) => {
             case 3: dbStatus = 'Desconectando'; break;
         }
 
-        // 2. Uso de espaço em disco pela pasta de uploads (assíncrono e em cache para evitar varreduras pesadas)
+        // 2. Uso de espaço em disco — cacheado por 60s para evitar varreduras frequentes
         const uploadsDir = path.join(__dirname, '../uploads');
         let diskUsage = 0;
         let backupDiskUsage = 0;
 
-        const CACHE_TTL_MS = 30 * 1000; // 30 segundos
-        if (!router._statusCache) router._statusCache = { ts: 0, diskUsage: 0, backupDiskUsage: 0 };
-
-        const now = Date.now();
-        if (router._statusCache.ts && (now - router._statusCache.ts) < CACHE_TTL_MS) {
-            diskUsage = router._statusCache.diskUsage;
-            backupDiskUsage = router._statusCache.backupDiskUsage;
+        const cachedDisk = cache.get('dashboard:diskUsage');
+        if (cachedDisk) {
+            ({ diskUsage, backupDiskUsage } = cachedDisk);
         } else {
             const getDirSizeAsync = async (dirPath) => {
                 let total = 0;
@@ -93,28 +146,31 @@ router.get('/dashboard/status', async (req, res) => {
                             total += stats.size;
                         }
                     }
-                } catch (e) {
-                    // Se o diretório sumir ou ocorrer erro, ignora e segue
-                }
+                } catch (e) {}
                 return total;
             };
 
             try {
-                if (fs.existsSync(uploadsDir)) {
-                    diskUsage = await getDirSizeAsync(uploadsDir);
-                }
-                if (fs.existsSync(backupDir)) {
-                    backupDiskUsage = await getDirSizeAsync(backupDir);
-                }
-                router._statusCache = { ts: Date.now(), diskUsage, backupDiskUsage };
+                if (fs.existsSync(uploadsDir)) diskUsage = await getDirSizeAsync(uploadsDir);
+                if (fs.existsSync(backupDir)) backupDiskUsage = await getDirSizeAsync(backupDir);
+                cache.set('dashboard:diskUsage', { diskUsage, backupDiskUsage }, 60 * 1000);
             } catch (e) {
                 console.error('Erro ao calcular tamanho de diretórios:', e.message);
             }
         }
 
-        // 4. Contagem de entidades
-        const totalUsuarios = await Usuario.countDocuments();
-        const totalEmpresas = await Empresa.countDocuments();
+        // 4. Contagem de entidades — cacheado por 30s
+        let totalUsuarios, totalEmpresas;
+        const cachedCounts = cache.get('dashboard:counts');
+        if (cachedCounts) {
+            ({ totalUsuarios, totalEmpresas } = cachedCounts);
+        } else {
+            [totalUsuarios, totalEmpresas] = await Promise.all([
+                Usuario.countDocuments(),
+                Empresa.countDocuments(),
+            ]);
+            cache.set('dashboard:counts', { totalUsuarios, totalEmpresas }, 30 * 1000);
+        }
 
         // Dados do sistema
         const totalMem = os.totalmem();
@@ -243,87 +299,148 @@ router.get('/dashboard/expiring-docs', async (req, res) => {
 
 // @route   POST api/admin/backup/create
 // @desc    Criar um novo backup do banco de dados
-router.post('/backup/create', (req, res) => {
-  // LÓGICA DE BACKUP DO ZERO
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const dbDumpFilename = `db-dump-${timestamp}.gz`;
-  const dbDumpFilePath = path.join(backupDir, dbDumpFilename);
+router.post('/backup/create', async (req, res) => {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const dbDumpFilename = `db-dump-${timestamp}.gz`;
+    const dbDumpFilePath = path.join(backupDir, dbDumpFilename);
 
-  // 1. Pega o caminho do mongodump do .env ou usa o comando padrão.
-  const mongodumpExecutable = process.env.MONGODUMP_PATH || 'mongodump';
-  const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
+    // Pega o caminho do mongodump do .env ou usa o comando padrão
+    const mongodumpExecutable = process.env.MONGODUMP_PATH || 'mongodump';
+    const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
 
-  // 2. Constrói o comando, garantindo que o executável e os caminhos de arquivo estejam entre aspas.
-  const command = `"${mongodumpExecutable}" --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip`;
+    console.log(`[BACKUP] Iniciando backup em ${timestamp}`);
+    console.log(`[BACKUP] Usando mongodump: ${mongodumpExecutable}`);
+    console.log(`[BACKUP] URI MongoDB: ${MONGODB_URI_PARA_BACKUP ? 'Configurada' : 'NÃO CONFIGURADA'}`);
 
-  console.log('[BACKUP CREATE] ========================================');
-  console.log('[BACKUP CREATE] Iniciando criação de backup...');
-  console.log('[BACKUP CREATE] URI fonte:', MONGODB_URI_PARA_BACKUP);
-  console.log('[BACKUP CREATE] Arquivo destino:', dbDumpFilePath);
-  console.log('[BACKUP CREATE] Comando:', command);
-  console.log('[BACKUP CREATE] ========================================');
-
-  // 3. Executa o comando.
-  exec(command, (dumpError, stdout, stderr) => {
-    const output = stdout + '\n' + stderr;
-    console.log('[BACKUP CREATE] --- OUTPUT DO MONGODUMP ---');
-    console.log(output);
-    console.log('[BACKUP CREATE] -----------------------------------');
+    // Verifica se há dados no banco antes de criar backup
+    const mongoose = require('mongoose');
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    console.log(`[BACKUP] Coleções no banco: ${collections.length}`);
     
+    if (collections.length === 0) {
+      return res.status(400).json({ 
+        msg: 'O banco de dados está vazio. Não há dados para fazer backup.' 
+      });
+    }
+
+    // Conta documentos totais
+    let totalDocs = 0;
+    for (const col of collections) {
+      const count = await mongoose.connection.db.collection(col.name).countDocuments();
+      console.log(`[BACKUP] Coleção ${col.name}: ${count} documentos`);
+      totalDocs += count;
+    }
+
+    console.log(`[BACKUP] Total de documentos no banco: ${totalDocs}`);
+
+    if (totalDocs === 0) {
+      return res.status(400).json({ 
+        msg: 'O banco de dados não contém documentos. Não há dados para fazer backup.' 
+      });
+    }
+
+    // Constrói o comando com aspas para Windows
+    const command = `"${mongodumpExecutable}" --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip`;
+
+    console.log(`[BACKUP] Executando mongodump...`);
+
+  // Executa o comando com buffer maior
+  exec(command, { maxBuffer: 50 * 1024 * 1024 }, (dumpError, stdout, stderr) => {
     if (dumpError) {
-      console.error('[BACKUP CREATE] ❌ Erro ao criar dump:', dumpError.message);
-      console.error('[BACKUP CREATE] stderr:', stderr);
-      return res.status(500).json({ msg: 'Falha ao criar o backup do banco de dados.', error: stderr });
+      console.error(`[BACKUP ERROR] Erro ao criar dump:`, dumpError.message);
+      console.error(`[BACKUP ERROR] stderr:`, stderr);
+      console.error(`[BACKUP ERROR] stdout:`, stdout);
+      return res.status(500).json({ 
+        msg: 'Falha ao criar o backup do banco de dados.', 
+        error: stderr || dumpError.message 
+      });
     }
 
-    // Verificar se o arquivo foi criado e tem conteúdo
-    if (fs.existsSync(dbDumpFilePath)) {
-      const fileSize = fs.statSync(dbDumpFilePath).size;
-      console.log('[BACKUP CREATE] ✅ Arquivo dump criado:', dbDumpFilePath);
-      console.log('[BACKUP CREATE] 📊 Tamanho do dump:', fileSize, 'bytes');
-      
-      if (fileSize < 100) {
-        console.log('[BACKUP CREATE] ⚠️ AVISO: Dump muito pequeno! Provavelmente está vazio.');
-      }
-      
-      // Extrair contagem de documentos do output
-      const match = output.match(/(\d+) document\(s\)/);
-      if (match) {
-        console.log('[BACKUP CREATE] 📄 Documentos exportados:', match[1]);
-      }
-    } else {
-      console.error('[BACKUP CREATE] ❌ Arquivo dump não foi criado!');
-      return res.status(500).json({ msg: 'Falha ao criar arquivo de dump.' });
+    console.log(`[BACKUP] stdout:`, stdout);
+    if (stderr) console.log(`[BACKUP] stderr:`, stderr);
+
+    // Verifica se o arquivo de dump foi criado e tem tamanho > 0
+    if (!fs.existsSync(dbDumpFilePath)) {
+      console.error(`[BACKUP ERROR] Arquivo de dump não foi criado: ${dbDumpFilePath}`);
+      return res.status(500).json({ 
+        msg: 'Arquivo de dump do banco não foi criado.' 
+      });
     }
 
-    // 4. Se o dump do banco de dados foi bem-sucedido, cria o arquivo .zip.
+    const dumpStats = fs.statSync(dbDumpFilePath);
+    console.log(`[BACKUP] Dump criado com sucesso: ${(dumpStats.size / 1024).toFixed(2)} KB`);
+
+    if (dumpStats.size === 0) {
+      console.error(`[BACKUP ERROR] Arquivo de dump está vazio (0 bytes)`);
+      fs.unlinkSync(dbDumpFilePath);
+      return res.status(500).json({ 
+        msg: 'Backup do banco de dados está vazio. Verifique se há dados no MongoDB.' 
+      });
+    }
+
+    // Cria o arquivo ZIP final
     const finalBackupFilename = `backup-completo-${timestamp}.zip`;
     const finalBackupPath = path.join(backupDir, finalBackupFilename);
     const uploadsPath = path.join(__dirname, '../uploads');
 
-    const zipStream = fs.createWriteStream(finalBackupPath);
+    console.log(`[BACKUP] Criando arquivo ZIP: ${finalBackupFilename}`);
+
+    const output = fs.createWriteStream(finalBackupPath);
     const archive = archiver('zip', { zlib: { level: 9 } });
 
-    zipStream.on('close', () => {
-      console.log('[BACKUP CREATE] ✅ Arquivo ZIP criado:', finalBackupPath);
-      console.log('[BACKUP CREATE] 📦 Tamanho total do backup:', archive.pointer(), 'bytes');
-      fs.unlink(dbDumpFilePath, (unlinkErr) => { if (unlinkErr) console.error("Erro ao remover arquivo de dump temporário:", unlinkErr); });
-      res.json({ msg: 'Backup completo criado com sucesso!', file: finalBackupFilename });
+    output.on('close', () => {
+      const zipSize = (archive.pointer() / (1024 * 1024)).toFixed(2);
+      console.log(`[BACKUP] ZIP criado com sucesso: ${zipSize} MB`);
+      
+      // Remove o dump temporário
+      fs.unlink(dbDumpFilePath, (unlinkErr) => { 
+        if (unlinkErr) console.error("[BACKUP] Erro ao remover dump temporário:", unlinkErr); 
+      });
+      
+      res.json({ 
+        msg: `Backup completo criado com sucesso! (${zipSize} MB)`, 
+        file: finalBackupFilename,
+        size: zipSize + ' MB'
+      });
     });
 
     archive.on('error', (archiveErr) => {
-      console.error('[BACKUP CREATE] ❌ Erro ao criar ZIP:', archiveErr.message);
-      res.status(500).json({ msg: 'Falha ao criar o arquivo ZIP.', error: archiveErr.message });
+      console.error(`[BACKUP ERROR] Erro ao criar ZIP:`, archiveErr);
+      res.status(500).json({ 
+        msg: 'Falha ao criar o arquivo ZIP.', 
+        error: archiveErr.message 
+      });
     });
+
+    archive.on('warning', (warn) => {
+      console.warn(`[BACKUP WARNING]`, warn);
+    });
+
+    archive.pipe(output);
     
-    archive.pipe(zipStream);
+    // Adiciona o dump do banco ao ZIP
     archive.file(dbDumpFilePath, { name: dbDumpFilename });
+    
+    // Adiciona pasta uploads se existir
     if (fs.existsSync(uploadsPath)) {
-      console.log('[BACKUP CREATE] 📁 Adicionando pasta uploads ao ZIP...');
+      const uploadsStats = fs.readdirSync(uploadsPath);
+      console.log(`[BACKUP] Adicionando pasta uploads (${uploadsStats.length} itens)`);
       archive.directory(uploadsPath, 'uploads');
+    } else {
+      console.log(`[BACKUP] Pasta uploads não encontrada, continuando sem ela`);
     }
+    
     archive.finalize();
   });
+  
+  } catch (error) {
+    console.error('[BACKUP ERROR] Erro inesperado:', error);
+    res.status(500).json({ 
+      msg: 'Erro ao criar backup.', 
+      error: error.message 
+    });
+  }
 });
 
 // @route   GET api/admin/backup/list
@@ -348,9 +465,198 @@ router.get('/backup/list', (req, res) => {
     });
 });
 
+// @route   GET api/admin/backup/analyze/:filename
+// @desc    Analisar o conteúdo de um backup sem restaurá-lo
+router.get('/backup/analyze/:filename', async (req, res) => {
+    try {
+        const { filename } = req.params;
+        if (!filename) {
+            return res.status(400).json({ msg: 'Nome do arquivo de backup é obrigatório.' });
+        }
+
+        const backupFilePath = path.join(backupDir, filename);
+        if (!fs.existsSync(backupFilePath)) {
+            return res.status(404).json({ msg: 'Arquivo de backup não encontrado.' });
+        }
+
+        // Informações básicas do arquivo
+        const stats = fs.statSync(backupFilePath);
+        const fileInfo = {
+            filename,
+            size: (stats.size / (1024 * 1024)).toFixed(2) + ' MB',
+            createdAt: stats.birthtime,
+        };
+
+        // Criar diretório temporário para análise
+        const tempInspectDir = path.join('_temp_uploads', `temp-inspect-${Date.now()}`);
+        fs.mkdirSync(tempInspectDir, { recursive: true });
+
+        try {
+            // Extrair o ZIP
+            await new Promise((resolve, reject) => {
+                fs.createReadStream(backupFilePath)
+                    .pipe(unzipper.Extract({ path: tempInspectDir }))
+                    .on('finish', resolve)
+                    .on('error', reject);
+            });
+
+            const filesInTemp = fs.readdirSync(tempInspectDir);
+            
+            // Analisar arquivos de dump do banco
+            const dbDumpFile = filesInTemp.find(f => f.endsWith('.gz'));
+            let databaseInfo = {
+                totalCollections: 0,
+                totalDocuments: 0,
+                collections: {}
+            };
+
+            if (dbDumpFile) {
+                const dbDumpFilePath = path.join(tempInspectDir, dbDumpFile);
+                
+                // Criar diretório temporário para restauração de teste
+                const tempDbDir = path.join(tempInspectDir, 'temp_db_inspect');
+                fs.mkdirSync(tempDbDir, { recursive: true });
+
+                // Extrair dump para análise
+                const mongorestoreExecutable = process.env.MONGODUMP_PATH ? 
+                    `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 
+                    'mongorestore';
+                
+                const inspectCommand = `${mongorestoreExecutable} --archive="${dbDumpFilePath}" --gzip --dryRun 2>&1`;
+                
+                try {
+                    const { stdout } = await new Promise((resolve, reject) => {
+                        exec(inspectCommand, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
+                            if (error && !stdout) {
+                                reject(error);
+                            } else {
+                                resolve({ stdout: stdout + stderr });
+                            }
+                        });
+                    });
+
+                    // Parsear output do mongorestore --dryRun
+                    const lines = stdout.split('\n');
+                    const collectionCounts = {};
+                    
+                    for (const line of lines) {
+                        // Procurar por linhas que indicam documentos restaurados
+                        const match = line.match(/(\w+)\.(\w+)\s+to\s+\w+\.(\w+)/);
+                        if (match) {
+                            const collection = match[2];
+                            if (!collectionCounts[collection]) {
+                                collectionCounts[collection] = 0;
+                                databaseInfo.totalCollections++;
+                            }
+                        }
+                        
+                        // Contar documentos
+                        const docMatch = line.match(/(\d+)\s+document/);
+                        if (docMatch) {
+                            const count = parseInt(docMatch[1]);
+                            databaseInfo.totalDocuments += count;
+                            
+                            // Tentar associar ao último collection visto
+                            const lastCollection = Object.keys(collectionCounts).pop();
+                            if (lastCollection) {
+                                collectionCounts[lastCollection] = count;
+                            }
+                        }
+                    }
+
+                    databaseInfo.collections = collectionCounts;
+                    
+                } catch (execError) {
+                    console.error('Erro ao analisar dump:', execError);
+                    // Análise básica se falhar
+                    databaseInfo = {
+                        totalCollections: 'N/A',
+                        totalDocuments: 'N/A',
+                        collections: { info: 'Análise detalhada não disponível' }
+                    };
+                }
+            }
+
+            // Analisar pasta uploads
+            let uploadsInfo = {
+                totalFiles: 0,
+                totalSize: '0 MB',
+                folders: []
+            };
+
+            const uploadsFolderInBackup = path.join(tempInspectDir, 'uploads');
+            if (fs.existsSync(uploadsFolderInBackup)) {
+                let totalBytes = 0;
+                const folderStats = {};
+
+                function scanDirectory(dir, baseDir = '') {
+                    const items = fs.readdirSync(dir);
+                    
+                    for (const item of items) {
+                        const fullPath = path.join(dir, item);
+                        const stat = fs.statSync(fullPath);
+                        
+                        if (stat.isDirectory()) {
+                            const folderName = baseDir ? `${baseDir}/${item}` : item;
+                            if (!folderStats[folderName]) {
+                                folderStats[folderName] = { count: 0, size: 0 };
+                            }
+                            scanDirectory(fullPath, folderName);
+                        } else {
+                            uploadsInfo.totalFiles++;
+                            totalBytes += stat.size;
+                            
+                            if (baseDir && !folderStats[baseDir]) {
+                                folderStats[baseDir] = { count: 0, size: 0 };
+                            }
+                            if (baseDir) {
+                                folderStats[baseDir].count++;
+                                folderStats[baseDir].size += stat.size;
+                            }
+                        }
+                    }
+                }
+
+                scanDirectory(uploadsFolderInBackup);
+                uploadsInfo.totalSize = (totalBytes / (1024 * 1024)).toFixed(2) + ' MB';
+                uploadsInfo.folders = Object.entries(folderStats).map(([name, stats]) => ({
+                    name,
+                    count: stats.count,
+                    size: (stats.size / (1024 * 1024)).toFixed(2) + ' MB'
+                }));
+            }
+
+            // Limpar diretório temporário
+            fs.rmSync(tempInspectDir, { recursive: true, force: true });
+
+            // Retornar análise
+            res.json({
+                ...fileInfo,
+                database: databaseInfo,
+                uploads: uploadsInfo,
+            });
+
+        } catch (extractError) {
+            // Limpar em caso de erro
+            if (fs.existsSync(tempInspectDir)) {
+                fs.rmSync(tempInspectDir, { recursive: true, force: true });
+            }
+            throw extractError;
+        }
+
+    } catch (error) {
+        console.error('Erro ao analisar backup:', error);
+        res.status(500).json({ 
+            msg: 'Erro ao analisar backup.', 
+            error: error.message 
+        });
+    }
+});
+
 // @route   POST api/admin/backup/restore
 // @desc    Restaurar o banco de dados a partir de um backup
 router.post('/backup/restore', async (req, res) => {
+    let tempRestoreDir = null;
     try {
         const { filename } = req.body;
         if (!filename) {
@@ -362,14 +668,14 @@ router.post('/backup/restore', async (req, res) => {
             return res.status(404).json({ msg: 'Arquivo de backup não encontrado.' });
         }
 
-        const tempRestoreDir = path.join(backupDir, `temp-restore-${Date.now()}`);
+        tempRestoreDir = path.join(backupDir, `temp-restore-${Date.now()}`);
         fs.mkdirSync(tempRestoreDir, { recursive: true });
 
         // Extrair o ZIP usando Promise
         await new Promise((resolve, reject) => {
             fs.createReadStream(backupFilePath)
                 .pipe(unzipper.Extract({ path: tempRestoreDir }))
-                .on('finish', resolve)
+                .on('close', resolve)
                 .on('error', reject);
         });
 
@@ -384,91 +690,69 @@ router.post('/backup/restore', async (req, res) => {
         const dbDumpFilePath = path.join(tempRestoreDir, dbDumpFile);
         const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
         const mongorestoreExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 'mongorestore';
-        const restoreCommand = `${mongorestoreExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip --drop`;
-
-        console.log('[RESTORE] ========================================');
-        console.log('[RESTORE] Iniciando restauração do banco de dados...');
-        console.log('[RESTORE] URI destino:', MONGODB_URI_PARA_BACKUP);
-        console.log('[RESTORE] Arquivo dump:', dbDumpFilePath);
-        console.log('[RESTORE] Tamanho do dump:', fs.statSync(dbDumpFilePath).size, 'bytes');
-        console.log('[RESTORE] Comando:', restoreCommand);
-        console.log('[RESTORE] ========================================');
+        const restoreCommand = await buildRestoreCommand(mongorestoreExecutable, MONGODB_URI_PARA_BACKUP, dbDumpFilePath)();
 
         // Executar restore usando Promise
         await new Promise((resolve, reject) => {
-            exec(restoreCommand, (restoreError, stdout, stderr) => {
-                console.log('[RESTORE] --- OUTPUT DO MONGORESTORE ---');
-                console.log('[RESTORE] stdout:', stdout);
-                console.log('[RESTORE] stderr:', stderr);
-                console.log('[RESTORE] -----------------------------------');
-                
+            exec(restoreCommand, { maxBuffer: 50 * 1024 * 1024 }, (restoreError, stdout, stderr) => {
+                if (stdout) console.log('[RESTORE] mongorestore output:', stdout);
+                if (stderr) console.log('[RESTORE] mongorestore stderr:', stderr);
                 if (restoreError) {
-                    console.error('[RESTORE] ❌ Erro ao restaurar banco de dados:', stderr);
-                    console.error('[RESTORE] Código de erro:', restoreError.code);
-                    reject(new Error(stderr || 'Falha ao restaurar o banco de dados'));
+                    console.error(`[RESTORE ERROR] Erro ao restaurar banco de dados: ${restoreError.message}`);
+                    reject(new Error(stderr || restoreError.message || 'Falha ao restaurar o banco de dados'));
                 } else {
-                    console.log('[RESTORE] ✓ Banco de dados restaurado com sucesso');
-                    
-                    // Verificar quantos documentos foram restaurados
-                    const match = (stdout + stderr).match(/(\d+) document\(s\) restored/);
-                    if (match) {
-                        console.log('[RESTORE] 📊 Total de documentos restaurados:', match[1]);
-                    }
-                    
                     resolve();
                 }
             });
         });
 
-        // Restaurar uploads - SUBSTITUIR COMPLETAMENTE
+        // Restaurar uploads se existir - MERGE ao invés de substituir
         const uploadsBackupPath = path.join(tempRestoreDir, 'uploads');
         const serverUploadsPath = path.join(__dirname, '../uploads');
 
-        console.log('[RESTORE] Verificando pasta de uploads no backup...');
         if (fs.existsSync(uploadsBackupPath)) {
-            console.log('[RESTORE] Pasta uploads encontrada no backup');
-            
-            // Remover uploads atuais para evitar conflitos
             if (fs.existsSync(serverUploadsPath)) {
-                console.log('[RESTORE] Removendo uploads atuais...');
-                fs.rmSync(serverUploadsPath, { recursive: true, force: true });
-            }
-            
-            // Copiar recursivamente do backup
-            console.log('[RESTORE] Copiando uploads do backup...');
-            const copyRecursive = (src, dest) => {
-                if (!fs.existsSync(dest)) {
-                    fs.mkdirSync(dest, { recursive: true });
-                }
-                const entries = fs.readdirSync(src, { withFileTypes: true });
-                for (const entry of entries) {
-                    const srcPath = path.join(src, entry.name);
-                    const destPath = path.join(dest, entry.name);
-                    if (entry.isDirectory()) {
-                        copyRecursive(srcPath, destPath);
-                    } else {
-                        fs.copyFileSync(srcPath, destPath);
+                // Fazer merge: copiar arquivos do backup sem sobrescrever os existentes
+                const copyRecursivePreservingExisting = (src, dest) => {
+                    if (fs.statSync(src).isDirectory()) {
+                        if (!fs.existsSync(dest)) {
+                            fs.mkdirSync(dest, { recursive: true });
+                        }
+                        const entries = fs.readdirSync(src, { withFileTypes: true });
+                        for (const entry of entries) {
+                            const srcPath = path.join(src, entry.name);
+                            const destPath = path.join(dest, entry.name);
+                            if (entry.isDirectory()) {
+                                copyRecursivePreservingExisting(srcPath, destPath);
+                            } else {
+                                // Copiar apenas se o arquivo não existir no destino
+                                if (!fs.existsSync(destPath)) {
+                                    fs.copyFileSync(srcPath, destPath);
+                                }
+                            }
+                        }
                     }
-                }
-            };
-            copyRecursive(uploadsBackupPath, serverUploadsPath);
-            console.log('[RESTORE] ✓ Uploads restaurados com sucesso');
-        } else {
-            console.log('[RESTORE] ⚠ Nenhuma pasta uploads encontrada no backup');
+                };
+                copyRecursivePreservingExisting(uploadsBackupPath, serverUploadsPath);
+            } else {
+                // Se não existe pasta uploads, simplesmente mover
+                fs.renameSync(uploadsBackupPath, serverUploadsPath);
+            }
         }
 
         // Limpar pasta temporária
-        console.log('[RESTORE] Limpando arquivos temporários...');
         fs.rmSync(tempRestoreDir, { recursive: true, force: true });
-        console.log('[RESTORE] ✓ Restauração concluída com sucesso!');
         
-        res.json({ msg: 'Sistema restaurado com sucesso! Banco de dados e arquivos foram restaurados.' });
+        res.json({ msg: 'Sistema restaurado com sucesso!' });
 
     } catch (error) {
         console.error('Erro ao restaurar backup:', error);
-        res.status(500).json({ 
-            msg: 'Erro ao restaurar backup.', 
-            error: error.message 
+        if (tempRestoreDir && fs.existsSync(tempRestoreDir)) {
+            try { fs.rmSync(tempRestoreDir, { recursive: true, force: true }); } catch (e) {}
+        }
+        res.status(500).json({
+            msg: 'Erro ao restaurar backup.',
+            error: error.message
         });
     }
 });
@@ -587,35 +871,19 @@ router.post('/backup/upload', upload.single('backupFile'), async (req, res) => {
         const dbDumpFilePath = path.join(tempRestoreDir, dbDumpFile);
         const MONGODB_URI_PARA_BACKUP = process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL;
         const mongorestoreExecutable = process.env.MONGODUMP_PATH ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` : 'mongorestore';
-        const restoreCommand = `${mongorestoreExecutable} --uri="${MONGODB_URI_PARA_BACKUP}" --archive="${dbDumpFilePath}" --gzip --drop`;
+        const restoreCommand = await buildRestoreCommand(mongorestoreExecutable, MONGODB_URI_PARA_BACKUP, dbDumpFilePath)();
 
-        console.log('[BACKUP UPLOAD] ========================================');
         console.log('[BACKUP UPLOAD] Executando mongorestore...');
-        console.log('[BACKUP UPLOAD] URI destino:', MONGODB_URI_PARA_BACKUP);
-        console.log('[BACKUP UPLOAD] Tamanho do dump:', fs.statSync(dbDumpFilePath).size, 'bytes');
-        console.log('[BACKUP UPLOAD] ========================================');
-        
+
         // Executar restore usando Promise
         await new Promise((resolve, reject) => {
             exec(restoreCommand, (restoreError, stdout, stderr) => {
-                const output = stdout + '\n' + stderr;
-                console.log('[BACKUP UPLOAD] --- OUTPUT COMPLETO DO MONGORESTORE ---');
-                console.log(output);
-                console.log('[BACKUP UPLOAD] -----------------------------------');
-                
                 if (restoreError) {
-                    console.error('[BACKUP UPLOAD] ❌ Erro no mongorestore');
+                    console.error('[BACKUP UPLOAD] Erro no mongorestore:', stderr);
                     reject(new Error(`Falha ao restaurar o banco de dados: ${stderr}`));
                 } else {
-                    // Verificar quantos documentos foram restaurados
-                    const match = output.match(/(\d+) document\(s\) restored/);
-                    if (match) {
-                        console.log('[BACKUP UPLOAD] ✅ Banco de dados restaurado com sucesso');
-                        console.log('[BACKUP UPLOAD] 📊 Total de documentos restaurados:', match[1]);
-                    } else {
-                        console.log('[BACKUP UPLOAD] ⚠️ Restauração concluída mas nenhum documento detectado');
-                        console.log('[BACKUP UPLOAD] Isso pode indicar que o backup estava vazio');
-                    }
+                    console.log('[BACKUP UPLOAD] Banco de dados restaurado com sucesso');
+                    if (stdout) console.log('[BACKUP UPLOAD] mongorestore output:', stdout);
                     resolve();
                 }
             });
@@ -680,243 +948,6 @@ router.post('/backup/upload', upload.single('backupFile'), async (req, res) => {
             msg: 'Erro ao processar o backup.', 
             error: error.message 
         });
-    }
-});
-
-// --- ENDPOINT DE DIAGNÓSTICO ---
-router.get('/diagnostico', async (req, res) => {
-    try {
-        const empresasCount = await Empresa.countDocuments();
-        const usuariosCount = await Usuario.countDocuments();
-        const dbName = mongoose.connection.db.databaseName;
-        const dbHost = mongoose.connection.host;
-        const dbState = mongoose.connection.readyState; // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
-        
-        const stateMap = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
-        
-        // Lista todas as coleções do banco
-        const collections = await mongoose.connection.db.listCollections().toArray();
-        const collectionNames = collections.map(c => c.name);
-        
-        // Busca detalhes de cada coleção
-        const detalhesColecoes = {};
-        for (const collectionName of collectionNames) {
-            try {
-                const count = await mongoose.connection.db.collection(collectionName).countDocuments();
-                detalhesColecoes[collectionName] = count;
-            } catch (e) {
-                detalhesColecoes[collectionName] = 'erro';
-            }
-        }
-        
-        res.json({
-            banco: {
-                nome: dbName,
-                host: dbHost,
-                estado: stateMap[dbState],
-                uri: process.env.MONGODB_URI || process.env.MONGODB_URI_LOCAL
-            },
-            colecoes: collectionNames,
-            detalhesColecoes: detalhesColecoes,
-            contagens: {
-                empresas: empresasCount,
-                usuarios: usuariosCount
-            }
-        });
-    } catch (error) {
-        console.error('[DIAGNOSTICO] Erro:', error);
-        res.status(500).json({ msg: 'Erro ao obter diagnóstico', error: error.message });
-    }
-});
-
-// --- FUNÇÕES AUXILIARES PARA INSPEÇÃO ---
-async function inspecionarBackupComum(backupPath, originalName) {
-    let tempInspectDir = null;
-    
-    try {
-        tempInspectDir = path.join(uploadDir, `temp-inspect-${Date.now()}`);
-        fs.mkdirSync(tempInspectDir, { recursive: true });
-
-        // Descompactar
-        await new Promise((resolve, reject) => {
-            fs.createReadStream(backupPath)
-                .pipe(unzipper.Extract({ path: tempInspectDir }))
-                .on('close', resolve)
-                .on('error', reject);
-        });
-
-        const filesInTemp = fs.readdirSync(tempInspectDir);
-        const dbDumpFile = filesInTemp.find(f => f.endsWith('.gz'));
-        const hasUploadsFolder = fs.existsSync(path.join(tempInspectDir, 'uploads'));
-
-        let uploadsFolderInfo = null;
-        if (hasUploadsFolder) {
-            const uploadsPath = path.join(tempInspectDir, 'uploads');
-            const getDirectorySize = (dirPath) => {
-                let size = 0;
-                const files = fs.readdirSync(dirPath, { withFileTypes: true });
-                for (const file of files) {
-                    const filePath = path.join(dirPath, file.name);
-                    if (file.isDirectory()) {
-                        size += getDirectorySize(filePath);
-                    } else {
-                        size += fs.statSync(filePath).size;
-                    }
-                }
-                return size;
-            };
-
-            const countFiles = (dirPath) => {
-                let count = 0;
-                const files = fs.readdirSync(dirPath, { withFileTypes: true });
-                for (const file of files) {
-                    const filePath = path.join(dirPath, file.name);
-                    if (file.isDirectory()) {
-                        count += countFiles(filePath);
-                    } else {
-                        count++;
-                    }
-                }
-                return count;
-            };
-
-            uploadsFolderInfo = {
-                exists: true,
-                size: getDirectorySize(uploadsPath),
-                fileCount: countFiles(uploadsPath)
-            };
-        }
-
-        // Inspecionar o dump usando mongorestore --dryRun
-        let dumpInfo = { success: false };
-        if (dbDumpFile) {
-            const dbDumpFilePath = path.join(tempInspectDir, dbDumpFile);
-            const mongorestoreExecutable = process.env.MONGODUMP_PATH 
-                ? `"${process.env.MONGODUMP_PATH.replace('mongodump', 'mongorestore')}"` 
-                : 'mongorestore';
-            
-            const inspectCommand = `${mongorestoreExecutable} --archive="${dbDumpFilePath}" --gzip --dryRun`;
-
-            await new Promise((resolve) => {
-                exec(inspectCommand, (error, stdout, stderr) => {
-                    const output = stdout + stderr;
-                    const lines = output.split('\n');
-                    const collections = [];
-                    
-                    lines.forEach(line => {
-                        const restoreMatch = line.match(/restoring (\w+)\.(\w+) from/);
-                        const docMatch = line.match(/(\d+) document\(s\)/);
-                        
-                        if (restoreMatch) {
-                            const collectionName = restoreMatch[2];
-                            const docCount = docMatch ? parseInt(docMatch[1]) : 0;
-                            collections.push({ 
-                                database: restoreMatch[1], 
-                                collection: collectionName,
-                                docCount: docCount
-                            });
-                        }
-                    });
-
-                    if (collections.length > 0 || output.includes('dry run completed')) {
-                        dumpInfo = {
-                            success: true,
-                            output: output,
-                            collections: collections
-                        };
-                    } else {
-                        dumpInfo = {
-                            success: false,
-                            error: output
-                        };
-                    }
-                    resolve();
-                });
-            });
-        }
-
-        // Limpar pasta temporária
-        if (tempInspectDir && fs.existsSync(tempInspectDir)) {
-            fs.rmSync(tempInspectDir, { recursive: true, force: true });
-        }
-
-        return {
-            arquivoOriginal: originalName,
-            tamanho: fs.statSync(backupPath).size,
-            arquivosExtraidos: filesInTemp,
-            temDumpDB: !!dbDumpFile,
-            dumpInfo: dumpInfo,
-            uploadsInfo: uploadsFolderInfo || { exists: false }
-        };
-
-    } catch (error) {
-        if (tempInspectDir && fs.existsSync(tempInspectDir)) {
-            try { fs.rmSync(tempInspectDir, { recursive: true, force: true }); } catch (e) {}
-        }
-        throw error;
-    }
-}
-
-// --- ENDPOINT PARA INSPECIONAR BACKUP ENVIADO ---
-router.post('/backup/inspecionar', upload.single('backupFile'), async (req, res) => {
-    let uploadedFilePath = null;
-    
-    try {
-        if (!req.file) {
-            return res.status(400).json({ msg: 'Nenhum arquivo foi enviado.' });
-        }
-
-        uploadedFilePath = req.file.path;
-        const fileExtension = path.extname(req.file.originalname).toLowerCase();
-
-        if (fileExtension !== '.zip') {
-            if (fs.existsSync(uploadedFilePath)) fs.unlinkSync(uploadedFilePath);
-            return res.status(400).json({ msg: 'Formato inválido. Envie um arquivo .zip' });
-        }
-
-        const resultado = await inspecionarBackupComum(uploadedFilePath, req.file.originalname);
-        
-        // Remover arquivo enviado após inspeção
-        if (fs.existsSync(uploadedFilePath)) {
-            fs.unlinkSync(uploadedFilePath);
-        }
-
-        res.json(resultado);
-
-    } catch (error) {
-        console.error('[INSPECIONAR BACKUP] Erro:', error);
-        
-        if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
-            try { fs.unlinkSync(uploadedFilePath); } catch (e) {}
-        }
-        
-        res.status(500).json({ msg: 'Erro ao inspecionar backup', error: error.message });
-    }
-});
-
-// --- ENDPOINT PARA INSPECIONAR BACKUP DO SERVIDOR ---
-router.post('/backup/inspecionar-servidor', async (req, res) => {
-    try {
-        const { filename } = req.body;
-        
-        if (!filename) {
-            return res.status(400).json({ msg: 'Nome do arquivo não fornecido' });
-        }
-
-        const backupPath = path.join(backupDir, filename);
-        
-        if (!fs.existsSync(backupPath)) {
-            return res.status(404).json({ msg: 'Backup não encontrado no servidor' });
-        }
-
-        const resultado = await inspecionarBackupComum(backupPath, filename);
-        resultado.filename = filename; // Adiciona o filename ao resultado
-        
-        res.json(resultado);
-
-    } catch (error) {
-        console.error('[INSPECIONAR BACKUP SERVIDOR] Erro:', error);
-        res.status(500).json({ msg: 'Erro ao inspecionar backup', error: error.message });
     }
 });
 

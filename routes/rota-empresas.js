@@ -4,11 +4,12 @@ const { check, validationResult } = require('express-validator');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const mongoose = require('mongoose'); // Adicionado para usar o Schema
+const mongoose = require('mongoose');
 
 const auth = require('../middleware/auth');
 const Empresa = require('../models/model-empresa');
 const Usuario = require('../models/model-usuario');
+const { encrypt, decrypt } = require('../utils/crypto');
 
 // --- NOVA: Função Auxiliar para Registrar Log ---
 async function registrarLog(usuarioId, acao, entidade) {
@@ -30,6 +31,10 @@ const storage = multer.diskStorage({
       subfolder = 'certificados';
     } else if (file.fieldname === 'alvara_arquivo') {
       subfolder = 'alvaras';
+    } else if (file.fieldname.startsWith('balanco_patrimonial')) {
+      subfolder = 'balancos';
+    } else if (file.fieldname.startsWith('documento_diverso')) {
+      subfolder = 'documentos_diversos';
     } else if (file.fieldname.startsWith('certidao_')) {
       // Agrupa todas as outras certidões em uma pasta
       subfolder = 'certidoes';
@@ -79,10 +84,24 @@ const handleMulterError = (req, res, next) => {
     maxCount: 1
   }));
 
+  // Gerar campos dinamicamente para até 50 balanços patrimoniais
+  const balancoFields = Array.from({ length: 50 }, (_, i) => ({
+    name: `balanco_patrimonial[${i}][arquivo]`,
+    maxCount: 1
+  }));
+
+  // Gerar campos dinamicamente para até 50 documentos diversos
+  const diversoFields = Array.from({ length: 50 }, (_, i) => ({
+    name: `documento_diverso[${i}][arquivo]`,
+    maxCount: 1
+  }));
+
   const uploadFields = upload.fields([
     { name: 'arquivo_cnpj', maxCount: 1 },
     { name: 'certificado_digital', maxCount: 1 },
     ...contratoFields, // Adiciona todos os campos de contratos dinamicamente
+    ...balancoFields, // Adiciona todos os campos de balanços dinamicamente
+    ...diversoFields, // Adiciona todos os campos de documentos diversos dinamicamente
     { name: 'alvara_arquivo', maxCount: 1 },
     { name: 'certidao_prefeitura_arquivo', maxCount: 1 },
     { name: 'certidao_receita_arquivo', maxCount: 1 },
@@ -157,11 +176,11 @@ router.post(
         }
         if (req.files.certificado_digital) {
           const file = req.files.certificado_digital[0];
-          dadosEmpresa.documentos.certificadoDigital = { 
-            nomeArquivo: file.originalname, 
+          dadosEmpresa.documentos.certificadoDigital = {
+            nomeArquivo: file.originalname,
             caminhoArquivo: `/uploads/certificados/${file.filename}`,
             dataValidade: req.body.certificado_validade,
-            senha: req.body.certificado_senha // Salva a senha do certificado
+            senha: req.body.certificado_senha ? encrypt(req.body.certificado_senha) : null,
           };
         }
         if (req.files.alvara_arquivo) {
@@ -215,6 +234,50 @@ router.post(
             }
             // Adiciona o contrato se houver data, mesmo sem arquivo
             if (newContrato.dataAlteracao) dadosEmpresa.documentos.contratos.push(newContrato);
+          });
+        }
+
+        // Processa os balanços patrimoniais
+        if (req.body.balanco_patrimonial) {
+          const balancosInfo = req.body.balanco_patrimonial; // Array de {ano}
+
+          balancosInfo.forEach((info, index) => {
+            const file = req.files[`balanco_patrimonial[${index}][arquivo]`]?.[0];
+            
+            // Só adiciona se houver arquivo e ano
+            if (file && info.ano) {
+              const newBalanco = {
+                nomeArquivo: file.originalname,
+                caminhoArquivo: `/uploads/balancos/${file.filename}`,
+                ano: info.ano,
+              };
+              dadosEmpresa.documentos.balancosPatrimoniais.push(newBalanco);
+            }
+          });
+        }
+
+        // Processa os documentos diversos
+        if (req.body.documento_diverso) {
+          const diversosInfo = req.body.documento_diverso; // Array de {nome, validade}
+
+          diversosInfo.forEach((info, index) => {
+            const file = req.files[`documento_diverso[${index}][arquivo]`]?.[0];
+            
+            // Só adiciona se houver arquivo e nome
+            if (file && info.nome) {
+              const newDiverso = {
+                nomeDocumento: info.nome,
+                nomeArquivo: file.originalname,
+                caminhoArquivo: `/uploads/documentos_diversos/${file.filename}`,
+              };
+              
+              // Adiciona validade se fornecida
+              if (info.validade) {
+                newDiverso.dataValidade = info.validade;
+              }
+
+              dadosEmpresa.documentos.documentosDiversos.push(newDiverso);
+            }
           });
         }
       }
@@ -297,19 +360,24 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    // CORREÇÃO: Adicionado .select('+documentos.certificadoDigital.senha') para incluir a senha na resposta
-    const empresa = await Empresa.findById(req.params.id).select('+documentos.certificadoDigital.senha').populate('matriz_id', 'nome _id cnpj').lean();
+    const empresa = await Empresa.findById(req.params.id)
+      .select('+documentos.certificadoDigital.senha')
+      .populate('matriz_id', 'nome _id cnpj')
+      .lean();
 
     if (!empresa) {
       return res.status(404).json({ msg: 'Empresa não encontrada' });
     }
 
-    const usuarioLogado = await Usuario.findById(req.usuario.id);
-    if (usuarioLogado.role === 'empresario' && empresa.ownerId.toString() !== req.usuario.id) {
-      return res.status(403).json({ msg: 'Acesso negado. Você não tem permissão para visualizar esta empresa.' });
+    // Descriptografa a senha do certificado antes de enviar ao frontend
+    if (empresa.documentos?.certificadoDigital?.senha) {
+      try {
+        empresa.documentos.certificadoDigital.senha = decrypt(empresa.documentos.certificadoDigital.senha);
+      } catch (e) {
+        empresa.documentos.certificadoDigital.senha = null;
+      }
     }
 
-    // Renomeia 'matriz_id' para 'matriz' para clareza no frontend
     empresa.matriz = empresa.matriz_id || null;
     // Busca as filiais SE a empresa for uma matriz
     empresa.filiais = (empresa.tipo === 'matriz' || !empresa.tipo) ? await Empresa.find({ matriz_id: req.params.id }).select('nome nome_fantasia cnpj _id').lean() : [];
@@ -336,23 +404,29 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Empresa não encontrada' });
     }
 
-    // Função auxiliar para deletar um arquivo de forma segura
-    const deletarArquivo = (caminhoRelativo) => {
-      if (!caminhoRelativo) return;
-      const caminhoCompleto = path.join(__dirname, '..', caminhoRelativo);
-      if (fs.existsSync(caminhoCompleto)) {
-        fs.unlinkSync(caminhoCompleto);
-        console.log(`Arquivo deletado: ${caminhoCompleto}`);
-      }
+    // Função auxiliar para deletar arquivos de forma assíncrona (não bloqueia o event loop)
+    const deletarArquivos = (caminhos) => {
+      const validos = caminhos.filter(Boolean).map(c => path.join(__dirname, '..', c));
+      return Promise.all(validos.map(p => fs.promises.unlink(p).catch(() => {})));
     };
 
-    // Coleta e deleta todos os arquivos associados
     if (empresa.documentos) {
-      deletarArquivo(empresa.documentos.cartaoCnpj?.caminhoArquivo);
-      deletarArquivo(empresa.documentos.certificadoDigital?.caminhoArquivo);
-      if (empresa.documentos.contratos && empresa.documentos.contratos.length > 0) {
-        empresa.documentos.contratos.forEach(contrato => deletarArquivo(contrato.caminhoArquivo));
-      }
+      const caminhos = [
+        empresa.documentos.cartaoCnpj?.caminhoArquivo,
+        empresa.documentos.certificadoDigital?.caminhoArquivo,
+        empresa.documentos.alvara?.caminhoArquivo,
+        empresa.documentos.certidaoPrefeitura?.caminhoArquivo,
+        empresa.documentos.certidaoReceita?.caminhoArquivo,
+        empresa.documentos.certidaoFGTS?.caminhoArquivo,
+        empresa.documentos.certidaoSefaz?.caminhoArquivo,
+        empresa.documentos.inscricaoEstadual?.caminhoArquivo,
+        empresa.documentos.certidaoTrabalhista?.caminhoArquivo,
+        empresa.documentos.certidaoFalencia?.caminhoArquivo,
+        ...(empresa.documentos.contratos || []).map(c => c.caminhoArquivo),
+        ...(empresa.documentos.balancosPatrimoniais || []).map(b => b.caminhoArquivo),
+        ...(empresa.documentos.documentosDiversos || []).map(d => d.caminhoArquivo),
+      ];
+      await deletarArquivos(caminhos);
     }
 
     // Após deletar os arquivos, remove o registro do banco de dados
@@ -502,6 +576,59 @@ router.put(
         empresa.documentos.contratos = []; // Limpa se nenhum contrato for enviado
       }
 
+      // Lógica para atualizar/adicionar balanços patrimoniais
+      if (req.body.balanco_patrimonial) {
+        // Garante que balanco_patrimonial seja sempre um array
+        const balancosInfo = Array.isArray(req.body.balanco_patrimonial) ? req.body.balanco_patrimonial : [req.body.balanco_patrimonial];
+
+        empresa.documentos.balancosPatrimoniais = balancosInfo
+          .map((balancoInfo, index) => {
+            const file = filesMap[`balanco_patrimonial[${index}][arquivo]`];
+            // Pega o balanço existente pelo mesmo índice para manter o arquivo se não for alterado
+            const balancoExistente = empresa.documentos.balancosPatrimoniais?.[index] || {};
+
+            return {
+              nomeArquivo: file ? file.originalname : balancoExistente.nomeArquivo,
+              caminhoArquivo: file ? `/uploads/balancos/${file.filename}` : balancoExistente.caminhoArquivo,
+              ano: balancoInfo.ano,
+            };
+          })
+          // Remove entradas vazias (sem ano)
+          .filter(b => b.ano && b.nomeArquivo);
+      } else {
+        empresa.documentos.balancosPatrimoniais = []; // Limpa se nenhum balanço for enviado
+      }
+
+        // Lógica para atualizar/adicionar documentos diversos
+        if (req.body.documento_diverso) {
+          // Garante que documento_diverso seja sempre um array
+          const diversosInfo = Array.isArray(req.body.documento_diverso) ? req.body.documento_diverso : [req.body.documento_diverso];
+
+          empresa.documentos.documentosDiversos = diversosInfo
+            .map((diversoInfo, index) => {
+              const file = filesMap[`documento_diverso[${index}][arquivo]`];
+              // Pega o documento existente pelo mesmo índice para manter o arquivo se não for alterado
+              const diversoExistente = empresa.documentos.documentosDiversos?.[index] || {};
+
+              const documento = {
+                nomeDocumento: diversoInfo.nome,
+                nomeArquivo: file ? file.originalname : diversoExistente.nomeArquivo,
+                caminhoArquivo: file ? `/uploads/documentos_diversos/${file.filename}` : diversoExistente.caminhoArquivo,
+              };
+
+              // Adiciona validade se fornecida
+              if (diversoInfo.validade) {
+                documento.dataValidade = diversoInfo.validade;
+              }
+
+              return documento;
+            })
+            // Remove entradas vazias (sem nome ou arquivo)
+            .filter(d => d.nomeDocumento && d.nomeArquivo);
+        } else {
+          empresa.documentos.documentosDiversos = []; // Limpa se nenhum documento for enviado
+        }
+
 
       // A lógica de upload de novos arquivos e remoção de antigos na edição
       // exigiria um tratamento mais detalhado dos `req.files`.
@@ -516,11 +643,11 @@ router.put(
         }
         if (filesMap.certificado_digital) {
             const file = filesMap.certificado_digital;
-            empresa.documentos.certificadoDigital = { 
-                nomeArquivo: file.originalname, 
+            empresa.documentos.certificadoDigital = {
+                nomeArquivo: file.originalname,
                 caminhoArquivo: `/uploads/certificados/${file.filename}`,
                 dataValidade: req.body.certificado_validade,
-                senha: req.body.certificado_senha // Salva a nova senha ao atualizar
+                senha: req.body.certificado_senha ? encrypt(req.body.certificado_senha) : null,
             };
         }
         if (filesMap.alvara_arquivo) {

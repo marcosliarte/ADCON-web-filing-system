@@ -1,0 +1,294 @@
+/* === EMPRESAS - SISTEMA ADCON === */
+@import url('/css/pages/common-page.css');
+
+/* --- Layout da Página --- */
+.page-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+}
+
+.page-container h1 {
+    color: var(--primary-600);
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+/* --- Tabela --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+th, td {
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    text-align: left;
+}
+
+th {
+    background-color: var(--accent-bg);
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--neutral-600);
+    transition: background-color 0.15s;
+}
+
+th:hover {
+    background-color: var(--accent-hover);
+}
+
+/* Estilo para os links dos nomes das empresas na tabela */
+#lista-empresas a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s;
+}
+
+#lista-empresas a:visited {
+    color: var(--primary);
+}
+
+/* --- Busca e Autocomplete --- */
+.search-container {
+    margin-bottom: 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+.search-wrapper {
+    position: relative;
+    flex-grow: 1;
+}
+
+.search-container input {
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 100%;
+    font-size: 0.95rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search-container input:focus {
+    outline: none;
+    border-color: var(--primary-600);
+    box-shadow: 0 0 0 0.2rem var(--focus-ring);
+}
+
+.autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 400px;
+    overflow-y: auto;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: none;
+}
+
+.autocomplete-list.active {
+    display: block;
+}
+
+.autocomplete-item {
+    padding: 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.autocomplete-item:hover {
+    background-color: var(--primary);
+    color: white;
+}
+
+.autocomplete-item strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.autocomplete-item small {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.autocomplete-item:hover small {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.autocomplete-empty {
+    padding: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+    font-style: italic;
+}autocomplete-item strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.autocomplete-item small {
+    color: #6c757d;
+/* --- Botões --- */
+button.delete-btn {
+    background-color: var(--danger);
+    font-weight: 500;
+}
+
+button.delete-btn:hover {
+    background-color: #c82333;
+}
+
+/* --- Paginação --- */
+.pagination {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pagination button {
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    background-color: #6c757d;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.pagination button:hover:not(:disabled) {
+    background-color: var(--primary-600, #1E88E5);
+}
+
+.pagination button:disabled {
+    background-color: #d6dde5;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.pagination span {
+    color: var(--neutral-700);
+    font-weight: 500;
+}
+
+/* --- Ações na Tabela --- */
+.actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.actions button {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+/* --- Loading Indicator --- */
+.loading {
+    margin-left: 10px;
+    font-style: italic;
+    color: var(--muted);
+}
+
+/* --- Setas de Ordenação --- */
+.arrow {
+    display: inline-block;
+    margin-left: 5px;
+    color: var(--primary);
+}
+/* --- Loading Indicator --- */
+.loading {
+    margin-left: 10px;
+    font-style: italic;
+    color: #555;
+}
+
+/* --- Setas de Ordenação --- */
+.arrow {
+    display: inline-block;
+    margin-left: 5px;
+}
+
+/* --- Responsividade para Tabelas --- */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* --- MOBILE / RESPONSIVE --- */
+@media (max-width: 800px) {
+    .page-container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+
+    .page-container h1 {
+        font-size: 1.25rem;
+    }
+
+    .search-container {
+        flex-direction: column;
+    }
+
+    .search-container input,
+    .search-container button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    th, td {
+        padding: 6px;
+        font-size: 0.9rem;
+    }
+
+    table {
+        min-width: 480px;
+    }
+
+    .actions button {
+        display: block;
+        width: 100%;
+        margin: 4px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-container {
+        padding: 0.75rem;
+    }
+
+    .page-container h1 {
+        font-size: 1.1rem;
+    }
+
+    table {
+        min-width: 420px;
+        font-size: 0.85rem;
+    }
+}

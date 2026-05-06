@@ -4,83 +4,14 @@
     <meta charset="UTF-8">
     <title>ADCON - Editar Empresa</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        /* Estilos do cabeçalho */
-        .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
-        .header h1 { margin: 0; font-size: 1.5rem; }
-        .dropdown { position: relative; display: inline-block; }
-        .dropdown-toggle { background-color: transparent; border: none; color: white; padding: 0.5rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; }
-        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; border-radius: 5px; overflow: hidden; }
-        .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
-        .dropdown-content a:hover { background-color: #f1f1f1; }
-        .show { display: block; }
-
-        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
-        .container { max-width: 900px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h1, h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
-        .form-group { display: flex; flex-direction: column; }
-        .form-group-full { grid-column: 1 / -1; }
-        label { margin-bottom: 0.5rem; font-weight: bold; font-size: 0.9rem; }
-        input, select { width: 100%; padding: 0.7rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
-        /* Correção: Garante que inputs de arquivo tenham a mesma altura dos outros */
-        input[type="file"] { padding: 0.55rem; }
-        input:focus, select:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 2px rgba(0,123,255,.25); }
-        .radio-group {
-            display: flex;
-            align-items: center;
-            gap: 1rem; /* Aumenta o espaçamento entre as opções */
-            flex-wrap: wrap;
-            padding-top: 0.5rem; /* Adiciona um espaço para alinhar com outros inputs */
-        }
-        .radio-item {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .radio-group label { font-weight: normal; margin-right: 0.5rem; }
-        button { background-color: #007bff; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
-        button:hover { background-color: #0056b3; }
-        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
-        .btn-secondary { background-color: #6c757d; }
-        .btn-secondary:hover { background-color: #5a6268; }
-        .btn-add { background-color: #28a745; font-size: 0.9rem; padding: 0.5rem 1rem; }
-        .btn-add:hover { background-color: #218838; }
-        .btn-remover { background-color: #dc3545; color: white; border: none; font-size: 0.8rem; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; }
-        .btn-remover:hover { background-color: #c82333; }
-        .socio-card, .alteracao-card { border: 1px solid #ddd; border-radius: 5px; padding: 1rem; margin-top: 1rem; background-color: #f8f9fa; }
-        .socio-card h3, .alteracao-card h3 { margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; }
-        #message { margin-top: 1.5rem; padding: 1rem; border-radius: 5px; text-align: center; display: none; }
-        .success { background-color: #d4edda; color: #155724; }
-        .error { background-color: #f8d7da; color: #721c24; }
-        .file-info { font-size: 0.9rem; color: #555; margin-top: 0.5rem; }
-
-        /* Estilos do Acordeão */
-        .accordion-header {
-            background-color: #e9ecef;
-            color: #495057;
-            cursor: pointer;
-            padding: 1rem;
-            width: 100%;
-            border: none;
-            text-align: left;
-            outline: none;
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-top: 1rem;
-            border-radius: 5px;
-        }
-        .accordion-header.active::after { content: '\25B2'; } /* Seta para cima */
-        .accordion-header::after { content: '\25BC'; float: right; } /* Seta para baixo */
-        .accordion-content {
-            padding: 0 1rem;
-            background-color: white;
-            display: none;
-            overflow: hidden;
-        }
-    </style>
+    <link rel="stylesheet" href="css/pages/editar.css">
 </head>
 <body style="display: none;">
+    <script>
+        if (!localStorage.getItem('token')) window.location.replace('login.html');
+        else document.body.style.display = 'block';
+    </script>
+    <script src="shared.js"></script>
     <div id="header-placeholder"></div>
 
     <div class="container">
@@ -90,6 +21,29 @@
             <button type="button" class="accordion-header">Dados da Empresa</button>
             <div class="accordion-content">
                 <div class="form-grid">
+                    <div class="form-group form-group-full">
+                        <label>Tipo de Empresa</label>
+                        <div class="radio-group">
+                            <input type="radio" id="tipo_matriz" name="tipo" value="matriz" checked> <label for="tipo_matriz">Matriz</label>
+                            <input type="radio" id="tipo_filial" name="tipo" value="filial"> <label for="tipo_filial">Filial</label>
+                        </div>
+                    </div>
+                    <!-- Seção para vincular à Matriz -->
+                    <div id="matriz-fields-container" style="display: none; grid-column: 1 / -1;">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="matriz_cnpj">CNPJ da Matriz (Opcional)</label>
+                                <input type="text" id="matriz_cnpj" name="matriz_cnpj" placeholder="Digite o CNPJ da matriz">
+                                <button type="button" id="btn-buscar-matriz" style="margin-top: 0.5rem; width: auto; padding: 0.5rem 1rem;">Buscar Matriz</button>
+                            </div>
+                            <div class="form-group">
+                                <label for="matriz_nome">Nome da Matriz</label>
+                                <input type="text" id="matriz_nome" name="matriz_nome" readonly style="background-color: #e9ecef;">
+                            </div>
+                            <!-- Campo oculto para armazenar o ID da matriz -->
+                            <input type="hidden" id="matriz_id" name="matriz_id">
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label for="cnpj">CNPJ</label>
                         <input type="text" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" required>
@@ -138,9 +92,23 @@
                     <div class="form-group">
                         <label>Natureza Jurídica</label>
                         <div class="radio-group" id="natureza-group">
-                            <div class="radio-item"><input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required onchange="atualizarLabelsSocios()"> <label for="natureza_individual">Individual</label></div>
-                            <div class="radio-item"><input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada" onchange="atualizarLabelsSocios()"> <label for="natureza_limitada">Limitada</label></div>
-                            <div class="radio-item"><input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros" onchange="atualizarLabelsSocios()"> <label for="natureza_outros">Outros</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_individual" name="natureza_juridica" value="Individual" required> <label for="natureza_individual">Individual</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_limitada" name="natureza_juridica" value="Limitada"> <label for="natureza_limitada">Limitada</label></div>
+                            <div class="radio-item"><input type="radio" id="natureza_outros" name="natureza_juridica" value="Outros"> <label for="natureza_outros">Outros</label></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Optante do Simples Nacional?</label>
+                        <div class="radio-group">
+                            <div class="radio-item"><input type="radio" id="simples_sim" name="simples_nacional" value="sim" required> <label for="simples_sim">Sim</label></div>
+                            <div class="radio-item"><input type="radio" id="simples_nao" name="simples_nacional" value="nao"> <label for="simples_nao">Não</label></div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="possui-filial-group" style="display: none;">
+                        <label>Possui Filial?</label>
+                        <div class="radio-group">
+                            <div class="radio-item"><input type="radio" id="possui_filial_sim" name="possui_filial" value="sim"> <label for="possui_filial_sim">Sim</label></div>
+                            <div class="radio-item"><input type="radio" id="possui_filial_nao" name="possui_filial" value="nao"> <label for="possui_filial_nao">Não</label></div>
                         </div>
                     </div>
                 </div>
@@ -160,6 +128,10 @@
                     <div class="form-group">
                         <label for="numero">Número</label>
                         <input type="text" id="numero" name="endereco.numero" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="complemento">Complemento (Opcional)</label>
+                        <input type="text" id="complemento" name="endereco.complemento">
                     </div>
                     <div class="form-group">
                         <label for="bairro">Bairro</label>
@@ -187,7 +159,7 @@
             <button type="button" class="accordion-header">Quadro Societário</button>
             <div class="accordion-content">
                 <div id="socios-container"></div>
-                <button type="button" class="btn-add" onclick="adicionarSocio()">+ Adicionar Sócio</button>
+                <button type="button" class="btn-add">+ Adicionar Sócio</button>
             </div>
 
             <button type="button" class="accordion-header">Documentos</button>
@@ -336,12 +308,26 @@
             <button type="button" class="accordion-header">Contrato Social</button>
             <div class="accordion-content">
                 <div id="contratos-container"></div>
-                <button type="button" class="btn-add" onclick="adicionarAlteracaoContrato()">+ Adicionar Alteração Contratual</button>
+                <button type="button" class="btn-add">+ Adicionar Alteração Contratual</button>
+            </div>
+
+            <button type="button" class="accordion-header">Balanços Patrimoniais</button>
+            <div class="accordion-content">
+                <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem;">Os balanços patrimoniais são documentos anuais. Adicione os balanços de cada ano fiscal.</p>
+                <div id="balancos-container"></div>
+                <button type="button" class="btn-add" id="btn-add-balanco">+ Adicionar Balanço Patrimonial</button>
+            </div>
+
+            <button type="button" class="accordion-header">Documentos Diversos</button>
+            <div class="accordion-content">
+                <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem;">Adicione outros documentos relevantes. Informe o nome do documento e, se aplicável, a data de validade para receber avisos de vencimento.</p>
+                <div id="diversos-container"></div>
+                <button type="button" class="btn-add" id="btn-add-diverso">+ Adicionar Documento</button>
             </div>
 
             <!-- NAVEGAÇÃO E SUBMISSÃO -->
             <div class="navigation-buttons" style="margin-top: 2rem;">
-                <button type="button" class="btn-secondary" onclick="window.location.href='empresas.html'">Cancelar</button>
+                <button type="button" class="btn-secondary">Cancelar</button>
                 <button type="submit" id="submitBtn">Salvar Alterações</button>
             </div>
         </form>
@@ -351,7 +337,7 @@
     <!-- Template para o card de sócio -->
     <template id="socio-template">
         <div class="socio-card">
-            <button type="button" class="btn-remover" style="float: right;" onclick="this.closest('.socio-card').remove()">Remover Sócio</button>
+            <button type="button" class="btn-remover" style="float: right;">Remover Sócio</button>
             <h3>Dados do Sócio</h3>
             <div class="form-grid">
                 <div class="form-group form-group-full">
@@ -394,7 +380,7 @@
                 </div>
                 <div class="form-group">
                     <label>Estado Civil</label>
-                    <select name="socios[INDEX][estado_civil]" onchange="toggleRegimeCasamento(this)" required>
+                    <select name="socios[INDEX][estado_civil]" required>
                         <option value="solteiro">Solteiro(a)</option>
                         <option value="casado">Casado(a)</option>
                         <option value="uniao_estavel">União Estável</option>
@@ -449,7 +435,7 @@
     <!-- Template para alteração de contrato -->
     <template id="contrato-template">
         <div class="alteracao-card">
-            <button type="button" class="btn-remover" style="float: right;" onclick="this.closest('.alteracao-card').remove()">Remover</button>
+            <button type="button" class="btn-remover" style="float: right;">Remover</button>
             <h3>Alteração Contratual</h3>
             <div class="form-grid" style="align-items: end;">
                 <div class="form-group">
@@ -465,333 +451,48 @@
         </div>
     </template>
 
-    <script src="shared.js"></script>
-    <script>
-        // Garante que o corpo da página só seja exibido se o usuário estiver logado
-        if (localStorage.getItem('token')) {
-            document.body.style.display = 'block';
-        } else {
-            window.location.replace('login.html');
-        }
+    <!-- Template para balanço patrimonial -->
+    <template id="balanco-template">
+        <div class="alteracao-card">
+            <button type="button" class="btn-remover" style="float: right;">Remover</button>
+            <h3>Balanço Patrimonial</h3>
+            <div class="form-grid" style="align-items: end;">
+                <div class="form-group">
+                    <label>Arquivo do Balanço (PDF)</label>
+                    <div class="file-info"></div>
+                    <input type="file" name="balanco_patrimonial[INDEX][arquivo]" accept=".pdf">
+                </div>
+                <div class="form-group">
+                    <label>Ano do Balanço</label>
+                    <input type="text" name="balanco_patrimonial[INDEX][ano]" placeholder="Ex: 2024" maxlength="4" required>
+                </div>
+            </div>
+        </div>
+    </template>
 
-        let socioIndex = 0;
-        let contratoIndex = 0;
-        const urlParams = new URLSearchParams(window.location.search);
-        const empresaId = urlParams.get('id');
+    <!-- Template para documento diverso -->
+    <template id="diverso-template">
+        <div class="alteracao-card">
+            <button type="button" class="btn-remover" style="float: right;">Remover</button>
+            <h3>Documento Diverso</h3>
+            <div class="form-grid" style="align-items: end;">
+                <div class="form-group">
+                    <label>Nome do Documento *</label>
+                    <input type="text" name="documento_diverso[INDEX][nome]" placeholder="Ex: Procuração, Ata de Reunião, etc." required>
+                </div>
+                <div class="form-group">
+                    <label>Arquivo (PDF) *</label>
+                    <div class="file-info"></div>
+                    <input type="file" name="documento_diverso[INDEX][arquivo]" accept=".pdf" required>
+                </div>
+                <div class="form-group">
+                    <label>Data de Validade (Opcional)</label>
+                    <input type="date" name="documento_diverso[INDEX][validade]" placeholder="Deixe em branco se não houver">
+                </div>
+            </div>
+        </div>
+    </template>
 
-        // --- CARREGAMENTO DOS DADOS ---
-        async function loadEmpresa() {
-            if (!empresaId) {
-                showMessage('ID da empresa não fornecido.', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetchWithAuth(`/api/empresas/${empresaId}`);
-                if (!response || !response.ok) throw new Error('Falha ao carregar dados da empresa.');
-                
-                const data = await response.json();
-
-                // Preenche dados da empresa
-                document.getElementById('cnpj').value = data.cnpj || '';
-                document.getElementById('inscricao_estadual').value = data.inscricao_estadual || '';
-                document.getElementById('data_abertura').value = data.data_abertura ? data.data_abertura.split('T')[0] : '';
-                document.getElementById('nome_empresarial').value = data.nome || '';
-                document.getElementById('nome_fantasia').value = data.nome_fantasia || '';
-                document.getElementById('nire').value = data.nire || '';
-                document.getElementById('capital_social').value = data.capital_social || '';
-                document.getElementById('atividade_principal').value = data.atividade_principal || '';
-                document.getElementById('atividade_principal_descricao').value = data.atividade_principal_descricao || ''; // Preenche a descrição
-                document.getElementById('email').value = data.email || '';
-                document.getElementById('telefone').value = data.telefone || '';
-
-                // Preenche radio buttons
-                if (data.porte) document.querySelector(`input[name="porte"][value="${data.porte}"]`).checked = true;
-                if (data.natureza_juridica) document.querySelector(`input[name="natureza_juridica"][value="${data.natureza_juridica}"]`).checked = true;
-
-                // Preenche endereço
-                if (data.endereco) {
-                    document.getElementById('cep').value = data.endereco.cep || '';
-                    document.getElementById('rua').value = data.endereco.rua || '';
-                    document.getElementById('numero').value = data.endereco.numero || '';
-                    document.getElementById('bairro').value = data.endereco.bairro || '';
-                    document.getElementById('cidade').value = data.endereco.cidade || '';
-                    document.getElementById('estado').value = data.endereco.estado || '';
-                }
-
-                // Preenche sócios
-                if (data.socios && data.socios.length > 0) {
-                    data.socios.forEach(socio => adicionarSocio(socio));
-                }
-
-                // Preenche documentos
-                if (data.documentos) {
-                    // Função auxiliar para criar o botão de remoção
-                    const criarInfoArquivo = (doc, infoDivId, hiddenInputName) => {
-                        if (doc && doc.caminhoArquivo) {
-                            const infoDiv = document.getElementById(infoDivId);
-                            infoDiv.innerHTML = `Arquivo atual: <a href="${doc.caminhoArquivo}" target="_blank">${doc.nomeArquivo}</a> <button type="button" class="btn-remover">Remover Arquivo</button>`;
-                            infoDiv.querySelector('.btn-remover').addEventListener('click', () => {
-                                infoDiv.innerHTML = '<span style="color: #dc3545;">Arquivo será removido ao salvar.</span>';
-                                document.querySelector(`input[name="${hiddenInputName}"]`).value = 'true';
-                            });
-                        }
-                    };
-
-                    criarInfoArquivo(data.documentos.cartaoCnpj, 'info_arquivo_cnpj', 'remover_arquivo_cnpj');
-                    criarInfoArquivo(data.documentos.certificadoDigital, 'info_certificado_digital', 'remover_certificado_digital');
-                    criarInfoArquivo(data.documentos.alvara, 'info_alvara_arquivo', 'remover_alvara_arquivo');
-                    criarInfoArquivo(data.documentos.certidaoPrefeitura, 'info_certidao_prefeitura_arquivo', 'remover_certidao_prefeitura_arquivo');
-                    criarInfoArquivo(data.documentos.certidaoReceita, 'info_certidao_receita_arquivo', 'remover_certidao_receita_arquivo');
-                    criarInfoArquivo(data.documentos.certidaoFGTS, 'info_certidao_fgts_arquivo', 'remover_certidao_fgts_arquivo');
-                    criarInfoArquivo(data.documentos.certidaoTrabalhista, 'info_certidao_trabalhista_arquivo', 'remover_certidao_trabalhista_arquivo');
-                    criarInfoArquivo(data.documentos.inscricaoEstadual, 'info_inscricao_estadual_arquivo', 'remover_inscricao_estadual_arquivo');
-                    criarInfoArquivo(data.documentos.certidaoSefaz, 'info_certidao_sefaz_arquivo', 'remover_certidao_sefaz_arquivo');
-                    criarInfoArquivo(data.documentos.certidaoFalencia, 'info_certidao_falencia_arquivo', 'remover_certidao_falencia_arquivo');
-
-                    // --- CORREÇÃO: Preenche os campos de data dos documentos ---
-                    const preencherCampoData = (idCampo, valorData) => {
-                        if (valorData) document.getElementById(idCampo).value = new Date(valorData).toISOString().split('T')[0];
-                    };
-
-                    preencherCampoData('certificado_validade', data.documentos.certificadoDigital?.dataValidade);
-                    preencherCampoData('certidao_prefeitura_validade', data.documentos.certidaoPrefeitura?.dataValidade);
-                    preencherCampoData('certidao_receita_validade', data.documentos.certidaoReceita?.dataValidade);
-                    preencherCampoData('certidao_fgts_validade', data.documentos.certidaoFGTS?.dataValidade);
-                    preencherCampoData('certidao_trabalhista_validade', data.documentos.certidaoTrabalhista?.dataValidade);
-                    preencherCampoData('inscricao_estadual_validade', data.documentos.inscricaoEstadual?.dataValidade);
-                    preencherCampoData('certidao_sefaz_validade', data.documentos.certidaoSefaz?.dataValidade);
-                    preencherCampoData('certidao_falencia_validade', data.documentos.certidaoFalencia?.dataValidade);
-                    
-                    // Preenche o ano do alvará
-                    if (data.documentos.alvara?.ano) document.getElementById('alvara_ano').value = data.documentos.alvara.ano;
-
-                    // Preenche a senha do certificado
-                    if (data.documentos.certificadoDigital?.senha) document.getElementById('certificado_senha').value = data.documentos.certificadoDigital.senha;
-
-                    if (data.documentos.contratos && data.documentos.contratos.length > 0) {
-                        data.documentos.contratos.forEach(contrato => adicionarAlteracaoContrato(contrato));
-                    }
-                }
-                
-                // Atualiza labels dos sócios baseado na natureza jurídica carregada
-                atualizarLabelsSocios();
-
-            } catch (error) {
-                showMessage(error.message, 'error');
-            }
-        }
-
-        // --- MANIPULAÇÃO DINÂMICA DO FORMULÁRIO ---
-        // Função para atualizar labels dos sócios baseado na natureza jurídica
-        function atualizarLabelsSocios() {
-            const natureza = document.querySelector('input[name="natureza_juridica"]:checked')?.value;
-            const isIndividual = natureza === 'Individual';
-            
-            document.querySelectorAll('.label-socio-tipo').forEach(label => {
-                label.textContent = isIndividual ? 'Função' : 'Tipo';
-            });
-            
-            document.querySelectorAll('.select-socio-tipo').forEach(select => {
-                const valorAtual = select.value;
-                if (isIndividual) {
-                    select.innerHTML = '<option value="sim">Titular</option>';
-                    select.value = 'sim';
-                } else {
-                    select.innerHTML = '<option value="nao">Sócio</option><option value="sim">Sócio Administrador</option>';
-                    select.value = valorAtual;
-                }
-            });
-        }
-
-        function adicionarSocio(socio = null) {
-            const template = document.getElementById('socio-template').innerHTML;
-            const container = document.getElementById('socios-container');
-            const newSocioDiv = document.createElement('div');
-            newSocioDiv.innerHTML = template.replace(/INDEX/g, socioIndex);
-            
-            if (socio) {
-                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][nome]"]`).value = socio.nome || '';
-                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][cpf]"]`).value = socio.cpf || '';
-                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][rg]"]`).value = socio.rg || '';
-                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][orgao_emissor]"]`).value = socio.orgao_emissor || '';
-                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][estado_emissor]"]`).value = socio.estado_emissor || '';
-                newSocioDiv.querySelector(`input[name="socios[${socioIndex}][data_nascimento]"]`).value = socio.data_nascimento ? socio.data_nascimento.split('T')[0] : '';
-                newSocioDiv.querySelector(`select[name="socios[${socioIndex}][genero]"]`).value = socio.genero || 'masculino';
-                newSocioDiv.querySelector(`select[name="socios[${socioIndex}][is_admin]"]`).value = socio.is_admin || 'nao';
-
-                // Preenche os campos de estado civil e regime
-                const estadoCivilSelect = newSocioDiv.querySelector(`select[name="socios[${socioIndex}][estado_civil]"]`);
-                if (socio.estado_civil) {
-                    estadoCivilSelect.value = socio.estado_civil;
-                    toggleRegimeCasamento(estadoCivilSelect); // Mostra o campo de regime, se aplicável
-                    newSocioDiv.querySelector(`select[name="socios[${socioIndex}][regime_casamento]"]`).value = socio.regime_casamento || 'comunhao_parcial';
-                }
-
-                // Preenche o endereço do sócio
-                if (socio.endereco) {
-                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][cep]"]`).value = socio.endereco.cep || '';
-                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][rua]"]`).value = socio.endereco.rua || '';
-                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][numero]"]`).value = socio.endereco.numero || '';
-                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][complemento]"]`).value = socio.endereco.complemento || '';
-                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][bairro]"]`).value = socio.endereco.bairro || '';
-                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][cidade]"]`).value = socio.endereco.cidade || '';
-                    newSocioDiv.querySelector(`input[name="socios[${socioIndex}][endereco][estado]"]`).value = socio.endereco.estado || '';
-                }
-            }
-
-            container.appendChild(newSocioDiv);
-            socioIndex++;
-            atualizarLabelsSocios(); // Atualiza labels após adicionar sócio
-        }
-
-        function adicionarAlteracaoContrato(contrato = null) {
-            const template = document.getElementById('contrato-template').innerHTML;
-            const container = document.getElementById('contratos-container');
-            const newContratoDiv = document.createElement('div');
-            newContratoDiv.innerHTML = template.replace(/INDEX/g, contratoIndex);
-
-            if (contrato) {
-                newContratoDiv.querySelector(`input[name="contrato_social[${contratoIndex}][data]"]`).value = contrato.dataAlteracao ? contrato.dataAlteracao.split('T')[0] : '';
-                const fileInfo = newContratoDiv.querySelector('.file-info');
-                if (contrato.caminhoArquivo) {
-                    fileInfo.innerHTML = `Arquivo atual: <a href="${contrato.caminhoArquivo}" target="_blank">${contrato.nomeArquivo}</a>`;
-                }
-            }
-
-            container.appendChild(newContratoDiv);
-            contratoIndex++;
-        }
-
-        // --- SUBMISSÃO DO FORMULÁRIO ---
-        document.getElementById('formulario-empresa').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Salvando...';
-
-            const formData = new FormData(this);
-
-            try {
-                const response = await fetchWithAuth(`/api/empresas/${empresaId}`, {
-                    method: 'PUT',
-                    body: formData
-                });
-
-                if (response && response.ok) {
-                    showMessage('Empresa atualizada com sucesso!', 'success');
-                    setTimeout(() => window.location.href = 'empresas.html', 2000);
-                } else {
-                    const errorData = await response.json();
-                    throw new Error(errorData.msg || 'Erro ao atualizar empresa.');
-                }
-            } catch (error) {
-                showMessage(`Erro: ${error.message}`, 'error');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Salvar Alterações';
-            }
-        });
-
-        function showMessage(text, type) {
-            const messageEl = document.getElementById('message');
-            messageEl.textContent = text;
-            messageEl.className = `message ${type}`;
-            messageEl.style.display = 'block';
-        }
-
-        // --- FUNÇÕES GLOBAIS ---
-        function toggleRegimeCasamento(select) {
-            const regimeDiv = select.closest('.form-group').nextElementSibling;
-            // Mostra o campo de regime apenas se for 'casado'
-            regimeDiv.style.display = select.value === 'casado' ? 'block' : 'none';
-        }
-
-        async function fetchCep(cep) {
-            try {
-                const response = await fetchWithAuth(`/api/empresas/cep/${cep}`);
-                if (!response || !response.ok) throw new Error('CEP não encontrado ou falha na consulta.');
-                const data = await response.json();
-                if (data.erro) throw new Error('CEP inválido');
-                return data;
-            } catch (error) {
-                alert(error.message);
-                return null;
-            }
-        }
-
-        // Adiciona a função ao escopo global para ser acessível pelo 'onblur'
-        window.buscarCepSocio = async function(cepInput) {
-            const cep = cepInput.value.replace(/\D/g, '');
-            if (cep.length !== 8) return;
-            const data = await fetchCep(cep);
-            if (data) {
-                const socioCard = cepInput.closest('.socio-card');
-                socioCard.querySelector('input[name$="[endereco][rua]"]').value = data.logradouro;
-                socioCard.querySelector('input[name$="[endereco][bairro]"]').value = data.bairro;
-                socioCard.querySelector('input[name$="[endereco][cidade]"]').value = data.localidade;
-                socioCard.querySelector('input[name$="[endereco][estado]"]').value = data.uf;
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Garante que o usuário seja verificado e o cabeçalho criado primeiro
-            const userResponse = await fetchWithAuth('/api/auth');
-            if (!userResponse) return; // fetchWithAuth já redireciona se não houver token
-
-            const usuario = await userResponse.json();
-            createHeader('header-placeholder', usuario);
-
-            if (!['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
-                alert('Acesso negado.');
-                window.location.href = 'home.html';
-                return;
-            }
-            loadEmpresa();
-            setupAccordion();
-            
-            // Adiciona listeners para atualizar labels quando natureza jurídica mudar
-            document.querySelectorAll('input[name="natureza_juridica"]').forEach(radio => {
-                radio.addEventListener('change', atualizarLabelsSocios);
-            });
-
-            function setupAccordion() {
-                const headers = document.querySelectorAll('.accordion-header');
-                headers.forEach(header => {
-                    header.addEventListener('click', () => {
-                        header.classList.toggle('active');
-                        const content = header.nextElementSibling;
-                        if (content.style.display === "block") {
-                            content.style.display = "none";
-                        } else {
-                            content.style.display = "block";
-                        }
-                    });
-                });
-            }
-
-            // --- LÓGICA DA API CNAE ---
-            document.getElementById('atividade_principal').addEventListener('blur', async (e) => {
-                const cnaeInput = e.target;
-                const cnaeCode = cnaeInput.value.replace(/\D/g, '');
-                const descInput = document.getElementById('atividade_principal_descricao');
-
-                if (cnaeCode.length === 7) {
-                    try {
-                        const response = await fetchWithAuth(`/api/empresas/cnae/${cnaeCode}`);
-                        if (!response.ok) throw new Error('Falha na consulta do CNAE.');
-                        const data = await response.json();
-                        if (data && data.descricao) { // A API retorna um objeto único
-                            descInput.value = data.descricao;
-                        } else {
-                            descInput.value = 'Código CNAE não encontrado.';
-                        }
-                    } catch (error) {
-                        descInput.value = 'Erro ao buscar descrição do CNAE.';
-                    }
-                }
-            });
-
-        });
-    </script>
+    <script src="js/pages/editar.js"></script>
 </body>
 </html>

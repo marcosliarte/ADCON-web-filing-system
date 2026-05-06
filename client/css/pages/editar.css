@@ -1,0 +1,170 @@
+/* editar.html.css */
+@import url('/css/pages/common-page.css');
+
+/* Correção para inputs de arquivo */
+input[type="file"] {
+    padding: 0.55rem;
+}
+
+/* Radio groups */
+.radio-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-top: 0.5rem;
+}
+
+.radio-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.radio-group label {
+    font-weight: normal;
+    margin-right: 0.5rem;
+}
+
+/* Botões específicos */
+.btn-add {
+    background-color: #28a745;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+
+.btn-add:hover {
+    background-color: #218838;
+}
+
+.btn-remover {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-remover:hover {
+    background-color: #c82333;
+}
+
+/* Cards */
+.socio-card,
+.alteracao-card {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 1rem;
+    margin-top: 1rem;
+    background-color: #f8f9fa;
+}
+
+.socio-card h3,
+.alteracao-card h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 0.5rem;
+}
+
+.file-info {
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 0.5rem;
+}
+
+/* Acordeão */
+.accordion-header {
+    background-color: #e9ecef;
+    color: #495057;
+    cursor: pointer;
+    padding: 1rem;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-top: 1rem;
+    border-radius: 5px;
+}
+
+.accordion-header.active::after {
+    content: '\25B2';
+}
+
+.accordion-header::after {
+    content: '\25BC';
+    float: right;
+}
+
+.accordion-content {
+    padding: 0 1rem;
+    background-color: white;
+    display: none;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+}
+
+.accordion-content.show {
+    display: block;
+}
+
+/* Tabelas */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+th {
+    background-color: #e9ecef;
+    font-weight: bold;
+}
+
+/* Filiais */
+.filial-card {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 1rem;
+    margin-top: 1rem;
+    background-color: #f8f9fa;
+}
+
+.filial-card h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 0.5rem;
+}
+
+.filial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.filial-header h3 {
+    margin: 0;
+    border: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .radio-group {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -1,0 +1,299 @@
+/* Importar estilos comuns */
+@import url('/css/pages/common-page.css');
+
+/* ============================================
+   RELATORIOS.HTML - Estilos Específicos
+   ============================================ */
+
+/* Filtros de relatórios */
+.filters {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.filters select,
+.filters input,
+.filters button {
+    padding: 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+/* Seções de relatório */
+.report-section {
+    display: none;
+    margin-top: 2rem;
+}
+
+/* Cards de resumo */
+.summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.summary-card {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    border-left: 5px solid #007bff;
+}
+
+.summary-card h3 {
+    margin-top: 0;
+    color: #555;
+    font-size: 1rem;
+}
+
+.summary-card.despesa {
+    border-left-color: #dc3545;
+}
+
+.summary-card.lucro {
+    border-left-color: #28a745;
+}
+
+.summary-card p {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #007bff;
+    margin: 0;
+}
+
+/* Estados de carregamento */
+.loading,
+.error {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    font-style: italic;
+}
+
+.success {
+    text-align: center;
+    padding: 1rem;
+    font-size: 1.1rem;
+    color: #28a745;
+    background-color: #eaf7ec;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+}
+
+.error {
+    color: #dc3545;
+}
+
+/* Seção de formulário */
+.form-section {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.form-section h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Botões de ação */
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+}
+
+.btn-edit {
+    background-color: #ffc107;
+    color: #212529;
+    border: none;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-right: 5px;
+}
+
+td.actions {
+    text-align: center;
+}
+
+.btn-print {
+    background-color: #17a2b8;
+}
+
+/* Tabelas responsivas */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Estilos do Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+.close-btn {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.modal-form .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+}
+
+.modal-form label {
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+/* --- MOBILE / RESPONSIVE --- */
+@media (max-width: 800px) {
+    .container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+
+    h1,
+    h2 {
+        font-size: 1.2rem;
+    }
+
+    .filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filters select,
+    .filters input,
+    .filters button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .row {
+        flex-direction: column;
+    }
+
+    .form-section {
+        margin-bottom: 1rem;
+    }
+
+    th,
+    td {
+        padding: 6px;
+        font-size: 0.9rem;
+    }
+
+    table {
+        min-width: 480px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        padding: 0.6rem 1rem;
+    }
+
+    .container {
+        padding: 0.75rem;
+    }
+
+    h1,
+    h2 {
+        font-size: 1.1rem;
+    }
+
+    table {
+        min-width: 420px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Estilos de Impressão */
+@media print {
+    body {
+        background-color: white;
+    }
+
+    .header,
+    .filters,
+    .form-section,
+    .modal,
+    #lancamentoStatus,
+    td.actions,
+    .action-buttons {
+        display: none !important;
+    }
+
+    .container {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        border-radius: 0;
+    }
+
+    #print-header {
+        display: block !important;
+    }
+
+    .summary-card {
+        border: 1px solid #ddd;
+    }
+
+    h1,
+    h2,
+    h3 {
+        page-break-after: avoid;
+    }
+
+    table {
+        page-break-inside: auto;
+    }
+}

@@ -42,15 +42,14 @@ router.post(
     const { nome, cargo, salarioBruto, chavePix, descontos, usuario } = req.body;
 
     try {
-      const funcionarioExistente = await Funcionario.findOne({ usuario });
-      if (funcionarioExistente) {
-        return res.status(400).json({ msg: 'Este usuário já está vinculado a um funcionário.' });
-      }
-
       const novoFuncionario = new Funcionario({ nome, cargo, salarioBruto, chavePix, descontos: descontos || [], usuario });
       await novoFuncionario.save();
       res.status(201).json(novoFuncionario);
     } catch (err) {
+      // Índice único no campo 'usuario' garante atomicidade — sem race condition
+      if (err.code === 11000) {
+        return res.status(400).json({ msg: 'Este usuário já está vinculado a um funcionário.' });
+      }
       console.error(err.message);
       res.status(500).json({ msg: 'Erro no servidor' });
     }

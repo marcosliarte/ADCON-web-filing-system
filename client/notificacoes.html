@@ -4,60 +4,13 @@
     <meta charset="UTF-8">
     <title>ADCON - Notificações</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-        .page-title { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-        
-        .notification-filters { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
-        .notification-filters select, .notification-filters button { padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid #ddd; }
-        .notification-filters button { background: #007bff; color: white; border: none; cursor: pointer; }
-        .notification-filters button:hover { background: #0056b3; }
-        .notification-filters button.secondary { background: #6c757d; }
-        .notification-filters button.secondary:hover { background: #5a6268; }
-        
-        .notification-card { background: white; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s; position: relative; }
-        .notification-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); transform: translateY(-2px); }
-        .notification-card.unread { border-left: 4px solid #007bff; background: #f0f8ff; }
-        
-        .notification-icon { font-size: 2rem; float: left; margin-right: 1rem; }
-        .notification-content { overflow: hidden; }
-        .notification-title { font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 0.5rem; }
-        .notification-message { color: #666; margin-bottom: 0.5rem; line-height: 1.5; }
-        .notification-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #999; }
-        .notification-time { font-style: italic; }
-        .notification-actions { display: flex; gap: 0.5rem; }
-        .notification-actions button { padding: 0.25rem 0.75rem; font-size: 0.8rem; border: none; 
-            border-radius: 4px; cursor: pointer; background: #6c757d; color: white; }
-        .notification-actions button:hover { background: #5a6268; }
-        .notification-actions .btn-delete { background: #dc3545; }
-        .notification-actions .btn-delete:hover { background: #c82333; }
-        
-        .empty-state { text-align: center; padding: 3rem; color: #999; }
-        .empty-state-icon { font-size: 4rem; margin-bottom: 1rem; }
-        
-        .loading { text-align: center; padding: 2rem; color: #666; }
-        
-        .tipo-badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 12px; 
-            font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; }
-        .tipo-documento_vencendo { background: #ffc107; color: #333; }
-        .tipo-documento_vencido { background: #dc3545; color: white; }
-        .tipo-pagamento_recebido { background: #28a745; color: white; }
-        .tipo-mensagem_admin { background: #007bff; color: white; }
-        .tipo-sistema { background: #6c757d; color: white; }
-    </style>
+    <link rel="stylesheet" href="css/pages/notificacoes.css">
 </head>
-<body style="display: none;">
-    <script>
-        if (!localStorage.getItem('token')) window.location.replace('login.html');
-    </script>
-    
+<body>
     <div id="header-placeholder"></div>
 
     <div class="container">
-        <h1 class="page-title">🔔 Central de Notificações</h1>
+        <h1>🔔 Central de Notificações</h1>
 
         <div class="notification-filters">
             <select id="filterTipo">
@@ -75,9 +28,9 @@
                 <option value="true">Lidas</option>
             </select>
             
-            <button onclick="aplicarFiltros()">Filtrar</button>
-            <button class="secondary" onclick="marcarTodasComoLidas()">Marcar todas como lidas</button>
-            <button class="secondary" onclick="limparNotificacoesLidas()">Limpar lidas</button>
+            <button id="btnFiltrar">Filtrar</button>
+            <button class="btn-secondary" id="btnMarcarLidas">Marcar todas como lidas</button>
+            <button class="btn-secondary" id="btnLimparLidas">Limpar lidas</button>
         </div>
 
         <div id="notificationContainer">
@@ -86,192 +39,6 @@
     </div>
 
     <script src="shared.js"></script>
-    <script>
-        let notificacoes = [];
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            const userResponse = await fetchWithAuth('/api/auth');
-            if (!userResponse) return;
-
-            const usuario = await userResponse.json();
-            createHeader('header-placeholder', usuario);
-            
-            document.body.style.display = 'block';
-            
-            carregarNotificacoes();
-        });
-
-        async function carregarNotificacoes() {
-            try {
-                const tipo = document.getElementById('filterTipo').value;
-                const lida = document.getElementById('filterLida').value;
-                
-                let url = '/api/notificacoes?limit=100';
-                if (tipo) url += `&tipo=${tipo}`;
-                if (lida) url += `&lida=${lida}`;
-
-                const response = await fetchWithAuth(url);
-                if (!response.ok) throw new Error('Falha ao carregar notificações');
-
-                const data = await response.json();
-                notificacoes = data.notificacoes;
-                
-                renderizarNotificacoes();
-            } catch (err) {
-                console.error(err);
-                document.getElementById('notificationContainer').innerHTML = 
-                    '<div class="empty-state"><div class="empty-state-icon">❌</div><p>Erro ao carregar notificações</p></div>';
-            }
-        }
-
-        function renderizarNotificacoes() {
-            const container = document.getElementById('notificationContainer');
-            
-            if (notificacoes.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🔔</div>
-                        <p>Nenhuma notificação encontrada</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const icones = {
-                'documento_vencendo': '⏰',
-                'documento_vencido': '⚠️',
-                'pagamento_recebido': '💰',
-                'mensagem_admin': '📢',
-                'sistema': 'ℹ️'
-            };
-
-            const tipoNomes = {
-                'documento_vencendo': 'Doc. Vencendo',
-                'documento_vencido': 'Doc. Vencido',
-                'pagamento_recebido': 'Pagamento',
-                'mensagem_admin': 'Mensagem',
-                'sistema': 'Sistema'
-            };
-
-            container.innerHTML = notificacoes.map(n => {
-                const tempo = formatarTempoCompleto(new Date(n.createdAt));
-                const icone = icones[n.tipo] || '📌';
-                const unreadClass = n.lida ? '' : 'unread';
-                const tipoClass = `tipo-${n.tipo}`;
-                const tipoNome = tipoNomes[n.tipo] || n.tipo;
-                
-                return `
-                    <div class="notification-card ${unreadClass}" onclick="abrirNotificacaoCompleta('${n._id}', '${n.link || ''}', ${n.lida})">
-                        <div class="notification-icon">${icone}</div>
-                        <div class="notification-content">
-                            <div class="notification-title">
-                                ${n.titulo}
-                                <span class="tipo-badge ${tipoClass}">${tipoNome}</span>
-                            </div>
-                            <div class="notification-message">${n.mensagem}</div>
-                            <div class="notification-meta">
-                                <span class="notification-time">${tempo}</span>
-                                <div class="notification-actions" onclick="event.stopPropagation();">
-                                    ${!n.lida ? `<button onclick="marcarComoLida('${n._id}')">✓ Marcar como lida</button>` : ''}
-                                    <button class="btn-delete" onclick="excluirNotificacao('${n._id}')">🗑️ Excluir</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function abrirNotificacaoCompleta(id, link, jaLida) {
-            if (!jaLida) {
-                await marcarComoLida(id);
-            }
-            
-            if (link && link !== '' && link !== 'null') {
-                window.location.href = link;
-            }
-        }
-
-        async function marcarComoLida(id) {
-            try {
-                const response = await fetchWithAuth(`/api/notificacoes/${id}/ler`, { method: 'PUT' });
-                if (!response.ok) throw new Error('Falha ao marcar como lida');
-                
-                // Atualiza localmente
-                const notif = notificacoes.find(n => n._id === id);
-                if (notif) notif.lida = true;
-                
-                renderizarNotificacoes();
-                updateNotificationBadge();
-            } catch (err) {
-                showToast('Erro ao marcar notificação como lida', 'error');
-            }
-        }
-
-        async function excluirNotificacao(id) {
-            if (!confirm('Deseja realmente excluir esta notificação?')) return;
-            
-            try {
-                const response = await fetchWithAuth(`/api/notificacoes/${id}`, { method: 'DELETE' });
-                if (!response.ok) throw new Error('Falha ao excluir');
-                
-                notificacoes = notificacoes.filter(n => n._id !== id);
-                renderizarNotificacoes();
-                updateNotificationBadge();
-                showToast('Notificação excluída', 'success');
-            } catch (err) {
-                showToast('Erro ao excluir notificação', 'error');
-            }
-        }
-
-        async function marcarTodasComoLidas() {
-            try {
-                const response = await fetchWithAuth('/api/notificacoes/ler-todas', { method: 'PUT' });
-                if (!response.ok) throw new Error('Falha ao marcar todas como lidas');
-                
-                showToast('Todas as notificações foram marcadas como lidas', 'success');
-                carregarNotificacoes();
-                updateNotificationBadge();
-            } catch (err) {
-                showToast('Erro ao marcar notificações como lidas', 'error');
-            }
-        }
-
-        async function limparNotificacoesLidas() {
-            if (!confirm('Deseja excluir todas as notificações já lidas?')) return;
-            
-            try {
-                const response = await fetchWithAuth('/api/notificacoes/limpar/lidas', { method: 'DELETE' });
-                if (!response.ok) throw new Error('Falha ao limpar');
-                
-                showToast('Notificações lidas excluídas com sucesso', 'success');
-                carregarNotificacoes();
-            } catch (err) {
-                showToast('Erro ao limpar notificações', 'error');
-            }
-        }
-
-        function aplicarFiltros() {
-            carregarNotificacoes();
-        }
-
-        function formatarTempoCompleto(data) {
-            const agora = new Date();
-            const diff = Math.floor((agora - data) / 1000);
-            
-            if (diff < 60) return 'Agora mesmo';
-            if (diff < 3600) return `Há ${Math.floor(diff / 60)} minuto(s)`;
-            if (diff < 86400) return `Há ${Math.floor(diff / 3600)} hora(s)`;
-            if (diff < 604800) return `Há ${Math.floor(diff / 86400)} dia(s)`;
-            
-            return data.toLocaleDateString('pt-BR', { 
-                day: '2-digit', 
-                month: '2-digit', 
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-    </script>
+    <script src="js/pages/notificacoes.js"></script>
 </body>
 </html>

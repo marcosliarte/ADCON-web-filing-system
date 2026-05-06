@@ -4,74 +4,11 @@
     <meta charset="UTF-8">
     <title>ADCON - Gerenciar Mensalidades</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        /* Estilos consistentes com o restante do sistema */
-        .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
-        .header h1 { margin: 0; font-size: 1.5rem; }
-        .dropdown { position: relative; display: inline-block; }
-        .dropdown-toggle { background-color: transparent; border: none; color: white; padding: 0.5rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; }
-        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; border-radius: 5px; overflow: hidden; }
-        .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
-        .dropdown-content a:hover { background-color: #f1f1f1; }
-        .show { display: block; }
-        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; }
-        .container { max-width: 1200px; margin: 2rem auto; background-color: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
-        h1.page-title { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-        .filtros { display: flex; gap: 1rem; margin-bottom: 1.5rem; align-items: center; flex-wrap: wrap; }
-        select, input[type="number"] { padding: 0.6rem; border-radius: 5px; border: 1px solid #ccc; font-size: 1rem; }
-        button { background-color: #007bff; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 5px; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
-        button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1em; }
-        th, td { border: 1px solid #ddd; padding: 0.75rem; text-align: left; vertical-align: middle; }
-        th { background-color: #e9ecef; }
-        .status-pago, .status-pendente, .status-atrasado, .status-não-gerada { font-weight: bold; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; text-align: center; }
-        .status-pago { color: #155724; background-color: #d4edda; }
-        .status-pendente { color: #856404; background-color: #fff3cd; }
-        .status-atrasado { color: #721c24; background-color: #f8d7da; }
-        .status-não-gerada { color: #555; background-color: #e9ecef; font-style: italic; }
-        .btn-acao { font-size: 0.8rem; padding: 0.4rem 0.8rem; margin: 2px; border-radius: 5px; color: white; border: none; cursor: pointer; }
-        .btn-gerar { background-color: #28a745; }
-        .btn-pagar { background-color: #17a2b8; }
-        .btn-excluir { background-color: #dc3545; }
-
-        /* Estilos do Modal */
-        .modal { display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fefefe; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; }
-        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .modal-form .form-group { display: flex; flex-direction: column; margin-bottom: 1rem; }
-        .modal-form label { margin-bottom: 0.5rem; font-weight: bold; }
-        .modal-form input { padding: 0.6rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
-        /* Responsividade para tabelas */
-        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-        /* --- MOBILE / RESPONSIVE --- */
-        @media (max-width: 800px) {
-            .container { margin: 1rem; padding: 1rem; }
-            h1.page-title { font-size: 1.25rem; }
-            .filtros { flex-direction: column; align-items: stretch; }
-            .filtros select, .filtros input, .filtros button { width: 100%; margin-bottom: 0.5rem; }
-            button { width: 100%; margin-bottom: 0.5rem; }
-            th, td { padding: 6px; font-size: 0.9rem; }
-            table { min-width: 520px; }
-            .btn-acao { display: block; width: 100%; margin: 4px 0; }
-        }
-        @media (max-width: 480px) {
-            .header { padding: 0.6rem 1rem; }
-            .container { padding: 0.75rem; }
-            h1.page-title { font-size: 1.1rem; }
-            table { min-width: 450px; font-size: 0.85rem; }
-            .modal-content { margin: 5% auto; width: 95%; }
-        }
-    </style>
+    <link rel="stylesheet" href="css/pages/mensalidades.css">
 </head>
 <body style="display: none;">
-    <!-- Script de bloqueio de acesso e exibição de conteúdo -->
     <script>
-        // Este script é executado antes de tudo. Se não houver token, redireciona.
-        if (!localStorage.getItem('token')) {
-            window.location.replace('login.html');
-        }
+        if (!localStorage.getItem('token')) window.location.replace('login.html');
     </script>
     <div id="header-placeholder"></div>
 
@@ -79,56 +16,89 @@
         <h1 class="page-title">Gerenciamento de Mensalidades</h1>
 
         <div class="filtros">
-            <label for="filtro-mes">Mês:</label>
-            <select id="filtro-mes"></select>
-            <label for="filtro-ano">Ano:</label>
-            <input type="number" id="filtro-ano" min="2020" max="2050">
-            <button onclick="carregarStatusMensalidades()">Filtrar</button>
+            <div class="filtro-grupo">
+                <label for="filtro-mes">Mês</label>
+                <select id="filtro-mes"></select>
+            </div>
+            <div class="filtro-grupo">
+                <label for="filtro-ano">Ano</label>
+                <input type="number" id="filtro-ano" min="2020" max="2050">
+            </div>
+            <div class="filtro-grupo filtro-busca">
+                <label for="filtro-busca">Buscar empresa</label>
+                <input type="text" id="filtro-busca" placeholder="Nome ou CNPJ...">
+            </div>
+            <button id="btn-filtrar" class="btn-filtrar">Filtrar</button>
+        </div>
+
+        <div class="stats-bar" id="stats-bar" style="display: none;">
+            <div class="stat-card">
+                <span class="stat-label">Total</span>
+                <span class="stat-value" id="stat-total">0</span>
+            </div>
+            <div class="stat-card stat-pago">
+                <span class="stat-label">Pagas</span>
+                <span class="stat-value" id="stat-pago">0</span>
+            </div>
+            <div class="stat-card stat-pendente">
+                <span class="stat-label">Pendentes</span>
+                <span class="stat-value" id="stat-pendente">0</span>
+            </div>
+            <div class="stat-card stat-atrasado">
+                <span class="stat-label">Atrasadas</span>
+                <span class="stat-value" id="stat-atrasado">0</span>
+            </div>
+            <div class="stat-card stat-nao-gerada">
+                <span class="stat-label">Não Geradas</span>
+                <span class="stat-value" id="stat-nao-gerada">0</span>
+            </div>
         </div>
 
         <div class="table-responsive">
-        <table id="tabela-mensalidades">
-            <thead>
-                <tr>
-                    <th>Empresa</th>
-                    <th>CNPJ</th>
-                    <th>Status</th>
-                    <th>Valor</th>
-                    <th>Data de Vencimento</th>
-                    <th>Data de Pagamento</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td colspan="7">Carregando...</td></tr>
-            </tbody>
-        </table>
+            <table id="tabela-mensalidades">
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>CNPJ</th>
+                        <th>Status</th>
+                        <th>Valor</th>
+                        <th>Vencimento</th>
+                        <th>Pagamento</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="7">Carregando...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Modal para Ações -->
+    <!-- Modal -->
     <div id="acao-modal" class="modal">
-        <div class="modal-content" style="max-width: 95%; box-sizing: border-box;">
-            <span class="close-btn" onclick="fecharModal()">&times;</span>
+        <div class="modal-content">
+            <button class="close-btn" id="modal-close-btn" aria-label="Fechar">&times;</button>
             <h2 id="modal-titulo"></h2>
             <form id="modal-form" class="modal-form">
                 <input type="hidden" id="modal-mensalidade-id">
                 <input type="hidden" id="modal-empresa-id">
                 <div class="form-group">
                     <label for="modal-valor">Valor (R$)</label>
-                    <input type="number" id="modal-valor" step="0.01" required>
+                    <input type="number" id="modal-valor" step="0.01" min="0" required placeholder="0,00">
                 </div>
-                <div class="form-group" style="display: none;">
+                <div class="form-group" id="grupo-data-vencimento" style="display: none;">
                     <label for="modal-data-vencimento">Data de Vencimento</label>
                     <input type="date" id="modal-data-vencimento">
                 </div>
-                <button type="submit" id="modal-submit-btn">Salvar</button>
+                <div class="modal-actions">
+                    <button type="submit" id="modal-submit-btn">Salvar</button>
+                    <button type="button" class="btn-cancelar" id="modal-cancel-btn">Cancelar</button>
+                </div>
             </form>
         </div>
     </div>
 
     <script src="shared.js"></script>
-    <!-- O JavaScript foi movido para um arquivo externo -->
-    <script src="mensalidades.js"></script>
+    <script src="js/pages/mensalidades.js"></script>
 </body>
 </html>

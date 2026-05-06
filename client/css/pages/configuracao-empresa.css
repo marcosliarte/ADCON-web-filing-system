@@ -1,0 +1,96 @@
+/* configuracao-empresa.css */
+@import url('/css/pages/common-page.css');
+
+/* Estilos específicos para upload do logotipo */
+.logo-section {
+    margin-bottom: 2rem;
+}
+
+.logo-container {
+    position: relative;
+    text-align: center;
+    padding: 2rem;
+    border: 2px dashed #ccc;
+    border-radius: 12px;
+    background-color: #fafafa;
+    transition: all 0.3s ease;
+}
+
+.logo-container.has-logo {
+    border-style: solid;
+    border-color: #007bff;
+    background-color: #f8f9ff;
+}
+
+.logo-container.readonly {
+    cursor: default;
+}
+
+.logo-preview-wrapper {
+    display: inline-block;
+    position: relative;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.logo-preview {
+    max-width: 100%;
+    max-height: 150px;
+    display: block;
+    margin: 0 auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.logo-placeholder {
+    color: #888;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo-placeholder svg {
+    width: 64px;
+    height: 64px;
+    opacity: 0.3;
+}
+
+.logo-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-logo {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-upload {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-upload:hover {
+    background-color: #0056b3;
+}
+
+.btn-remove {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-remove:hover {
+    background-color: #c82333;
+}
+
+#logotipoInput {
+    display: none;
+}

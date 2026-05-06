@@ -4,70 +4,7 @@
     <meta charset="UTF-8">
     <title>ADCON - Central do Administrador</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        /* Estilos consistentes com o restante do sistema */
-        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background-color: #f4f7f6; }
-        .header { background-color: #007bff; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
-        .header h1 { margin: 0; font-size: 1.5rem; }
-        .dropdown { position: relative; display: inline-block; }
-        .dropdown-toggle { background-color: transparent; border: none; color: white; padding: 0.5rem; font-size: 1rem; cursor: pointer; display: flex; align-items: center; }
-        .dropdown-content { display: none; position: absolute; right: 0; background-color: white; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 1; border-radius: 5px; overflow: hidden; }
-        .dropdown-content a { color: #333a40; padding: 12px 16px; text-decoration: none; display: flex; align-items: center; gap: 10px; }
-        .dropdown-content a:hover { background-color: #f1f1f1; }
-        .show { display: block; }
-        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-        h1.page-title { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-        .widget { background-color: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.06); }
-        .widget h3 { margin-top: 0; color: #007bff; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
-        .widget-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; font-size: 1.1rem; }
-        .widget-item span:first-child { font-weight: 500; }
-        .status-indicator { padding: 0.3rem 0.8rem; border-radius: 12px; color: white; font-size: 0.9rem; }
-        .status-ok { background-color: #28a745; }
-        .status-error { background-color: #dc3545; }
-        /* --- NOVOS ESTILOS --- */
-        .log-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; border-top: 1px solid #eee; margin-top: 1rem; }
-        .log-item { padding: 0.5rem; border-bottom: 1px solid #f1f1f1; font-size: 0.9rem; }
-        .log-item:last-child { border-bottom: none; }
-        .log-item .log-time { color: #6c757d; font-size: 0.8rem; display: block; }
-        .log-item .log-user { font-weight: bold; }
-        .log-item .log-device { color: #6c757d; font-size: 0.8rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        /* --------------------- */
-
-        /* --- ESTILOS PARA A BARRA DE ROLAGEM DOS ALERTAS --- */
-        #alerts-widget {
-            max-height: 200px; /* Altura máxima da caixa de alertas */
-            overflow-y: auto;  /* Ativa a barra de rolagem vertical quando necessário */
-            border: 1px solid #eee;
-            border-radius: 4px;
-            padding: 0.5rem;
-        }
-        #alerts-widget ul { list-style: none; padding: 0; margin: 0; }
-        #alerts-widget li { padding: 0.5rem 0; border-bottom: 1px solid #f1f1f1; }
-        #alerts-widget li:last-child { border-bottom: none; }
-        /* ---------------------------------------------------- */
-        .quick-links { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
-        .quick-links a { background-color: #6c757d; color: white; text-decoration: none; padding: 0.6rem 1rem; border-radius: 5px; transition: background-color 0.2s; }
-        .quick-links a:hover { background-color: #5a6268; }
-        .backup-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; }
-        .backup-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; border-bottom: 1px solid #eee; }
-        .backup-item:last-child { border-bottom: none; }
-        .backup-actions button, .backup-actions a button { font-size: 0.8rem; padding: 0.3rem 0.6rem; margin-left: 5px; border: none; border-radius: 4px; cursor: pointer; }
-        .backup-actions .btn-download { background-color: #17a2b8; color: white; }
-        .backup-actions .btn-restore { background-color: #ffc107; color: #212529; }
-        .backup-actions .btn-delete { background-color: #dc3545; color: white; }
-        
-        /* Estilos para usuários online */
-        .online-user { display: flex; align-items: center; padding: 0.5rem; border-bottom: 1px solid #f1f1f1; }
-        .online-user:last-child { border-bottom: none; }
-        .online-indicator { width: 10px; height: 10px; background-color: #28a745; border-radius: 50%; margin-right: 10px; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .user-info { flex: 1; }
-        .user-name { font-weight: 500; font-size: 0.95rem; }
-        .user-role { font-size: 0.8rem; color: #6c757d; }
-        .last-activity { font-size: 0.75rem; color: #6c757d; margin-top: 2px; }
-        #online-users-widget { max-height: 300px; overflow-y: auto; }
-    </style>
+    <link rel="stylesheet" href="css/pages/admin-dashboard.css">
 </head>
 <body style="display: none;">
     <script>
@@ -86,6 +23,24 @@
             <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:1rem;">
                 <button id="confirmCancelBtn" style="padding:6px 10px; border-radius:4px; border:none; background:#6c757d; color:white">Cancelar</button>
                 <button id="confirmOkBtn" style="padding:6px 10px; border-radius:4px; border:none; background:#007bff; color:white">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Análise de Backup -->
+    <div id="analyzeBackupModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9998; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:8px; width:95%; max-width:900px; max-height:90vh; overflow:auto; padding:1.5rem; box-shadow:0 8px 24px rgba(0,0,0,0.3);">
+            <h3 style="margin-top:0; color:#007bff; display:flex; justify-content:space-between; align-items:center;">
+                <span>🔍 Análise do Backup</span>
+                <button id="closeAnalyzeModalBtn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#999;">×</button>
+            </h3>
+            <div id="analyzeBackupContent" style="margin-top:1rem;">
+                <p>Carregando análise...</p>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:1.5rem; padding-top:1rem; border-top:1px solid #dee2e6;">
+                <button id="closeAnalyzeModalBtn2" style="padding:8px 16px; border-radius:5px; border:none; background:#6c757d; color:white; cursor:pointer;">Fechar</button>
+                <button id="downloadFromAnalyzeBtn" style="padding:8px 16px; border-radius:5px; border:none; background:#28a745; color:white; cursor:pointer;">📥 Baixar Backup</button>
+                <button id="restoreFromAnalyzeBtn" style="padding:8px 16px; border-radius:5px; border:none; background:#007bff; color:white; cursor:pointer;">🔄 Restaurar</button>
             </div>
         </div>
     </div>
@@ -114,10 +69,10 @@
                     <label style="font-size:0.9rem;">Até: <input type="date" id="filter-end" style="margin-left:6px"></label>
                     <label style="font-size:0.9rem;">Usuário: <select id="filter-user" style="margin-left:6px"><option value="">Todos</option></select></label>
                     <label style="font-size:0.9rem;">Ação/Texto: <input id="filter-action" placeholder="Buscar texto..." style="margin-left:6px"></label>
-                    <button onclick="applyLogFilters()">Aplicar Filtros</button>
-                    <button onclick="exportLogsCSV()">Exportar Logs (CSV)</button>
-                    <button onclick="exportUsersCSV()" style="background:#28a745">Exportar Usuários (CSV)</button>
-                    <button onclick="exportStatsCSV()" style="background:#17a2b8">Exportar Estatísticas (CSV)</button>
+                    <button id="btn-apply-filters">Aplicar Filtros</button>
+                    <button id="btn-export-logs">Exportar Logs (CSV)</button>
+                    <button id="btn-export-users" style="background:#28a745">Exportar Usuários (CSV)</button>
+                    <button id="btn-export-stats" style="background:#17a2b8">Exportar Estatísticas (CSV)</button>
                     <a href="logs.html"><button style="background:#6c757d">Ver todos os logs</button></a>
                 </div>
             </div>
@@ -152,16 +107,12 @@
             <!-- Widget de Backup -->
             <div class="widget">
                 <h3>Backup e Restauração</h3>
-                <button onclick="criarBackup()">Criar Backup Agora</button>
-                <button onclick="verificarDiagnostico()" style="background: #17a2b8; margin-left: 0.5rem;">🔍 Diagnóstico DB</button>
+                <button id="btn-criar-backup">Criar Backup Agora</button>
                 <!-- CAMPO PARA CARREGAR BACKUP -->
                 <div style="margin-top: 1rem; border-top: 1px solid #eee; padding-top: 1rem;">
                     <label for="backup-file-input" style="display: block; margin-bottom: 0.5rem;">Ou carregue um arquivo de backup (.zip):</label>
                     <input type="file" id="backup-file-input" accept=".zip" style="font-size: 0.9rem;">
-                    <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-                        <button onclick="inspecionarBackup()" style="background: #17a2b8;">🔍 Inspecionar</button>
-                        <button onclick="carregarBackup()">📥 Restaurar</button>
-                    </div>
+                    <button id="btn-carregar-backup" style="margin-top: 0.5rem;">Carregar e Restaurar</button>
                 </div>
 
                 <div id="backup-status" style="margin-top: 1rem;"></div>
@@ -630,10 +581,10 @@
                             <small>${new Date(backup.createdAt).toLocaleString('pt-BR')} - ${backup.size} MB</small>
                         </div>
                         <div class="backup-actions">
-                            <button class="btn-download" style="background: #17a2b8;" onclick="inspecionarBackupServidor('${backup.filename}')">🔍</button>
-                            <a href="#" onclick="baixarBackup(event, '${backup.filename}')"><button class="btn-download">Baixar</button></a>
-                            <button class="btn-restore" onclick="restaurarBackup('${backup.filename}')">Restaurar</button>
-                            <button class="btn-delete" onclick="excluirBackup('${backup.filename}')">Excluir</button>
+                            <button class="btn-analyze" data-filename="${backup.filename}" title="Visualizar conteúdo do backup">🔍 Analisar</button>
+                            <button class="btn-download" data-filename="${backup.filename}">Baixar</button>
+                            <button class="btn-restore" data-filename="${backup.filename}">Restaurar</button>
+                            <button class="btn-delete" data-filename="${backup.filename}">Excluir</button>
                         </div>
                     `;
                     list.appendChild(item);
@@ -656,6 +607,123 @@
             } catch (error) {
                 statusDiv.innerHTML = `<p style="color: red;">${error.message}</p>`;
             }
+        }
+
+        // Funções de análise de backup
+        let currentAnalyzedBackup = null;
+
+        async function analisarBackup(filename) {
+            currentAnalyzedBackup = filename;
+            const modal = document.getElementById('analyzeBackupModal');
+            const content = document.getElementById('analyzeBackupContent');
+            
+            modal.style.display = 'flex';
+            content.innerHTML = '<p style="text-align:center;"><em>Carregando análise do backup...</em></p>';
+            
+            try {
+                const response = await fetchWithAuth(`/api/admin/backup/analyze/${filename}`);
+                if (!response.ok) throw new Error('Falha ao analisar backup.');
+                
+                const data = await response.json();
+                
+                content.innerHTML = `
+                    <div style="background:#f8f9fa; padding:1rem; border-radius:5px; margin-bottom:1rem;">
+                        <h4 style="margin-top:0; color:#495057;">📁 Informações do Arquivo</h4>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.5rem;">
+                            <div><strong>Nome:</strong> ${data.filename}</div>
+                            <div><strong>Tamanho:</strong> ${data.size}</div>
+                            <div><strong>Data:</strong> ${new Date(data.createdAt).toLocaleString('pt-BR')}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background:#e7f3ff; padding:1rem; border-radius:5px; border-left:4px solid #007bff; margin-bottom:1rem;">
+                        <h4 style="margin-top:0; color:#0056b3;">📊 Estatísticas do Banco de Dados</h4>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:0.8rem;">
+                            <div style="text-align:center; padding:0.5rem; background:white; border-radius:4px;">
+                                <div style="font-size:2rem; color:#007bff; font-weight:bold;">${data.database.collections.usuarios || 0}</div>
+                                <div style="font-size:0.9rem; color:#6c757d;">Usuários</div>
+                            </div>
+                            <div style="text-align:center; padding:0.5rem; background:white; border-radius:4px;">
+                                <div style="font-size:2rem; color:#28a745; font-weight:bold;">${data.database.collections.empresas || 0}</div>
+                                <div style="font-size:0.9rem; color:#6c757d;">Empresas</div>
+                            </div>
+                            <div style="text-align:center; padding:0.5rem; background:white; border-radius:4px;">
+                                <div style="font-size:2rem; color:#17a2b8; font-weight:bold;">${data.database.collections.funcionarios || 0}</div>
+                                <div style="font-size:0.9rem; color:#6c757d;">Funcionários</div>
+                            </div>
+                            <div style="text-align:center; padding:0.5rem; background:white; border-radius:4px;">
+                                <div style="font-size:2rem; color:#ffc107; font-weight:bold;">${data.database.collections.notificacoes || 0}</div>
+                                <div style="font-size:0.9rem; color:#6c757d;">Notificações</div>
+                            </div>
+                            <div style="text-align:center; padding:0.5rem; background:white; border-radius:4px;">
+                                <div style="font-size:2rem; color:#6610f2; font-weight:bold;">${data.database.collections.logs || 0}</div>
+                                <div style="font-size:0.9rem; color:#6c757d;">Logs</div>
+                            </div>
+                        </div>
+                        <div style="margin-top:1rem; padding:0.5rem; background:white; border-radius:4px;">
+                            <strong>Total de Coleções:</strong> ${data.database.totalCollections} | 
+                            <strong>Total de Documentos:</strong> ${data.database.totalDocuments}
+                        </div>
+                    </div>
+                    
+                    <div style="background:#fff3cd; padding:1rem; border-radius:5px; border-left:4px solid #ffc107; margin-bottom:1rem;">
+                        <h4 style="margin-top:0; color:#856404;">📂 Arquivos de Upload</h4>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.8rem;">
+                            <div style="padding:0.5rem; background:white; border-radius:4px;">
+                                <strong>Total de Arquivos:</strong> ${data.uploads.totalFiles}
+                            </div>
+                            <div style="padding:0.5rem; background:white; border-radius:4px;">
+                                <strong>Tamanho Total:</strong> ${data.uploads.totalSize}
+                            </div>
+                        </div>
+                        ${data.uploads.folders && data.uploads.folders.length > 0 ? `
+                            <div style="margin-top:1rem;">
+                                <strong>Pastas encontradas:</strong>
+                                <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+                                    ${data.uploads.folders.map(folder => `<li>${folder.name}: ${folder.count} arquivos</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div style="background:#d1ecf1; padding:1rem; border-radius:5px; border-left:4px solid #17a2b8;">
+                        <h4 style="margin-top:0; color:#0c5460;">ℹ️ Informações Adicionais</h4>
+                        <ul style="margin:0; padding-left:1.5rem;">
+                            <li>Este backup contém todos os dados do banco de dados MongoDB</li>
+                            <li>Os arquivos de upload serão restaurados na pasta uploads/</li>
+                            <li>Ao restaurar, os dados atuais serão substituídos</li>
+                            <li>Recomenda-se criar um backup atual antes de restaurar</li>
+                        </ul>
+                    </div>
+                `;
+                
+                // Configurar botões do modal
+                document.getElementById('downloadFromAnalyzeBtn').onclick = (e) => {
+                    e.preventDefault();
+                    baixarBackupDirect(filename);
+                };
+                
+                document.getElementById('restoreFromAnalyzeBtn').onclick = () => {
+                    closeAnalyzeModal();
+                    restaurarBackup(filename);
+                };
+                
+            } catch (error) {
+                content.innerHTML = `<p style="color:red; text-align:center;">❌ Erro ao analisar backup: ${error.message}</p>`;
+            }
+        }
+
+        function closeAnalyzeModal() {
+            document.getElementById('analyzeBackupModal').style.display = 'none';
+            currentAnalyzedBackup = null;
+        }
+
+        function baixarBackupDirect(filename) {
+            const url = `/api/admin/backup/download/${filename}`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
         }
 
         async function restaurarBackup(filename) {
@@ -683,12 +751,12 @@
                     body: JSON.stringify({ filename })
                 });
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.msg || 'Falha ao restaurar.');
+                if (!response.ok) throw new Error((result.msg || 'Falha ao restaurar.') + (result.error ? `\nDetalhe: ${result.error}` : ''));
 
                 alert(result.msg); // Alerta de sucesso
                 window.location.reload(); // Recarrega a página para refletir os dados restaurados
             } catch (error) {
-                statusDiv.innerHTML = `<p style="color: red;">${error.message}</p>`;
+                statusDiv.innerHTML = `<p style="color: red; white-space: pre-wrap;">${error.message}</p>`;
             }
         }
 
@@ -1013,6 +1081,42 @@
                 btnCancel.addEventListener('click', onCancel);
             });
         }
+
+        // Event Listeners - Removendo onclick inline
+        document.addEventListener('DOMContentLoaded', () => {
+            // Modal de análise - botões de fechar
+            document.getElementById('closeAnalyzeModalBtn')?.addEventListener('click', closeAnalyzeModal);
+            document.getElementById('closeAnalyzeModalBtn2')?.addEventListener('click', closeAnalyzeModal);
+
+            // Botões de filtro e export
+            document.getElementById('btn-apply-filters')?.addEventListener('click', applyLogFilters);
+            document.getElementById('btn-export-logs')?.addEventListener('click', exportLogsCSV);
+            document.getElementById('btn-export-users')?.addEventListener('click', exportUsersCSV);
+            document.getElementById('btn-export-stats')?.addEventListener('click', exportStatsCSV);
+
+            // Botões de backup
+            document.getElementById('btn-criar-backup')?.addEventListener('click', criarBackup);
+            document.getElementById('btn-carregar-backup')?.addEventListener('click', carregarBackup);
+
+            // Event delegation para botões dinâmicos de backup
+            document.getElementById('backup-list')?.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+
+                const filename = btn.dataset.filename;
+                if (!filename) return;
+
+                if (btn.classList.contains('btn-analyze')) {
+                    analisarBackup(filename);
+                } else if (btn.classList.contains('btn-download')) {
+                    baixarBackup(e, filename);
+                } else if (btn.classList.contains('btn-restore')) {
+                    restaurarBackup(filename);
+                } else if (btn.classList.contains('btn-delete')) {
+                    excluirBackup(filename);
+                }
+            });
+        });
     </script>
 </body>
 </html>

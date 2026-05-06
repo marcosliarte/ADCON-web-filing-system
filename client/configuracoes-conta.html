@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>ADCON - Configurações da Conta</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/pages/account-settings.css">
+</head>
+<body style="display:none;">
+  <script>
+    if (localStorage.getItem('token')) {
+      document.body.style.display = 'block';
+    } else {
+      window.location.replace('login.html');
+    }
+  </script>
+  <script src="shared.js"></script>
+  <script src="js/pages/account-settings.js"></script>
+
+  <div id="header-placeholder"></div>
+
+  <div class="container">
+    <a class="back-btn" href="home.html">Voltar para Home</a>
+
+    <div class="card">
+      <h2 id="sec-senha">Alterar Senha</h2>
+      <form id="changePasswordForm">
+        <div class="input-group">
+          <label for="senhaAtual">Senha Atual</label>
+          <div class="input-with-action">
+            <input type="password" id="senhaAtual" autocomplete="current-password" required>
+            <button type="button" class="toggle-visibility" aria-label="Mostrar/ocultar senha atual" data-target="senhaAtual">Mostrar</button>
+          </div>
+        </div>
+        <div class="input-group">
+          <label for="novaSenha">Nova Senha</label>
+          <div class="input-with-action">
+            <input type="password" id="novaSenha" autocomplete="new-password" required>
+            <button type="button" class="toggle-visibility" aria-label="Mostrar/ocultar nova senha" data-target="novaSenha">Mostrar</button>
+          </div>
+          <div class="strength-meter" aria-hidden="true">
+            <div class="bar" id="pw-bar-1"></div>
+            <div class="bar" id="pw-bar-2"></div>
+            <div class="bar" id="pw-bar-3"></div>
+            <div class="bar" id="pw-bar-4"></div>
+          </div>
+          <ul class="validation-list" id="pw-rules">
+            <li data-rule="len">Mínimo de 8 caracteres</li>
+            <li data-rule="upper">Letra maiúscula</li>
+            <li data-rule="lower">Letra minúscula</li>
+            <li data-rule="digit">Número</li>
+            <li data-rule="special">Caractere especial (!@#$%…)</li>
+          </ul>
+        </div>
+        <div class="input-group">
+          <label for="confirmarNovaSenha">Confirmar Nova Senha</label>
+          <div class="input-with-action">
+            <input type="password" id="confirmarNovaSenha" autocomplete="new-password" required>
+            <button type="button" class="toggle-visibility" aria-label="Mostrar/ocultar confirmar senha" data-target="confirmarNovaSenha">Mostrar</button>
+          </div>
+          <small id="pw-match" class="helper-text"></small>
+        </div>
+        <button type="submit" id="btnSubmitSenha" disabled>Alterar Senha</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 id="sec-email">Alterar Email</h2>
+      <form id="changeEmailForm">
+        <div class="input-group">
+          <label for="novoEmail">Novo Email</label>
+          <input type="email" id="novoEmail" autocomplete="email" required>
+          <small id="emailFormatMsg" class="helper-text"></small>
+        </div>
+        <div class="input-group">
+          <label for="confirmarNovoEmail">Confirmar Novo Email</label>
+          <input type="email" id="confirmarNovoEmail" autocomplete="email" required>
+          <small id="emailMatchMsg" class="helper-text"></small>
+        </div>
+        <button type="submit" id="btnSubmitEmail" disabled>Alterar Email</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="footer">&copy; 2025 ADCON. Todos os direitos reservados.</div>
+</body>
+</html>

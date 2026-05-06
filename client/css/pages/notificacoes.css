@@ -1,0 +1,227 @@
+/* === NOTIFICAÇÕES - SISTEMA ADCON === */
+@import url('/css/pages/common-page.css');
+
+/* Container principal */
+.container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* Filtros de notificações */
+.notification-filters {
+    background: var(--card-bg);
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.notification-filters select {
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 0.9rem;
+    background: var(--card-bg);
+    color: var(--neutral-700);
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.notification-filters select:focus {
+    outline: none;
+    border-color: var(--primary-600);
+    box-shadow: 0 0 0 0.2rem var(--focus-ring);
+}
+
+.notification-filters button {
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.notification-filters .btn-secondary {
+    background-color: var(--muted);
+}
+
+.notification-filters .btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Card de notificação */
+.notification-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+    position: relative;
+}
+
+.notification-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+    border-color: #d9e7ff;
+}
+
+.notification-card.unread {
+    border-left: 4px solid var(--primary);
+    background: var(--accent-bg);
+/* Conteúdo da notificação */
+.notification-icon {
+    font-size: 2rem;
+    float: left;
+    margin-right: 1rem;
+    line-height: 1;
+}
+
+.notification-content {
+    overflow: hidden;
+}
+
+.notification-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--neutral-700);
+    margin-bottom: 0.5rem;
+}
+
+.notification-message {
+    color: var(--neutral-600);
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+.notification-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 0.75rem;
+}
+
+.notification-time {
+    font-style: italic;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.notification-actions button {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: var(--muted);
+    color: white;
+    font-weight: 500;
+    transition: background-color 0.15s, transform 0.1s;
+}
+
+.notification-actions button:hover {
+    background: #5a6268;
+    transform: scale(1.02);
+}
+
+.notification-actions .btn-delete {
+    background: var(--danger);
+}
+
+/* Estado vazio */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--muted);
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.6;
+}
+
+/* Estado de carregamento */
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--neutral-600);
+    font-style: italic;
+}
+
+/* Badges de tipo */
+.tipo-badge {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+}
+
+.tipo-documento_vencendo {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.tipo-documento_vencido {
+    background: var(--danger);
+    color: white;
+}
+
+.tipo-pagamento_recebido {
+    background: var(--primary);
+    color: white;
+}
+
+.tipo-mensagem_admin {
+    background: var(--primary-600);
+    color: white;
+}
+
+.tipo-sistema {
+    background: var(--muted);
+    color: white;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .notification-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .notification-filters select,
+    .notification-filters button {
+        width: 100%;
+    }
+    
+    .notification-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}   color: white;
+}
+
+.tipo-sistema {
+    background: #6c757d;
+    color: white;
+}

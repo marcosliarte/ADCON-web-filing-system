@@ -37,6 +37,23 @@ const ContratoSchema = new mongoose.Schema({
   numeroAlteracao: { type: String },
 }, { _id: false });
 
+// Schema para Balanço Patrimonial (anual)
+const BalancoPatrimonialSchema = new mongoose.Schema({
+  nomeArquivo: { type: String, required: true },
+  caminhoArquivo: { type: String, required: true },
+  ano: { type: String, required: true }, // Ano do balanço (ex: "2024")
+  dataUpload: { type: Date, default: Date.now },
+}, { _id: false });
+
+// Schema para Documentos Diversos
+const DocumentoDiversoSchema = new mongoose.Schema({
+  nomeDocumento: { type: String, required: true }, // Nome/descrição do documento
+  nomeArquivo: { type: String, required: true },
+  caminhoArquivo: { type: String, required: true },
+  dataValidade: { type: Date }, // Opcional - se tiver validade
+  dataUpload: { type: Date, default: Date.now },
+}, { _id: false });
+
 // Schema para Certidões com validade
 const CertidaoSchema = new mongoose.Schema({
   nomeArquivo: String,
@@ -64,6 +81,7 @@ const DocumentosEmpresaSchema = new mongoose.Schema({
     senha: { type: String, select: false } // Senha não é retornada em queries
   },
   contratos: [ContratoSchema],
+  balancosPatrimoniais: [BalancoPatrimonialSchema], // Array de balanços anuais
   alvara: AlvaraSchema,
   certidaoPrefeitura: CertidaoSchema,
   certidaoReceita: CertidaoSchema,

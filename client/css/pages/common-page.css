@@ -1,0 +1,347 @@
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    background-color: var(--bg);
+    color: var(--neutral-700);
+}
+
+/* ============================================================
+   PALETA DE CORES - ADCON WEB FILING SYSTEM
+   Tema: Azul Claro e Branco (profissional e moderno)
+   ============================================================
+   
+   CORES PRINCIPAIS:
+   - Azul Claro (#3BA3FF): Identidade da marca, ações primárias
+   - Branco (#FFFFFF): Superfícies, cards, fundos de conteúdo
+   - Azul Muito Claro (#f7fbff): Fundo geral da aplicação
+   
+   REGRAS DE USO:
+   1. Botões principais: sempre var(--primary)
+   2. Hover em botões: sempre var(--primary-600)
+   3. Fundos de destaque: var(--accent-bg) azul bem claro
+   4. Bordas: var(--border) quase imperceptível
+   5. Evitar cores vibrantes (verde, amarelo, laranja)
+   6. Danger (vermelho) apenas para exclusões/erros críticos
+   ============================================================ */
+:root {
+    /* Azul - Cor da marca */
+    --primary: #3BA3FF;           /* Azul claro principal */
+    --primary-600: #1E88E5;       /* Azul mais escuro (hover) */
+    --primary-light: #d9eeff;     /* Azul pastel para fundos */
+    
+    /* Backgrounds */
+    --bg: #f7fbff;                /* Fundo geral (azul bem claro) */
+    --card-bg: #ffffff;           /* Branco puro para cards */
+    --accent-bg: #eef6ff;         /* Azul clarinho para destaques */
+    --accent-hover: #e2f0ff;      /* Hover em elementos de destaque */
+    
+    /* Bordas */
+    --border: #e9eef5;            /* Cinza-azulado claro */
+    --accent-border: #d5e7ff;     /* Azul claro para bordas de destaque */
+    
+    /* Neutros (texto) */
+    --neutral-700: #333a40;       /* Texto principal escuro */
+    --neutral-600: #495057;       /* Subtítulos e labels */
+    --muted: #6c757d;             /* Texto secundário */
+    
+    /* Feedback */
+    --danger: #dc3545;            /* Vermelho para erros/exclusão */
+    --success: #28a745;           /* Verde (usar com moderação) */
+    --focus-ring: rgba(59,163,255,0.25); /* Anel de foco azul */
+}
+
+.header {
+    background-color: var(--primary);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
+    background-color: transparent;
+    border: none;
+    color: white;
+    padding: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: #333a40;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dropdown-content a:hover {
+    background-color: #f1f1f1;
+}
+
+.dropdown.show .dropdown-content {
+    display: block;
+}
+
+.show {
+    display: block;
+}
+
+.container {
+    max-width: 900px;
+    margin: 2rem auto;
+    background-color: var(--card-bg);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+}
+
+/* Botão de voltar */
+.back-btn {
+    display: inline-block;
+    color: var(--primary-600);
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    transition: all 0.2s;
+    padding: 0.55rem 1rem;
+    border-radius: 6px;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    background-color: var(--accent-bg);
+    border: 1px solid var(--accent-border);
+}
+
+.back-btn:hover {
+    background-color: var(--accent-hover);
+    color: white;
+    border-color: var(--primary);
+    text-decoration: none;
+}
+
+/* Cards */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.card h3 {
+    color: var(--neutral-600);
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+h1, h2 {
+    color: var(--primary-600);
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group-full {
+    grid-column: 1 / -1;
+}
+
+label {
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+input, select {
+    width: 100%;
+    padding: 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-size: 0.95rem;
+    background-color: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary-600);
+    box-shadow: 0 0 0 2px rgba(0,123,255,.25);
+}
+
+input:read-only {
+    background-color: #e9ecef;
+}
+
+button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: var(--primary-600);
+}
+
+button:disabled {
+    background-color: #a0a0a0;
+    cursor: not-allowed;
+}
+
+/* Action buttons com espaçamento */
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.action-buttons button {
+    min-width: 120px;
+}
+
+.btn-secondary {
+    background-color: var(--muted);
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Tabelas */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+th, td {
+    border: 1px solid #dee2e6;
+    padding: 12px;
+    text-align: left;
+    vertical-align: middle;
+}
+
+th {
+    background-color: var(--accent-bg);
+    font-weight: 600;
+    color: var(--neutral-600);
+}
+
+tbody tr:nth-child(even) {
+    background-color: #fafcff;
+}
+
+tbody tr:hover {
+    background-color: #eef6ff;
+}
+
+tbody td {
+    color: var(--neutral-600);
+}
+
+/* Mensagem de tabela vazia */
+tbody tr td[colspan] {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 2rem;
+}
+
+.loading, .error {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    font-style: italic;
+}
+
+.error {
+    color: var(--danger);
+}
+
+#message {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 5px;
+    text-align: center;
+    display: none;
+}
+
+.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+@media (max-width: 800px) {
+    .container {
+        margin: 1rem;
+        padding: 1rem;
+    }
+    h1, h2 {
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        padding: 0.6rem 1rem;
+    }
+    .container {
+        padding: 0.75rem;
+    }
+    h1, h2 {
+        font-size: 1.1rem;
+    }
+}

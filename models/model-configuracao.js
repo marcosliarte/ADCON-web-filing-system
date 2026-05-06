@@ -38,6 +38,12 @@ const FuncionarioSchema = new mongoose.Schema({
     historicoPagamentos: { type: [PagamentoFuncionarioSchema], default: [] } // Histórico de pagamentos
 });
 
+const TemaSchema = new mongoose.Schema({
+    primary:     String,
+    primaryDark: String,
+    bg:          String,
+}, { _id: false });
+
 // Schema principal
 const ConfiguracaoEmpresaSchema = new mongoose.Schema({
     identificador: { type: String, default: 'adcon_config', unique: true },
@@ -47,7 +53,8 @@ const ConfiguracaoEmpresaSchema = new mongoose.Schema({
     telefone: String,
     email: String,
     logotipoUrl: String,
-    funcionarios: { type: [FuncionarioSchema], default: [] } // Garante que o array sempre exista
+    tema: { type: TemaSchema, default: {} },
+    funcionarios: { type: [FuncionarioSchema], default: [] }
 });
 
 module.exports = mongoose.model('ConfiguracaoEmpresa', ConfiguracaoEmpresaSchema);

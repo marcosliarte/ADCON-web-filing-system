@@ -146,17 +146,21 @@ async function createHeader(placeholderId, usuario) {
     // Adiciona a lógica do dropdown do menu de usuário
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userMenu = document.getElementById('userMenu');
-    userMenuBtn.addEventListener('click', () => {
-        userMenu.classList.toggle('show');
+    const userActionsDropdown = userMenuBtn?.closest('.dropdown');
+    
+    userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userActionsDropdown.classList.toggle('show');
         document.getElementById('notificationDropdown').classList.remove('show');
     });
 
     // Adiciona a lógica do dropdown de notificações
     const notificationIcon = document.getElementById('notificationIcon');
     const notificationDropdown = document.getElementById('notificationDropdown');
-    notificationIcon.addEventListener('click', () => {
+    notificationIcon.addEventListener('click', (e) => {
+        e.stopPropagation();
         notificationDropdown.classList.toggle('show');
-        userMenu.classList.remove('show');
+        userActionsDropdown.classList.remove('show');
         if (notificationDropdown.classList.contains('show')) {
             loadNotifications();
         }
@@ -167,16 +171,16 @@ async function createHeader(placeholderId, usuario) {
         if (!notificationIcon.contains(e.target)) {
             notificationDropdown.classList.remove('show');
         }
-        if (!userMenuBtn.contains(e.target)) {
-            userMenu.classList.remove('show');
+        if (!userMenuBtn.contains(e.target) && !userMenu.contains(e.target)) {
+            userActionsDropdown.classList.remove('show');
         }
     });
 
     // Carrega contagem inicial de notificações
     updateNotificationBadge();
     
-    // Atualiza contagem a cada 30 segundos
-    setInterval(updateNotificationBadge, 30000);
+    // Atualiza contagem a cada 60 segundos
+    setInterval(updateNotificationBadge, 60000);
 }
 
 /**
@@ -299,9 +303,18 @@ function formatarTempo(data) {
 }
 
 /**
- * Função de logout.
+ * Função de logout. Revoga o token no servidor antes de limpar o estado local.
  */
-function logout() {
+async function logout() {
+    const token = localStorage.getItem('token');
+    if (token) {
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: { 'x-auth-token': token }
+            });
+        } catch (_) {}
+    }
     localStorage.removeItem('token');
     window.location.replace('login.html');
 }
@@ -310,17 +323,18 @@ function logout() {
  * Para a sessão de personificação e retorna para a conta do admin.
  */
 async function stopImpersonating(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
     try {
         const response = await fetchWithAuth('/api/auth/admin/stop-impersonating', { method: 'POST' });
-        if (!response.ok) throw new Error('Falha ao retornar para a conta original.');
-
+        if (!response || !response.ok) throw new Error('Falha ao retornar para a conta original.');
         const { token } = await response.json();
         localStorage.setItem('token', token);
-        window.location.href = 'user-management.html'; // Volta para a tela de gerenciamento de usuários
+        localStorage.removeItem('originalUserId');
+        showToast('Retornado para sua conta original', 'success');
+        setTimeout(() => { window.location.href = 'user-management.html'; }, 1000);
     } catch (error) {
-        alert(`Erro: ${error.message}`);
-        logout(); // Em caso de erro grave, faz logout por segurança
+        console.error('Erro ao parar personificação:', error);
+        showToast(error.message || 'Erro ao retornar para conta original', 'error');
     }
 }
 
@@ -448,3 +462,42 @@ function openConfirmModal(message, options = {}) {
         btnCancel.addEventListener('click', onCancel);
     });
 }
+
+/**
+ * Aplica um tema de cores ao :root da página via CSS custom properties.
+ * @param {object} tema - { primary, primaryDark, bg }
+ */
+function applyTheme(tema) {
+    if (!tema) return;
+    const root = document.documentElement;
+    if (tema.primary)     root.style.setProperty('--primary', tema.primary);
+    if (tema.primaryDark) root.style.setProperty('--primary-600', tema.primaryDark);
+    if (tema.bg)          root.style.setProperty('--bg', tema.bg);
+    if (tema.primary)     root.style.setProperty('--bg-header', tema.primary);
+}
+
+function createFooter(placeholderId) {
+    const html = `<div class="footer">&copy; 2025 ADCON. Todos os direitos reservados.</div>`;
+    if (placeholderId) {
+        const el = document.getElementById(placeholderId);
+        if (el) { el.innerHTML = html; return; }
+    }
+    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// Injeta rodapé e aplica tema salvo em todas as páginas que carregam shared.js
+document.addEventListener('DOMContentLoaded', () => {
+    // Aplica tema de cores salvo no localStorage
+    try {
+        const savedTheme = localStorage.getItem('adcon_tema');
+        if (savedTheme) applyTheme(JSON.parse(savedTheme));
+    } catch(e) {}
+
+    if (!document.querySelector('.footer, footer')) {
+        const footer = document.createElement('div');
+        footer.className = 'footer';
+        footer.style.cssText = 'background:#fff;color:#6c757d;text-align:center;padding:1rem;font-size:0.85rem;border-top:1px solid #e4eaf3;margin-top:auto;';
+        footer.innerHTML = '&copy; 2025 ADCON. Todos os direitos reservados.';
+        document.body.appendChild(footer);
+    }
+});

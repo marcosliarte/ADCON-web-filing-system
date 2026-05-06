@@ -1,0 +1,237 @@
+/* home.css - Estilos específicos da página inicial */
+
+/* --- Layout Principal --- */
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    max-width: 1200px;
+    width: 100%;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* --- Barra Lateral (Sidebar) --- */
+.sidebar {
+    flex: 1 1 280px;
+    background-color: #ffffff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    align-self: flex-start;
+}
+
+.profile-pic-container {
+    position: relative;
+    width: 120px;
+    margin: 0 auto 1rem auto;
+}
+
+.profile-pic-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.profile-pic-actions span {
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: transform 0.2s ease;
+}
+
+.profile-pic-actions span:hover {
+    transform: scale(1.2);
+}
+
+.sidebar .profile-pic {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin: 0 auto 1rem auto;
+    display: block;
+    object-fit: cover;
+    border: 4px solid var(--primary, #007bff);
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+}
+
+.sidebar h2 {
+    text-align: center;
+    margin-top: 0.5rem;
+    color: var(--primary, #007bff);
+    font-size: 1.4rem;
+}
+
+.sidebar p {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+    text-align: center;
+    word-break: break-all;
+}
+
+.sidebar p strong {
+    color: #495057;
+}
+
+.sidebar a {
+    color: var(--primary, #007bff);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.sidebar a:hover {
+    text-decoration: underline;
+}
+
+/* Estilos para a lista de configurações na sidebar */
+.sidebar .settings-list {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar .settings-list li a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar .settings-list li a:hover {
+    background-color: #f1f1f1;
+}
+
+/* --- Conteúdo Principal --- */
+.main-content {
+    flex: 3 1 600px;
+    flex-grow: 1;
+}
+
+.main-content h2 {
+    color: var(--primary, #007bff);
+    border-bottom: 2px solid var(--primary, #007bff);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* --- Painel de Funcionalidades (Dashboard) --- */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.dashboard-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.15);
+}
+
+.dashboard-card .card-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--primary, #007bff);
+}
+
+.dashboard-card h3 {
+    color: var(--primary, #007bff);
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-card p {
+    font-size: 0.9rem;
+    color: var(--muted, #6c757d);
+}
+
+/* --- Formulários de Configuração --- */
+.form-card {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.form-card label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+/* --- Botão Delete Pic --- */
+#deletePicButton {
+    background-color: var(--danger, #dc3545);
+}
+
+#deletePicButton:hover {
+    background-color: #c82333;
+}
+
+/* --- Banner de Personificação --- */
+#impersonation-banner {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+}
+
+#impersonation-banner > div {
+    background-color: #ffc107;
+    color: #333;
+    text-align: center;
+    padding: 0.5rem;
+    font-weight: bold;
+}
+
+#impersonation-banner a {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+/* --- Skeleton específico do dashboard --- */
+#dashboard-skeleton {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+#dashboard-skeleton > div {
+    flex: 1;
+    min-width: 200px;
+    height: 120px;
+    border-radius: 8px;
+    background: #eee;
+}
+
+/* --- Media Queries para Responsividade --- */
+@media (max-width: 992px) {
+    .container {
+        flex-direction: column;
+    }
+    .sidebar {
+        align-self: stretch;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        margin: 1rem auto;
+    }
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}

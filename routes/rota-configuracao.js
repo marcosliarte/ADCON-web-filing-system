@@ -25,6 +25,18 @@ const upload = multer({ storage: logoStorage, limits: { fileSize: 5 * 1024 * 102
 
 
 
+// @route   GET api/configuracao/tema
+// @desc    Retorna apenas o tema de cores (sem auth — aplicado antes do login)
+// @access  Public
+router.get('/tema', async (req, res) => {
+    try {
+        const config = await ConfiguracaoEmpresa.findOne({ identificador: 'adcon_config' });
+        res.json(config?.tema || {});
+    } catch (err) {
+        res.json({});
+    }
+});
+
 // @route   GET api/configuracao
 // @desc    Buscar os dados da empresa administradora
 // @access  Private (Admin, Gerente)

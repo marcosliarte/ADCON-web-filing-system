@@ -17,7 +17,6 @@ const UsuarioSchema = mongoose.Schema({
   },
   role: {
     type: String,
-    // CORREÇÃO: Adicionado 'gerente' à lista de perfis permitidos
     enum: ['admin', 'gerente', 'funcionario', 'empresario'],
     default: 'funcionario',
   },
@@ -32,18 +31,19 @@ const UsuarioSchema = mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  // Verificação de mudança de e-mail
+  emailPendente: { type: String, default: null },
+  emailVerificacaoToken: { type: String, default: null }, // hash SHA-256 do token
+  emailVerificacaoExpira: { type: Date, default: null },
 });
 
-// Hash da senha antes de salvar
 UsuarioSchema.pre('save', async function (next) {
-  if (!this.isModified('senha')) {
-    next();
-  }
+  if (!this.isModified('senha')) return next();
   const salt = await bcrypt.genSalt(10);
   this.senha = await bcrypt.hash(this.senha, salt);
+  next();
 });
 
-// Método para comparar senha
 UsuarioSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.senha);
 };
