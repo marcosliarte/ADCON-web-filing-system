@@ -57,16 +57,16 @@ router.get('/', auth, async (req, res) => {
 // @route   PUT api/configuracao
 // @desc    Atualizar os dados da empresa administradora
 // @access  Private (Admin, Gerente)
-router.put('/', auth, async (req, res) => {
+router.put('/', [auth, adminAuth], async (req, res) => {
     try {
-        const dadosAtualizados = req.body;
+        const { nomeEmpresa, nome_fantasia, cnpj, endereco, telefone, email, tema } = req.body;
+        const dadosAtualizados = { nomeEmpresa, nome_fantasia, cnpj, endereco, telefone, email, tema };
+        Object.keys(dadosAtualizados).forEach(k => dadosAtualizados[k] === undefined && delete dadosAtualizados[k]);
 
-        // Usamos findOneAndUpdate com upsert:true.
-        // Isso cria o documento se ele não existir, ou o atualiza se já existir.
         const config = await ConfiguracaoEmpresa.findOneAndUpdate(
-            { identificador: 'adcon_config' }, // Filtro para encontrar o documento único
-            { $set: dadosAtualizados }, // Dados para atualizar
-            { new: true, upsert: true, setDefaultsOnInsert: true } // Opções
+            { identificador: 'adcon_config' },
+            { $set: dadosAtualizados },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
         );
 
         res.json({ msg: 'Dados da empresa atualizados com sucesso!', config });

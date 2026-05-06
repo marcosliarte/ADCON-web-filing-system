@@ -76,22 +76,22 @@ function renderizarNotificacoes() {
         const icone = icones[n.tipo] || '📌';
         const unreadClass = n.lida ? '' : 'unread';
         const tipoClass = `tipo-${n.tipo}`;
-        const tipoNome = tipoNomes[n.tipo] || n.tipo;
-        
+        const tipoNome = tipoNomes[n.tipo] || escapeHtml(n.tipo);
+
         return `
-            <div class="notification-card ${unreadClass}" data-id="${n._id}" data-link="${n.link || ''}" data-lida="${n.lida}">
+            <div class="notification-card ${unreadClass}" data-id="${escapeHtml(n._id)}" data-link="${escapeHtml(n.link || '')}" data-lida="${n.lida}">
                 <div class="notification-icon">${icone}</div>
                 <div class="notification-content">
                     <div class="notification-title">
-                        ${n.titulo}
+                        ${escapeHtml(n.titulo)}
                         <span class="tipo-badge ${tipoClass}">${tipoNome}</span>
                     </div>
-                    <div class="notification-message">${n.mensagem}</div>
+                    <div class="notification-message">${escapeHtml(n.mensagem)}</div>
                     <div class="notification-meta">
                         <span class="notification-time">${tempo}</span>
                         <div class="notification-actions">
-                            ${!n.lida ? `<button class="btn-marcar-lida" data-id="${n._id}">✓ Marcar como lida</button>` : ''}
-                            <button class="btn-delete btn-excluir-notif" data-id="${n._id}">🗑️ Excluir</button>
+                            ${!n.lida ? `<button class="btn-marcar-lida" data-id="${escapeHtml(n._id)}">✓ Marcar como lida</button>` : ''}
+                            <button class="btn-delete btn-excluir-notif" data-id="${escapeHtml(n._id)}">🗑️ Excluir</button>
                         </div>
                     </div>
                 </div>

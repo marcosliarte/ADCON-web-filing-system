@@ -360,6 +360,8 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
+    const usuarioLogado = await Usuario.findById(req.usuario.id).select('role');
+
     const empresa = await Empresa.findById(req.params.id)
       .select('+documentos.certificadoDigital.senha')
       .populate('matriz_id', 'nome _id cnpj')
@@ -369,11 +371,20 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Empresa não encontrada' });
     }
 
-    // Descriptografa a senha do certificado antes de enviar ao frontend
+    // Empresário só pode ver suas próprias empresas
+    if (usuarioLogado.role === 'empresario' && String(empresa.ownerId) !== String(req.usuario.id)) {
+      return res.status(403).json({ msg: 'Acesso negado.' });
+    }
+
+    // Descriptografa a senha do certificado — apenas para admin, gerente e funcionário
     if (empresa.documentos?.certificadoDigital?.senha) {
-      try {
-        empresa.documentos.certificadoDigital.senha = decrypt(empresa.documentos.certificadoDigital.senha);
-      } catch (e) {
+      if (['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
+        try {
+          empresa.documentos.certificadoDigital.senha = decrypt(empresa.documentos.certificadoDigital.senha);
+        } catch (e) {
+          empresa.documentos.certificadoDigital.senha = null;
+        }
+      } else {
         empresa.documentos.certificadoDigital.senha = null;
       }
     }
@@ -835,11 +846,16 @@ router.get('/documentos/vencendo', auth, async (req, res) => {
 
 // @route   DELETE api/empresas/:id/documentos/excluir
 // @desc    Excluir documentos selecionados da empresa
-// @access  Private
+// @access  Private (Admin, Gerente, Funcionário)
 router.delete('/:id/documentos/excluir', auth, async (req, res) => {
   try {
+    const usuarioLogado = await Usuario.findById(req.usuario.id).select('role');
+    if (!['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
+      return res.status(403).json({ msg: 'Acesso negado.' });
+    }
+
     const { documentos } = req.body; // Array de { tipo, caminho }
-    
+
     if (!documentos || !Array.isArray(documentos) || documentos.length === 0) {
       return res.status(400).json({ msg: 'Nenhum documento selecionado para exclusão.' });
     }
@@ -850,69 +866,58 @@ router.delete('/:id/documentos/excluir', auth, async (req, res) => {
     }
 
     let excluidos = 0;
-    let erros = [];
-
-    // Processar cada documento
+    const erros = [];
     const camposParaRemover = {};
-    
+    const uploadsDir = path.resolve(__dirname, '..', 'uploads');
+
     for (const doc of documentos) {
       try {
         const { tipo, caminho } = doc;
-        
-        console.log(`Processando exclusão - Tipo: ${tipo}, Caminho: ${caminho}`);
-        
-        // Excluir arquivo físico
-        if (caminho) {
-          const cleanPath = caminho.startsWith('/') ? caminho.substring(1) : caminho;
-          const fullPath = path.join(__dirname, '..', cleanPath);
-          
-          if (fs.existsSync(fullPath)) {
-            fs.unlinkSync(fullPath);
-            console.log(`✓ Arquivo físico excluído: ${fullPath}`);
-          } else {
-            console.log(`⚠ Arquivo não encontrado: ${fullPath}`);
-          }
+
+        if (!empresa.documentos) {
+          erros.push({ tipo: tipo || 'Desconhecido', erro: 'Empresa sem documentos' });
+          continue;
         }
 
-        // Identificar qual campo do documento corresponde ao caminho
-        if (empresa.documentos) {
-          // Usar toObject() para pegar apenas os campos reais (não propriedades do Mongoose)
-          const documentosObj = empresa.documentos.toObject ? empresa.documentos.toObject() : empresa.documentos;
-          const campos = Object.keys(documentosObj);
-          let campoEncontrado = false;
-          
-          console.log(`Campos de documentos disponíveis:`, campos);
-          
-          for (const campo of campos) {
-            const docCampo = empresa.documentos[campo];
-            console.log(`Verificando campo ${campo}:`, docCampo);
-            
-            // Verificar se é um array (contratos)
-            if (Array.isArray(docCampo)) {
-              const indexContrato = docCampo.findIndex(c => c.caminhoArquivo === caminho);
-              if (indexContrato !== -1) {
-                // Remover contrato específico do array
-                empresa.documentos[campo].splice(indexContrato, 1);
-                console.log(`✓ Contrato removido do array: documentos.${campo}[${indexContrato}]`);
-                campoEncontrado = true;
-                excluidos++;
-                break;
+        const documentosObj = empresa.documentos.toObject ? empresa.documentos.toObject() : empresa.documentos;
+        const campos = Object.keys(documentosObj);
+        let campoEncontrado = false;
+
+        for (const campo of campos) {
+          const docCampo = empresa.documentos[campo];
+
+          if (Array.isArray(docCampo)) {
+            const indexItem = docCampo.findIndex(c => c.caminhoArquivo === caminho);
+            if (indexItem !== -1) {
+              // Use the DB-stored path for deletion — not the client-provided value
+              const dbCaminho = docCampo[indexItem].caminhoArquivo;
+              const cleanPath = dbCaminho.startsWith('/') ? dbCaminho.substring(1) : dbCaminho;
+              const fullPath = path.resolve(__dirname, '..', cleanPath);
+              if (fullPath.startsWith(uploadsDir + path.sep)) {
+                if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
               }
-            }
-            // Verificar se é um documento simples
-            else if (docCampo && docCampo.caminhoArquivo === caminho) {
-              camposParaRemover[`documentos.${campo}`] = '';
-              console.log(`✓ Campo identificado para remoção: documentos.${campo}`);
+              empresa.documentos[campo].splice(indexItem, 1);
               campoEncontrado = true;
               excluidos++;
               break;
             }
+          } else if (docCampo && docCampo.caminhoArquivo === caminho) {
+            // Use the DB-stored path for deletion
+            const dbCaminho = docCampo.caminhoArquivo;
+            const cleanPath = dbCaminho.startsWith('/') ? dbCaminho.substring(1) : dbCaminho;
+            const fullPath = path.resolve(__dirname, '..', cleanPath);
+            if (fullPath.startsWith(uploadsDir + path.sep)) {
+              if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+            }
+            camposParaRemover[`documentos.${campo}`] = '';
+            campoEncontrado = true;
+            excluidos++;
+            break;
           }
-          
-          if (!campoEncontrado) {
-            console.log(`⚠ Campo não encontrado no BD para o caminho: ${caminho}`);
-            erros.push({ tipo: doc.tipo || 'Desconhecido', erro: 'Campo não encontrado no banco de dados' });
-          }
+        }
+
+        if (!campoEncontrado) {
+          erros.push({ tipo: doc.tipo || 'Desconhecido', erro: 'Campo não encontrado no banco de dados' });
         }
       } catch (error) {
         console.error(`Erro ao excluir documento ${doc.tipo}:`, error);
@@ -920,23 +925,16 @@ router.delete('/:id/documentos/excluir', auth, async (req, res) => {
       }
     }
 
-    // Remover campos usando $unset
     if (Object.keys(camposParaRemover).length > 0) {
-      console.log('Removendo campos do banco:', Object.keys(camposParaRemover));
       await Empresa.updateOne(
         { _id: req.params.id },
         { $unset: camposParaRemover }
       );
-      console.log('✓ Campos removidos do banco de dados com sucesso');
     }
-    
-    // Salvar mudanças em arrays (contratos)
-    await empresa.save();
 
-    // Registrar log
+    await empresa.save();
     await registrarLog(req.usuario.id, 'Exclusão de Documentos', empresa);
 
-    // Retornar resultado
     const resposta = {
       msg: `${excluidos} documento(s) excluído(s) com sucesso.`,
       excluidos,

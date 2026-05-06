@@ -1,3 +1,13 @@
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 /**
  * Função para fazer requisições à API com o token de autenticação.
  * Lida com redirecionamento para login se o token for inválido ou expirar.
@@ -80,7 +90,7 @@ async function createHeader(placeholderId, usuario) {
         console.error("Erro ao decodificar token para personificação:", e);
     }
 
-    const impersonationBanner = impersonatorId ? `<div style="background-color: #ffc107; color: #333; text-align: center; padding: 0.5rem; font-weight: bold;">Você está navegando como ${usuario.nome}. <a href="#" onclick="stopImpersonating(event)" style="color: #007bff; text-decoration: underline;">Voltar para sua conta</a>.</div>` : '';
+    const impersonationBanner = impersonatorId ? `<div style="background-color: #ffc107; color: #333; text-align: center; padding: 0.5rem; font-weight: bold;">Você está navegando como ${escapeHtml(usuario.nome)}. <a href="#" onclick="stopImpersonating(event)" style="color: #007bff; text-decoration: underline;">Voltar para sua conta</a>.</div>` : '';
 
     // Adiciona o link de Relatórios apenas para admin ou gerente
     const relatoriosLink = (usuario && ['admin', 'gerente'].includes(usuario.role))
@@ -242,11 +252,11 @@ async function loadNotifications() {
             const tempo = formatarTempo(new Date(n.createdAt));
             const icone = icones[n.tipo] || '📌';
             const unreadClass = n.lida ? '' : 'unread';
-            
+
             return `
-                <div class="notification-item ${unreadClass}" onclick="abrirNotificacao('${n._id}', '${n.link || '#'}')">
-                    <div class="notification-title">${icone} ${n.titulo}</div>
-                    <div class="notification-message">${n.mensagem}</div>
+                <div class="notification-item ${unreadClass}" onclick="abrirNotificacao(${JSON.stringify(n._id)}, ${JSON.stringify(n.link || '#')})">
+                    <div class="notification-title">${icone} ${escapeHtml(n.titulo)}</div>
+                    <div class="notification-message">${escapeHtml(n.mensagem)}</div>
                     <div class="notification-time">${tempo}</div>
                 </div>
             `;

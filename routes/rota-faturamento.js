@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const adminAuth = require('../middleware/adminAuth');
 const Faturamento = require('../models/model-faturamento');
 const Empresa = require('../models/model-empresa');
 
 // @route   POST /api/faturamento
 // @desc    Salvar faturamento mensal de uma empresa
 // @access  Private (admin)
-router.post('/', auth, async (req, res) => {
+router.post('/', [auth, adminAuth], async (req, res) => {
   try {
     const { empresaId, faturamentos } = req.body;
 
@@ -112,7 +113,7 @@ router.get('/:empresaId/ultimos/:quantidade', auth, async (req, res) => {
 // @route   DELETE /api/faturamento/:empresaId/:ano/:mes
 // @desc    Deletar faturamento de um mês específico
 // @access  Private (admin)
-router.delete('/:empresaId/:ano/:mes', auth, async (req, res) => {
+router.delete('/:empresaId/:ano/:mes', [auth, adminAuth], async (req, res) => {
   try {
     const { empresaId, ano, mes } = req.params;
 

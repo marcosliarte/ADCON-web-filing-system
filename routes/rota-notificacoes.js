@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
+
+function stripHtml(str) {
+  return str ? String(str).replace(/<[^>]*>/g, '') : '';
+}
 const Notificacao = require('../models/model-notificacao');
 const Usuario = require('../models/model-usuario');
 const Empresa = require('../models/model-empresa');
@@ -158,20 +162,23 @@ router.post('/admin/enviar', [auth, adminAuth], async (req, res) => {
       return res.status(400).json({ msg: 'Destinatários inválidos.' });
     }
 
+    const tituloSafe = stripHtml(titulo);
+    const mensagemSafe = stripHtml(mensagem);
+
     const notificacoes = usuariosIds.map(userId => ({
       usuarioId: userId,
       tipo: 'mensagem_admin',
-      titulo,
-      mensagem,
+      titulo: tituloSafe,
+      mensagem: mensagemSafe,
       link: link || null,
       criadoPor: req.usuario.id
     }));
 
     await Notificacao.insertMany(notificacoes);
 
-    res.json({ 
+    res.json({
       msg: `Notificação enviada para ${usuariosIds.length} usuário(s).`,
-      count: usuariosIds.length 
+      count: usuariosIds.length
     });
   } catch (err) {
     console.error(err.message);
@@ -197,20 +204,23 @@ router.post('/admin/enviar-role', [auth, adminAuth], async (req, res) => {
       return res.status(404).json({ msg: 'Nenhum usuário encontrado com este perfil.' });
     }
 
+    const tituloSafe = stripHtml(titulo);
+    const mensagemSafe = stripHtml(mensagem);
+
     const notificacoes = usuariosIds.map(userId => ({
       usuarioId: userId,
       tipo: 'mensagem_admin',
-      titulo,
-      mensagem,
+      titulo: tituloSafe,
+      mensagem: mensagemSafe,
       link: link || null,
       criadoPor: req.usuario.id
     }));
 
     await Notificacao.insertMany(notificacoes);
 
-    res.json({ 
+    res.json({
       msg: `Notificação enviada para ${usuariosIds.length} usuário(s) com perfil ${role}.`,
-      count: usuariosIds.length 
+      count: usuariosIds.length
     });
   } catch (err) {
     console.error(err.message);
