@@ -485,7 +485,7 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nome, email, senha, role } = req.body;
+    const { nome, email, senha, role, empresaId } = req.body;
     const criador = await Usuario.findById(req.usuario.id);
 
     // Regra: Gerente não pode criar Admin
@@ -499,7 +499,9 @@ router.post(
         return res.status(400).json({ msg: 'Usuário com este email já existe' });
       }
 
-      usuario = new Usuario({ nome, email, senha, role });
+      const dadosUsuario = { nome, email, senha, role };
+      if (role === 'empresario' && empresaId) dadosUsuario.empresaId = empresaId;
+      usuario = new Usuario(dadosUsuario);
       await usuario.save();
 
       // Retorna o usuário criado (sem a senha) para confirmação
@@ -638,7 +640,7 @@ router.put('/admin/users/:id/role', [auth, adminAuth], async (req, res) => {
 // @access  Private (Admin/Gerente)
 router.put('/admin/users/:id', [auth, adminAuth], async (req, res) => {
   const { id: targetUserId } = req.params;
-  const { nome, email } = req.body;
+  const { nome, email, empresaId } = req.body;
 
   if (!nome || !email) {
     return res.status(400).json({ msg: 'Nome e email são obrigatórios.' });
@@ -663,6 +665,7 @@ router.put('/admin/users/:id', [auth, adminAuth], async (req, res) => {
 
     targetUser.nome = nome;
     targetUser.email = email;
+    if ('empresaId' in req.body) targetUser.empresaId = empresaId || null;
     await targetUser.save();
 
     // REGISTRA O LOG

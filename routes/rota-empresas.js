@@ -306,11 +306,11 @@ router.get('/', auth, async (req, res) => {
     const query = {};
     const usuarioLogado = await Usuario.findById(req.usuario.id);
 
-    // Filtrar por ownerId se o usuário for empresário
+    // Empresário só acessa a empresa vinculada ao seu perfil
     if (usuarioLogado.role === 'empresario') {
-      query.ownerId = req.usuario.id;
+      if (!usuarioLogado.empresaId) return res.status(403).json({ msg: 'Nenhuma empresa vinculada a este perfil.' });
+      query._id = usuarioLogado.empresaId;
     } else if (ownerId && usuarioLogado.role === 'admin') {
-      // Admin pode filtrar por ownerId específico
       query.ownerId = ownerId;
     }
 
@@ -371,8 +371,8 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Empresa não encontrada' });
     }
 
-    // Empresário só pode ver suas próprias empresas
-    if (usuarioLogado.role === 'empresario' && String(empresa.ownerId) !== String(req.usuario.id)) {
+    // Empresário só pode ver a empresa vinculada ao seu perfil
+    if (usuarioLogado.role === 'empresario' && String(empresa._id) !== String(usuarioLogado.empresaId)) {
       return res.status(403).json({ msg: 'Acesso negado.' });
     }
 

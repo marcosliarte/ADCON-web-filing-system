@@ -1,6 +1,7 @@
 let currentUser;
 let loadedUsers = [];
 let editingUserId = null;
+let empresasList = [];
 
 const roleLabels = {
     admin: 'Administrador',
@@ -27,9 +28,38 @@ async function setupPage() {
             return;
         }
 
+        await loadEmpresas();
         loadUsers();
     } catch (error) {
         console.error('Erro ao carregar dados do usuário:', error);
+    }
+}
+
+async function loadEmpresas() {
+    try {
+        const r = await fetchWithAuth('/api/empresas?limite=200&ordenacao=nome&direcao=asc');
+        if (r && r.ok) {
+            const data = await r.json();
+            empresasList = data.data || data.empresas || [];
+            populateEmpresaSelects();
+        }
+    } catch (e) { /* silencioso — não bloqueia o restante da página */ }
+}
+
+function populateEmpresaSelects(selectedId = '') {
+    const options = empresasList.map(e =>
+        `<option value="${e._id}" ${e._id === selectedId ? 'selected' : ''}>${e.nome}</option>`
+    ).join('');
+    const placeholder = '<option value="">Selecione a empresa...</option>';
+    document.getElementById('empresaId').innerHTML = placeholder + options;
+    document.getElementById('modal-empresaId').innerHTML = placeholder + options;
+}
+
+function toggleEmpresaField(role, grupoId, selectId, selectedId = '') {
+    const grupo = document.getElementById(grupoId);
+    grupo.style.display = role === 'empresario' ? 'block' : 'none';
+    if (role === 'empresario' && selectedId) {
+        document.getElementById(selectId).value = selectedId;
     }
 }
 
@@ -62,13 +92,18 @@ async function loadUsers() {
             if (isSelf) {
                 actions = '<span class="you-badge">Você</span>';
             } else {
+                const empresaVinculada = user.empresaId
+                    ? (empresasList.find(e => e._id === (user.empresaId?._id || user.empresaId))?.nome || '')
+                    : '';
+
                 actions = `
                     <div class="table-actions">
                         <button class="btn-action btn-edit edit-btn"
                             data-id="${user._id}"
                             data-nome="${user.nome.replace(/"/g, '&quot;')}"
                             data-email="${user.email.replace(/"/g, '&quot;')}"
-                            data-role="${user.role}">✏️ Editar</button>
+                            data-role="${user.role}"
+                            data-empresa-id="${user.empresaId || ''}">✏️ Editar</button>
                         <button class="btn-action btn-impersonate impersonate-btn" data-id="${user._id}">👁️ Personificar</button>
                         <button class="btn-action btn-reset reset-btn" data-id="${user._id}" data-nome="${user.nome.replace(/"/g, '&quot;')}">🔑 Resetar Senha</button>
                         ${podeExcluir ? `<button class="btn-action btn-delete delete-btn" data-id="${user._id}">🗑️ Excluir</button>` : ''}
@@ -80,6 +115,7 @@ async function loadUsers() {
             tr.innerHTML = `
                 <td>
                     <div class="user-name">${user.nome}</div>
+                    ${empresaVinculada ? `<div class="user-email">${empresaVinculada}</div>` : ''}
                 </td>
                 <td>
                     <div class="user-email">${user.email}</div>
@@ -99,7 +135,10 @@ function openEditModal(btn) {
     editingUserId = btn.dataset.id;
     document.getElementById('modal-nome').value = btn.dataset.nome;
     document.getElementById('modal-email').value = btn.dataset.email;
-    document.getElementById('modal-role').value = btn.dataset.role;
+    const role = btn.dataset.role;
+    document.getElementById('modal-role').value = role;
+    const empresaId = btn.dataset.empresaId || '';
+    toggleEmpresaField(role, 'grupo-empresa-editar', 'modal-empresaId', empresaId);
     document.getElementById('editUserModal').style.display = 'flex';
 }
 
@@ -114,6 +153,7 @@ async function saveEdit() {
     const nome = document.getElementById('modal-nome').value.trim();
     const email = document.getElementById('modal-email').value.trim();
     const newRole = document.getElementById('modal-role').value;
+    const empresaId = document.getElementById('modal-empresaId').value || null;
 
     if (!nome || !email) {
         showToast('Nome e email são obrigatórios', 'error');
@@ -126,10 +166,14 @@ async function saveEdit() {
     savBtn.textContent = 'Salvando...';
 
     try {
-        // Atualiza nome e email
+        // Atualiza nome, email e (se empresário) empresaId
+        const bodyNome = { nome, email };
+        if (newRole === 'empresario') bodyNome.empresaId = empresaId;
+        else bodyNome.empresaId = null;
+
         const resNome = await fetchWithAuth(`/api/auth/admin/users/${editingUserId}`, {
             method: 'PUT',
-            body: JSON.stringify({ nome, email })
+            body: JSON.stringify(bodyNome)
         });
         if (!resNome.ok) {
             const err = await resNome.json();
@@ -237,6 +281,7 @@ document.getElementById('createUserForm').addEventListener('submit', async funct
     const email = document.getElementById('email').value;
     const senha = document.getElementById('senha').value;
     const role = document.getElementById('role').value;
+    const empresaId = document.getElementById('empresaId').value || null;
     const createMessage = document.getElementById('createMessage');
     const btnCriar = document.getElementById('btnCriar');
 
@@ -246,9 +291,12 @@ document.getElementById('createUserForm').addEventListener('submit', async funct
     createMessage.textContent = '';
 
     try {
+        const body = { nome, email, senha, role };
+        if (role === 'empresario' && empresaId) body.empresaId = empresaId;
+
         const response = await fetchWithAuth('/api/auth/admin/users', {
             method: 'POST',
-            body: JSON.stringify({ nome, email, senha, role })
+            body: JSON.stringify(body)
         });
         const data = await response.json();
         if (response.ok) {
@@ -291,6 +339,14 @@ document.getElementById('reset-modal-close-x').addEventListener('click', closeRe
 document.getElementById('reset-modal-ok').addEventListener('click', closeResetModal);
 document.getElementById('resetPasswordModal').addEventListener('click', function(e) {
     if (e.target === this) closeResetModal();
+});
+
+// Mostrar/ocultar campo de empresa conforme perfil selecionado
+document.getElementById('role').addEventListener('change', function() {
+    toggleEmpresaField(this.value, 'grupo-empresa-criar', 'empresaId');
+});
+document.getElementById('modal-role').addEventListener('change', function() {
+    toggleEmpresaField(this.value, 'grupo-empresa-editar', 'modal-empresaId');
 });
 
 document.addEventListener('DOMContentLoaded', setupPage);

@@ -31,9 +31,15 @@ const UsuarioSchema = mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  // Vínculo com empresa (exclusivo para role 'empresario')
+  empresaId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Empresa',
+    default: null,
+  },
   // Verificação de mudança de e-mail
   emailPendente: { type: String, default: null },
-  emailVerificacaoToken: { type: String, default: null }, // hash SHA-256 do token
+  emailVerificacaoToken: { type: String, default: null },
   emailVerificacaoExpira: { type: Date, default: null },
 });
 
