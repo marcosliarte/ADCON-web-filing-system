@@ -23,8 +23,9 @@ const funcionarioRoutes = require('./routes/rota-funcionarios');
 const pagamentosRoutes = require('./routes/rota-pagamentos');
 const adminRoutes = require('./routes/rota-admin');
 const notificacoesRoutes = require('./routes/rota-notificacoes');
-const compartilhamentoRoutes = require('./routes/rota-compartilhamento');
+// const compartilhamentoRoutes = require('./routes/rota-compartilhamento'); // Removido - funcionalidade desativada
 const faturamentoRoutes = require('./routes/rota-faturamento');
+const filaServicosRoutes = require('./routes/rota-fila-servicos');
 
 const app = express();
 
@@ -162,6 +163,7 @@ app.use('/api/pagamentos', pagamentosRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notificacoes', notificacoesRoutes);
 app.use('/api/faturamento', faturamentoRoutes);
+app.use('/api/fila-servicos', filaServicosRoutes);
 // app.use('/api/compartilhamento', compartilhamentoRoutes); // Desativado - funcionalidade removida
 
 // -----------------------------

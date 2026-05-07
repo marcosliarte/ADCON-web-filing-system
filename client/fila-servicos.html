@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>ADCON - Fila de Serviços</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/pages/fila-servicos.css">
+</head>
+<body style="display: none;">
+    <script>
+        if (!localStorage.getItem('token')) window.location.replace('login.html');
+        else document.body.style.display = 'block';
+    </script>
+    <script src="shared.js"></script>
+    <script src="js/pages/fila-servicos.js"></script>
+
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Fila de Serviços</h1>
+            <button class="btn btn-primary" id="btn-novo-servico" style="display:none;">
+                + Novo Serviço
+            </button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-bar" id="stats-bar">
+            <div class="stat-card">
+                <span class="stat-label">Total</span>
+                <span class="stat-value" id="stat-total">–</span>
+            </div>
+            <div class="stat-card stat-pendente">
+                <span class="stat-label">Pendentes</span>
+                <span class="stat-value" id="stat-pendente">–</span>
+            </div>
+            <div class="stat-card stat-andamento">
+                <span class="stat-label">Em andamento</span>
+                <span class="stat-value" id="stat-andamento">–</span>
+            </div>
+            <div class="stat-card stat-concluido">
+                <span class="stat-label">Concluídos</span>
+                <span class="stat-value" id="stat-concluido">–</span>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filtros">
+            <div class="filtro-grupo">
+                <label for="filtro-status">Status</label>
+                <select id="filtro-status">
+                    <option value="">Todos</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="em_andamento">Em andamento</option>
+                    <option value="concluido">Concluído</option>
+                    <option value="cancelado">Cancelado</option>
+                </select>
+            </div>
+            <div class="filtro-grupo">
+                <label for="filtro-busca">Buscar</label>
+                <input type="text" id="filtro-busca" placeholder="Título ou funcionário...">
+            </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="table-wrapper">
+            <div class="table-responsive">
+                <table id="tabela-servicos">
+                    <thead>
+                        <tr>
+                            <th>Serviço</th>
+                            <th>Funcionário</th>
+                            <th>Responsável</th>
+                            <th>Prioridade</th>
+                            <th>Status</th>
+                            <th>Criado em</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-servicos">
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state"><p>Carregando...</p></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal criar/editar serviço -->
+    <div class="modal-overlay" id="modal-servico">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="modal-titulo">Novo Serviço</span>
+                <button class="modal-close" id="modal-fechar" title="Fechar">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="servico-id">
+                <div class="form-group">
+                    <label for="input-tipo">Tipo de serviço *</label>
+                    <select id="input-tipo">
+                        <option value="alteracao_empresa">Alteração de Empresa</option>
+                        <option value="abertura_empresa">Abertura de Empresa</option>
+                        <option value="encerramento_empresa">Encerramento de Empresa</option>
+                        <option value="declaracao_fiscal">Declaração Fiscal</option>
+                        <option value="certidao_negativa">Certidão Negativa</option>
+                        <option value="certificado_digital">Certificado Digital</option>
+                        <option value="consultoria">Consultoria</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+
+                <!-- Campo de empresa — aparece apenas quando o tipo envolve empresa -->
+                <div class="form-group" id="grupo-empresa" style="display:none;">
+                    <label for="input-empresa-busca">Empresa relacionada</label>
+                    <input type="text" id="input-empresa-busca" placeholder="Digite o nome ou CNPJ para buscar..." autocomplete="off">
+                    <input type="hidden" id="input-empresa-id">
+                    <div id="empresa-resultados" class="empresa-dropdown" style="display:none;"></div>
+                    <div id="empresa-selecionada" class="empresa-tag" style="display:none;"></div>
+                    <div id="empresa-nao-encontrada" style="display:none; margin-top:0.5rem;">
+                        <span style="font-size:0.82rem; color:var(--text-secondary);">Empresa não cadastrada? </span>
+                        <a href="cliente-formulario.html" target="_blank" class="link-cadastrar">Cadastrar nova empresa</a>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="input-titulo">Título *</label>
+                    <input type="text" id="input-titulo" placeholder="Descreva o serviço...">
+                </div>
+                <div class="form-group">
+                    <label for="input-descricao">Descrição</label>
+                    <textarea id="input-descricao" placeholder="Detalhes adicionais (opcional)..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="input-funcionario">Funcionário relacionado</label>
+                    <select id="input-funcionario">
+                        <option value="">— Serviço geral (sem funcionário específico) —</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="input-prioridade">Prioridade</label>
+                        <select id="input-prioridade">
+                            <option value="baixa">Baixa</option>
+                            <option value="normal" selected>Normal</option>
+                            <option value="alta">Alta</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="input-status">Status</label>
+                        <select id="input-status">
+                            <option value="pendente">Pendente</option>
+                            <option value="em_andamento">Em andamento</option>
+                            <option value="concluido">Concluído</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="input-previsao">Previsão de conclusão</label>
+                    <input type="date" id="input-previsao">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="btn-cancelar-modal">Cancelar</button>
+                <button class="btn btn-primary" id="btn-salvar-servico">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal detalhes do serviço -->
+    <div class="modal-overlay" id="modal-detalhes">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <span class="modal-title" id="detalhes-titulo-header">Detalhes do Serviço</span>
+                <button class="modal-close" id="detalhes-fechar" title="Fechar">✕</button>
+            </div>
+            <div class="modal-body" id="detalhes-body">
+                <!-- Preenchido via JS -->
+            </div>
+            <div class="modal-footer" id="detalhes-footer">
+                <button class="btn btn-outline" id="btn-fechar-detalhes">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        &copy; 2025 ADCON. Todos os direitos reservados.
+    </footer>
+</body>
+</html>
