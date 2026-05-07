@@ -9,6 +9,7 @@ if (!localStorage.getItem('token')) {
 let socioIndex = 0;
 let contratoIndex = 0;
 let balancoIndex = 0;
+let diversoIndex = 0;
 const urlParams = new URLSearchParams(window.location.search);
 const empresaId = urlParams.get('id');
 
@@ -312,6 +313,65 @@ function adicionarBalancoPatrimonial(balanco = null) {
 
     container.appendChild(newBalancoDiv);
     balancoIndex++;
+}
+
+function adicionarDocumentoDiverso(documento = null) {
+    if (diversoIndex >= 50) {
+        alert('Limite máximo de 50 documentos atingido.');
+        return;
+    }
+    const template = document.getElementById('diverso-template').innerHTML;
+    const container = document.getElementById('diversos-container');
+    const newDiversoDiv = document.createElement('div');
+    newDiversoDiv.innerHTML = template.replace(/INDEX/g, diversoIndex);
+
+    if (documento) {
+        const nomeInput = newDiversoDiv.querySelector(`input[name="documento_diverso[${diversoIndex}][nome]"]`);
+        if (nomeInput) nomeInput.value = documento.nomeDocumento || '';
+
+        if (documento.dataValidade) {
+            const validadeInput = newDiversoDiv.querySelector(`input[name="documento_diverso[${diversoIndex}][validade]"]`);
+            if (validadeInput) validadeInput.value = documento.dataValidade.split('T')[0];
+        }
+
+        const fileInfo = newDiversoDiv.querySelector('.file-info');
+        if (documento.caminhoArquivo && fileInfo) {
+            fileInfo.innerHTML = `Arquivo atual: <a href="${documento.caminhoArquivo}" target="_blank">${documento.nomeArquivo}</a>`;
+        }
+
+        const fileInput = newDiversoDiv.querySelector(`input[name="documento_diverso[${diversoIndex}][arquivo]"]`);
+        if (fileInput) fileInput.removeAttribute('required');
+    }
+
+    container.appendChild(newDiversoDiv);
+    diversoIndex++;
+}
+
+async function fetchCep(cep) {
+    try {
+        const response = await fetchWithAuth(`/api/empresas/cep/${cep}`);
+        if (!response || !response.ok) throw new Error('CEP não encontrado.');
+        const data = await response.json();
+        if (data.erro) throw new Error('CEP inválido');
+        return data;
+    } catch (error) {
+        alert(error.message);
+        return null;
+    }
+}
+
+async function buscarCepSocio(cepInput) {
+    const cep = cepInput.value.replace(/\D/g, '');
+    if (cep.length === 8) {
+        const data = await fetchCep(cep);
+        if (data) {
+            const socioCard = cepInput.closest('.socio-card');
+            socioCard.querySelector('input[name$="[endereco][rua]"]').value = data.logradouro;
+            socioCard.querySelector('input[name$="[endereco][bairro]"]').value = data.bairro;
+            socioCard.querySelector('input[name$="[endereco][cidade]"]').value = data.localidade;
+            socioCard.querySelector('input[name$="[endereco][estado]"]').value = data.uf;
+        }
+    }
 }
 
 function toggleRegimeCasamento(select) {
