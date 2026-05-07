@@ -431,6 +431,10 @@ function ensureConfirmModal() {
     document.body.appendChild(modal);
 }
 
+function showConfirm(message, options = {}) {
+    return openConfirmModal(message, options);
+}
+
 function openConfirmModal(message, options = {}) {
     ensureConfirmModal();
     return new Promise((resolve) => {

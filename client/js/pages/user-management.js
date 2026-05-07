@@ -70,6 +70,7 @@ async function loadUsers() {
                             data-email="${user.email.replace(/"/g, '&quot;')}"
                             data-role="${user.role}">✏️ Editar</button>
                         <button class="btn-action btn-impersonate impersonate-btn" data-id="${user._id}">👁️ Personificar</button>
+                        <button class="btn-action btn-reset reset-btn" data-id="${user._id}" data-nome="${user.nome.replace(/"/g, '&quot;')}">🔑 Resetar Senha</button>
                         ${podeExcluir ? `<button class="btn-action btn-delete delete-btn" data-id="${user._id}">🗑️ Excluir</button>` : ''}
                     </div>`;
             }
@@ -176,6 +177,29 @@ async function deleteUser(userId) {
     }
 }
 
+async function resetPassword(userId, nomeUsuario) {
+    const confirmed = await showConfirm(`Resetar a senha de "${nomeUsuario}"? Uma senha temporária será gerada e exibida uma única vez.`, { title: 'Resetar Senha' });
+    if (!confirmed) return;
+
+    try {
+        const response = await fetchWithAuth(`/api/auth/admin/users/${userId}/reset-password`, { method: 'POST' });
+        if (!response || !response.ok) {
+            const err = await response.json();
+            throw new Error(err.msg || 'Falha ao resetar senha');
+        }
+        const { tempPassword } = await response.json();
+        showResetResult(nomeUsuario, tempPassword);
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+function showResetResult(nome, tempPassword) {
+    document.getElementById('resetResultNome').textContent = nome;
+    document.getElementById('resetResultSenha').value = tempPassword;
+    document.getElementById('resetPasswordModal').style.display = 'flex';
+}
+
 async function impersonateUser(userId) {
     const confirmed = await showConfirm('Deseja personificar este usuário? Você será redirecionado como ele.');
     if (!confirmed) return;
@@ -203,6 +227,7 @@ document.querySelector('#usersTable tbody').addEventListener('click', function(e
     if (btn.classList.contains('delete-btn')) deleteUser(id);
     else if (btn.classList.contains('impersonate-btn')) impersonateUser(id);
     else if (btn.classList.contains('edit-btn')) openEditModal(btn);
+    else if (btn.classList.contains('reset-btn')) resetPassword(id, btn.dataset.nome);
 });
 
 // Formulário de criação
@@ -249,6 +274,23 @@ document.getElementById('modal-cancel-btn').addEventListener('click', closeEditM
 document.getElementById('modal-save').addEventListener('click', saveEdit);
 document.getElementById('editUserModal').addEventListener('click', function(e) {
     if (e.target === this) closeEditModal();
+});
+
+function copiarSenha() {
+    const input = document.getElementById('resetResultSenha');
+    input.select();
+    document.execCommand('copy');
+    showToast('Senha copiada!', 'success');
+}
+
+function closeResetModal() {
+    document.getElementById('resetPasswordModal').style.display = 'none';
+}
+
+document.getElementById('reset-modal-close-x').addEventListener('click', closeResetModal);
+document.getElementById('reset-modal-ok').addEventListener('click', closeResetModal);
+document.getElementById('resetPasswordModal').addEventListener('click', function(e) {
+    if (e.target === this) closeResetModal();
 });
 
 document.addEventListener('DOMContentLoaded', setupPage);

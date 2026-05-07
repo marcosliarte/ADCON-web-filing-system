@@ -233,6 +233,9 @@
 .btn-impersonate       { background: #fff3cd; color: #856404; }
 .btn-impersonate:hover { background: #e67e22; color: white; }
 
+.btn-reset       { background: #e8f8e8; color: #1a7f3c; }
+.btn-reset:hover { background: #1a7f3c; color: white; }
+
 .btn-delete       { background: #fde8e8; color: var(--danger); }
 .btn-delete:hover { background: var(--danger); color: white; }
 

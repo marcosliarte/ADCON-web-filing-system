@@ -119,6 +119,31 @@
         </div>
     </div>
 
+    <!-- Modal Resultado Reset de Senha -->
+    <div id="resetPasswordModal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title">Senha Resetada</h3>
+                <button class="modal-close" id="reset-modal-close-x" title="Fechar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>A senha de <strong id="resetResultNome"></strong> foi resetada com sucesso.</p>
+                <p style="font-size:0.9rem;color:#6c757d;">Copie a senha temporária abaixo e entregue ao usuário. Ela não será exibida novamente.</p>
+                <div class="form-group" style="margin-top:1rem;">
+                    <label for="resetResultSenha">Senha Temporária</label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input id="resetResultSenha" type="text" readonly style="flex:1;font-family:monospace;font-size:1.1rem;background:#f8f9fa;">
+                        <button class="btn btn-secondary" onclick="copiarSenha()">Copiar</button>
+                    </div>
+                </div>
+                <p style="font-size:0.85rem;color:#dc3545;margin-top:0.5rem;">⚠️ O usuário deverá alterar esta senha no primeiro acesso.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="reset-modal-ok" class="btn btn-primary">Entendido</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/pages/user-management.js"></script>
 </body>
 </html>
