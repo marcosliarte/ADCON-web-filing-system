@@ -82,20 +82,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Função para mostrar erro
     function showError(message) {
         errorMessage.textContent = message;
-        errorMessage.className = 'alert alert-danger';
-        errorMessage.style.display = 'block';
-        
-        // Ocultar após 5 segundos
+        errorMessage.removeAttribute('class');
+        errorMessage.style.cssText = 'display:block;padding:0.75rem 1rem;margin-top:1rem;background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;border-radius:4px;font-size:0.95rem;text-align:center;';
+
+        // Ocultar após 6 segundos
         setTimeout(() => {
             errorMessage.style.display = 'none';
-        }, 5000);
+        }, 6000);
     }
-    
+
     // Função para mostrar sucesso
     function showSuccess(message) {
         errorMessage.textContent = message;
-        errorMessage.className = 'alert alert-success';
-        errorMessage.style.display = 'block';
+        errorMessage.removeAttribute('class');
+        errorMessage.style.cssText = 'display:block;padding:0.75rem 1rem;margin-top:1rem;background:#d4edda;color:#155724;border:1px solid #c3e6cb;border-radius:4px;font-size:0.95rem;text-align:center;';
     }
     
     // Limpar mensagem de erro ao digitar

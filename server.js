@@ -78,23 +78,27 @@ for (const name of Object.keys(interfaces)) {
 // -----------------------------
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
+// CSP e HSTS só fazem sentido em servidores HTTPS (cloud/Render).
+// Em servidor HTTP local, upgrade-insecure-requests e HSTS quebram CSS/JS.
+const isCloudDeployment = !isDevelopment && !!process.env.CORS_ORIGIN;
+
 app.use(helmet({
-  hsts: !isDevelopment, // HSTS apenas em produção
-  contentSecurityPolicy: isDevelopment ? false : {
+  hsts: isCloudDeployment,
+  contentSecurityPolicy: isCloudDeployment ? {
+    useDefaults: false,
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"], // Considere remover unsafe-inline em produção
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
       connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
+      fontSrc: ["'self'", "data:"],
       objectSrc: ["'none'"],
-      upgradeInsecureRequests: [],
+      frameAncestors: ["'none'"],
     },
-  },
-  frameguard: { action: 'deny' }, // Previne clickjacking
-  noSniff: true, // Previne MIME sniffing
-  xssFilter: true, // XSS protection
+  } : false,
+  frameguard: { action: 'deny' },
+  noSniff: true,
 }));
 
 // -----------------------------
@@ -163,7 +167,13 @@ app.use('/api/faturamento', faturamentoRoutes);
 // -----------------------------
 //       ARQUIVOS ESTÁTICOS
 // -----------------------------
-app.use(express.static('client'));
+app.use(express.static('client', {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+  }
+}));
 app.use('/assets', express.static(path.join(__dirname, 'client/assets')));
 app.use('/js/config.js', express.static(path.join(__dirname, 'config.js')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // ⚠️ Apenas temporário no Render

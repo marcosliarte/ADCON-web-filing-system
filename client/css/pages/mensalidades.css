@@ -252,6 +252,7 @@ tbody tr:hover { background: #f7fbff; }
 
 .btn-gerar   { background: #28a745; }
 .btn-pagar   { background: #17a2b8; }
+.btn-recibo  { background: #6f42c1; }
 .btn-editar  { background: #6c757d; }
 .btn-excluir { background: #dc3545; }
 

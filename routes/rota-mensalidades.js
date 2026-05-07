@@ -112,18 +112,19 @@ router.post(
     if (!['admin', 'gerente', 'funcionario'].includes(usuarioLogado.role)) {
       return res.status(403).json({ msg: 'Acesso negado para criar mensalidades.' });
     }
-    const { empresaId, mes, ano, valor } = req.body;
+    const { empresaId, mes, ano, valor, dataVencimento: dataVencimentoBody } = req.body;
 
     try {
       if (await Mensalidade.findOne({ empresaId, mes, ano })) {
         return res.status(400).json({ msg: `Já existe uma mensalidade para esta empresa em ${mes}/${ano}.` });
       }
 
-      // MELHORIA: Define uma data de vencimento padrão (dia 10 do mês)
-      const dataVencimento = new Date(ano, mes - 1, 10);
+      const dataVencimento = dataVencimentoBody
+        ? new Date(dataVencimentoBody)
+        : new Date(ano, mes - 1, 10);
 
-      const novaMensalidade = new Mensalidade({ 
-        empresaId, valor, mes, ano, dataVencimento 
+      const novaMensalidade = new Mensalidade({
+        empresaId, valor, mes, ano, dataVencimento
       });
 
       await novaMensalidade.save();

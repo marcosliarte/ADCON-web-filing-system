@@ -82,6 +82,7 @@
             <form id="modal-form" class="modal-form">
                 <input type="hidden" id="modal-mensalidade-id">
                 <input type="hidden" id="modal-empresa-id">
+                <input type="hidden" id="modal-modo" value="">
                 <div class="form-group">
                     <label for="modal-valor">Valor (R$)</label>
                     <input type="number" id="modal-valor" step="0.01" min="0" required placeholder="0,00">
@@ -89,6 +90,10 @@
                 <div class="form-group" id="grupo-data-vencimento" style="display: none;">
                     <label for="modal-data-vencimento">Data de Vencimento</label>
                     <input type="date" id="modal-data-vencimento">
+                </div>
+                <div class="form-group" id="grupo-data-pagamento" style="display: none;">
+                    <label for="modal-data-pagamento">Data de Pagamento</label>
+                    <input type="date" id="modal-data-pagamento">
                 </div>
                 <div class="modal-actions">
                     <button type="submit" id="modal-submit-btn">Salvar</button>
