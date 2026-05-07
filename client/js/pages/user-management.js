@@ -40,7 +40,7 @@ async function loadEmpresas() {
         const r = await fetchWithAuth('/api/empresas?limite=200&ordenacao=nome&direcao=asc');
         if (r && r.ok) {
             const data = await r.json();
-            empresasList = data.data || data.empresas || [];
+            empresasList = data.docs || data.empresas || [];
             populateEmpresaSelects();
         }
     } catch (e) { /* silencioso — não bloqueia o restante da página */ }
@@ -88,14 +88,14 @@ async function loadUsers() {
             const isSelf = user._id === currentUser._id;
             const podeExcluir = !isSelf;
 
+            const empresaVinculada = user.empresaId
+                ? (empresasList.find(e => e._id === (user.empresaId?._id || user.empresaId))?.nome || '')
+                : '';
+
             let actions;
             if (isSelf) {
                 actions = '<span class="you-badge">Você</span>';
             } else {
-                const empresaVinculada = user.empresaId
-                    ? (empresasList.find(e => e._id === (user.empresaId?._id || user.empresaId))?.nome || '')
-                    : '';
-
                 actions = `
                     <div class="table-actions">
                         <button class="btn-action btn-edit edit-btn"
