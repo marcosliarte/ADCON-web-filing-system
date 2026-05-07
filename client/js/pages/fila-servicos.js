@@ -19,6 +19,9 @@ const TIPOS = {
 // Tipos que exigem seleção de empresa
 const TIPOS_COM_EMPRESA = ['alteracao_empresa', 'abertura_empresa', 'encerramento_empresa', 'declaracao_fiscal', 'certidao_negativa', 'certificado_digital'];
 
+// Tipos onde a empresa ainda não existe no banco (vai direto para input de texto)
+const TIPOS_ABERTURA = ['abertura_empresa'];
+
 const STATUS_LABEL = {
   pendente:     'Pendente',
   em_andamento: 'Em andamento',
@@ -47,6 +50,8 @@ function renderTabela(servicos) {
     const tipoLabel  = TIPOS[s.tipo] || s.tipo || '–';
     const empresaInfo = s.empresa
       ? `<div style="font-size:0.78rem;color:var(--text-secondary)">${escapeHtml(s.empresa.nome)}</div>`
+      : s.empresaNaoCadastrada
+      ? `<div style="font-size:0.78rem;color:#b45309">⚠ ${escapeHtml(s.empresaNaoCadastrada)} <em>(não cadastrada)</em></div>`
       : '';
     const funcNome = s.funcionario
       ? escapeHtml(s.funcionario.nome)
@@ -181,6 +186,9 @@ function abrirDetalhes(id) {
       : `detalhes-empresa.html?id=${s.empresa._id}`;
     empresaHtml = `<a href="${linkEmpresa}" style="color:var(--primary-600);text-decoration:underline">${escapeHtml(s.empresa.nome)}</a>
       <div style="font-size:0.78rem;color:var(--text-secondary)">${s.empresa.cnpj || ''}</div>`;
+  } else if (s.empresaNaoCadastrada) {
+    empresaHtml = `<span style="color:#b45309;font-weight:600">⚠ ${escapeHtml(s.empresaNaoCadastrada)}</span>
+      <div style="font-size:0.78rem;color:var(--text-secondary)">Empresa não cadastrada no sistema</div>`;
   }
 
   const body = document.getElementById('detalhes-body');
@@ -233,7 +241,7 @@ function abrirDetalhes(id) {
         <span class="detalhe-valor">${formatarData(s.createdAt)}</span>
       </div>
 
-      ${s.empresa ? `
+      ${(s.empresa || s.empresaNaoCadastrada) ? `
         <p class="detalhe-section-title">Empresa</p>
         <div class="detalhe-item full">
           <span class="detalhe-label">Empresa relacionada</span>
@@ -284,6 +292,12 @@ function setupEmpresaAutocomplete() {
   const dropdown      = document.getElementById('empresa-resultados');
   const naoEncontrada = document.getElementById('empresa-nao-encontrada');
 
+  const optNaoCadastradaHtml = `
+    <div class="empresa-dropdown-item empresa-opt-nao-cadastrada" data-tipo="nao-cadastrada">
+      <div class="empresa-nome">Empresa não cadastrada</div>
+      <div class="empresa-cnpj">Prosseguir sem vínculo com cadastro</div>
+    </div>`;
+
   inputBusca.addEventListener('input', () => {
     const termo = inputBusca.value.trim().toLowerCase();
     naoEncontrada.style.display = 'none';
@@ -296,22 +310,30 @@ function setupEmpresaAutocomplete() {
     ).slice(0, 8);
 
     if (!resultados.length) {
-      dropdown.innerHTML = `<div class="empresa-dropdown-vazio">Nenhuma empresa encontrada.</div>`;
+      dropdown.innerHTML = `<div class="empresa-dropdown-vazio">Nenhuma empresa encontrada.</div>` + optNaoCadastradaHtml;
       dropdown.style.display = 'block';
       naoEncontrada.style.display = 'block';
-      return;
+    } else {
+      dropdown.innerHTML = resultados.map(e => `
+        <div class="empresa-dropdown-item" data-id="${e._id}" data-nome="${escapeHtml(e.nome)}">
+          <div class="empresa-nome">${escapeHtml(e.nome)}</div>
+          <div class="empresa-cnpj">${e.cnpj || 'CNPJ não informado'}</div>
+        </div>
+      `).join('') + optNaoCadastradaHtml;
+      dropdown.style.display = 'block';
     }
 
-    dropdown.innerHTML = resultados.map(e => `
-      <div class="empresa-dropdown-item" data-id="${e._id}" data-nome="${escapeHtml(e.nome)}">
-        <div class="empresa-nome">${escapeHtml(e.nome)}</div>
-        <div class="empresa-cnpj">${e.cnpj || 'CNPJ não informado'}</div>
-      </div>
-    `).join('');
-    dropdown.style.display = 'block';
-
-    dropdown.querySelectorAll('.empresa-dropdown-item').forEach(item => {
+    dropdown.querySelectorAll('.empresa-dropdown-item[data-id]').forEach(item => {
       item.addEventListener('click', () => selecionarEmpresa(item.dataset.id, item.dataset.nome));
+    });
+    const optEl = dropdown.querySelector('.empresa-opt-nao-cadastrada');
+    if (optEl) optEl.addEventListener('click', () => {
+      const nome = inputBusca.value.trim();
+      if (nome) {
+        selecionarEmpresaNaoCadastrada(nome);
+      } else {
+        ativarModoNaoCadastrada('');
+      }
     });
   });
 
@@ -320,31 +342,112 @@ function setupEmpresaAutocomplete() {
       dropdown.style.display = 'none';
     }
   });
+
+  document.getElementById('input-nao-cadastrada-nome').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); confirmarNaoCadastrada(); }
+  });
 }
 
 function selecionarEmpresa(id, nome) {
   document.getElementById('input-empresa-id').value = id;
+  document.getElementById('input-empresa-nao-cadastrada').value = '';
   document.getElementById('input-empresa-busca').value = '';
   document.getElementById('empresa-resultados').style.display = 'none';
   document.getElementById('empresa-nao-encontrada').style.display = 'none';
 
   const tag = document.getElementById('empresa-selecionada');
+  tag.className = 'empresa-tag';
   tag.innerHTML = `<span>${escapeHtml(nome)}</span><button type="button" onclick="limparEmpresa()" title="Remover">✕</button>`;
   tag.style.display = 'flex';
 }
 
 function limparEmpresa() {
+  const tipo = document.getElementById('input-tipo')?.value;
+  const ehAbertura = TIPOS_ABERTURA.includes(tipo);
+
   document.getElementById('input-empresa-id').value = '';
+  document.getElementById('input-empresa-nao-cadastrada').value = '';
+  document.getElementById('input-nao-cadastrada-nome').value = '';
+  document.getElementById('empresa-nao-encontrada').style.display = 'none';
   const tag = document.getElementById('empresa-selecionada');
   tag.style.display = 'none';
   tag.innerHTML = '';
+
+  if (ehAbertura) {
+    // Para abertura, mantém o input de texto visível (é o único caminho)
+    document.getElementById('input-empresa-busca').style.display = 'none';
+    document.getElementById('campo-nao-cadastrada').style.display = 'block';
+  } else {
+    document.getElementById('input-empresa-busca').style.display = '';
+    document.getElementById('campo-nao-cadastrada').style.display = 'none';
+  }
+}
+
+function ativarModoNaoCadastrada(nomeInicial) {
+  document.getElementById('empresa-resultados').style.display = 'none';
   document.getElementById('empresa-nao-encontrada').style.display = 'none';
+  document.getElementById('input-empresa-busca').style.display = 'none';
+  document.getElementById('campo-nao-cadastrada').style.display = 'block';
+  const inputNome = document.getElementById('input-nao-cadastrada-nome');
+  inputNome.value = nomeInicial || '';
+  inputNome.focus();
+}
+
+function confirmarNaoCadastrada() {
+  const nome = document.getElementById('input-nao-cadastrada-nome').value.trim();
+  if (!nome) { showToast('Informe o nome da empresa.', 'error'); return; }
+  selecionarEmpresaNaoCadastrada(nome);
+}
+
+function cancelarNaoCadastrada() {
+  const tipo = document.getElementById('input-tipo').value;
+  document.getElementById('input-nao-cadastrada-nome').value = '';
+  document.getElementById('input-empresa-nao-cadastrada').value = '';
+
+  if (TIPOS_ABERTURA.includes(tipo)) {
+    // Para abertura não tem para onde "voltar" — mantém o input visível e limpo
+    return;
+  }
+  document.getElementById('campo-nao-cadastrada').style.display = 'none';
+  document.getElementById('input-empresa-busca').style.display = '';
+  document.getElementById('input-empresa-busca').value = '';
+}
+
+function selecionarEmpresaNaoCadastrada(nome) {
+  document.getElementById('input-empresa-id').value = '';
+  document.getElementById('input-empresa-nao-cadastrada').value = nome;
+  document.getElementById('input-empresa-busca').value = '';
+  document.getElementById('input-empresa-busca').style.display = 'none';
+  document.getElementById('campo-nao-cadastrada').style.display = 'none';
+  document.getElementById('empresa-resultados').style.display = 'none';
+  document.getElementById('empresa-nao-encontrada').style.display = 'none';
+
+  const tag = document.getElementById('empresa-selecionada');
+  tag.className = 'empresa-tag empresa-tag-nao-cadastrada';
+  tag.innerHTML = `<span>⚠ ${escapeHtml(nome)} <em style="font-size:0.75rem;font-weight:400">(não cadastrada)</em></span><button type="button" onclick="limparEmpresa()" title="Remover">✕</button>`;
+  tag.style.display = 'flex';
 }
 
 function toggleGrupoEmpresa(tipo) {
   const mostrar = TIPOS_COM_EMPRESA.includes(tipo);
-  document.getElementById('grupo-empresa').style.display = mostrar ? 'block' : 'none';
-  if (!mostrar) limparEmpresa();
+  const grupoEl = document.getElementById('grupo-empresa');
+  const labelEl = grupoEl.querySelector('label');
+
+  grupoEl.style.display = mostrar ? 'block' : 'none';
+  if (!mostrar) { limparEmpresa(); return; }
+
+  if (TIPOS_ABERTURA.includes(tipo)) {
+    labelEl.textContent = 'Nome da empresa a ser aberta';
+    document.getElementById('input-nao-cadastrada-nome').placeholder = 'Nome da empresa a ser aberta...';
+    // Vai direto para o input de texto — empresa ainda não existe no banco
+    document.getElementById('input-empresa-busca').style.display = 'none';
+    document.getElementById('empresa-selecionada').style.display = 'none';
+    document.getElementById('campo-nao-cadastrada').style.display = 'block';
+  } else {
+    labelEl.textContent = 'Empresa relacionada';
+    document.getElementById('input-nao-cadastrada-nome').placeholder = 'Nome da empresa não cadastrada...';
+    document.getElementById('input-empresa-busca').style.display = '';
+  }
 }
 
 // ── Modal criar/editar ─────────────────────────────────────────
@@ -384,7 +487,11 @@ function abrirEdicao(id) {
     ? new Date(s.dataPrevisao).toISOString().split('T')[0] : '';
 
   toggleGrupoEmpresa(s.tipo);
-  if (s.empresa) selecionarEmpresa(s.empresa._id, s.empresa.nome);
+  if (s.empresa) {
+    selecionarEmpresa(s.empresa._id, s.empresa.nome);
+  } else if (s.empresaNaoCadastrada) {
+    selecionarEmpresaNaoCadastrada(s.empresaNaoCadastrada);
+  }
 
   abrirModal('Editar Serviço');
 }
@@ -397,19 +504,26 @@ async function salvarServico() {
   if (!titulo) { showToast('O título é obrigatório.', 'error'); return; }
 
   const empresaId = document.getElementById('input-empresa-id').value;
-  if (TIPOS_COM_EMPRESA.includes(tipo) && !empresaId) {
-    showToast('Selecione a empresa relacionada ao serviço.', 'error'); return;
+  const empresaNaoCadastrada = document.getElementById('input-empresa-nao-cadastrada').value.trim();
+
+  if (TIPOS_ABERTURA.includes(tipo)) {
+    if (!empresaNaoCadastrada) {
+      showToast('Informe o nome da empresa a ser aberta.', 'error'); return;
+    }
+  } else if (TIPOS_COM_EMPRESA.includes(tipo) && !empresaId && !empresaNaoCadastrada) {
+    showToast('Selecione a empresa ou informe o nome da empresa não cadastrada.', 'error'); return;
   }
 
   const payload = {
     tipo,
     titulo,
-    descricao:    document.getElementById('input-descricao').value.trim(),
-    empresa:      empresaId || null,
-    funcionario:  document.getElementById('input-funcionario').value || null,
-    prioridade:   document.getElementById('input-prioridade').value,
-    status:       document.getElementById('input-status').value,
-    dataPrevisao: document.getElementById('input-previsao').value || null
+    descricao:            document.getElementById('input-descricao').value.trim(),
+    empresa:              empresaId || null,
+    empresaNaoCadastrada: empresaNaoCadastrada || null,
+    funcionario:          document.getElementById('input-funcionario').value || null,
+    prioridade:           document.getElementById('input-prioridade').value,
+    status:               document.getElementById('input-status').value,
+    dataPrevisao:         document.getElementById('input-previsao').value || null
   };
 
   const btn = document.getElementById('btn-salvar-servico');

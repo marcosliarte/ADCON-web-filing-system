@@ -108,7 +108,7 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { tipo, titulo, descricao, empresa, funcionario, prioridade, dataPrevisao } = req.body;
+    const { tipo, titulo, descricao, empresa, empresaNaoCadastrada, funcionario, prioridade, dataPrevisao } = req.body;
 
     try {
       const novoServico = new FilaServico({
@@ -116,6 +116,7 @@ router.post(
         titulo,
         descricao,
         empresa: empresa || null,
+        empresaNaoCadastrada: empresaNaoCadastrada || null,
         funcionario: funcionario || null,
         prioridade: prioridade || 'normal',
         dataPrevisao: dataPrevisao || null,
@@ -151,7 +152,7 @@ router.put(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { tipo, titulo, descricao, empresa, funcionario, status, prioridade, dataPrevisao, responsavel } = req.body;
+    const { tipo, titulo, descricao, empresa, empresaNaoCadastrada, funcionario, status, prioridade, dataPrevisao, responsavel } = req.body;
 
     try {
       const servico = await FilaServico.findById(req.params.id);
@@ -162,7 +163,8 @@ router.put(
       servico.tipo        = tipo || servico.tipo;
       servico.titulo      = titulo;
       servico.descricao   = descricao || '';
-      servico.empresa     = empresa || null;
+      servico.empresa              = empresa || null;
+      servico.empresaNaoCadastrada = empresaNaoCadastrada || null;
       servico.funcionario = funcionario || null;
       servico.status      = status || servico.status;
       servico.prioridade  = prioridade || servico.prioridade;

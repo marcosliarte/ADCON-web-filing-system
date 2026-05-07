@@ -1,3 +1,15 @@
+// Inject Inter font for all authenticated pages
+(function() {
+    if (document.querySelector('[data-adcon-font]')) return;
+    const h = document.head;
+    const p1 = document.createElement('link'); p1.rel = 'preconnect'; p1.href = 'https://fonts.googleapis.com'; h.appendChild(p1);
+    const p2 = document.createElement('link'); p2.rel = 'preconnect'; p2.href = 'https://fonts.gstatic.com'; p2.crossOrigin = 'anonymous'; h.appendChild(p2);
+    const f = document.createElement('link'); f.rel = 'stylesheet'; f.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'; f.setAttribute('data-adcon-font', ''); h.appendChild(f);
+    const s = document.createElement('style');
+    s.textContent = "body{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif!important;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}";
+    h.appendChild(s);
+})();
+
 function escapeHtml(str) {
     if (!str) return '';
     return String(str)
@@ -65,11 +77,12 @@ async function createHeader(placeholderId, usuario) {
         const configResponse = await fetchWithAuth('/api/configuracao');
         if (configResponse && configResponse.ok) {
             const configData = await configResponse.json();
-            if (configData && configData.nome_fantasia) {
-                nomeFantasia = configData.nome_fantasia;
-            }
-            if (configData && configData.logotipoUrl) {
-                logotipoUrl = configData.logotipoUrl;
+            if (configData) {
+                const pref = configData.nomeHeaderExibicao || 'nome_fantasia';
+                nomeFantasia = configData[pref] || configData.nome_fantasia || configData.nomeEmpresa || 'ADCON - Painel';
+                if (configData.logotipoUrl) {
+                    logotipoUrl = configData.logotipoUrl;
+                }
             }
         }
     } catch (e) {

@@ -2,6 +2,17 @@
    LOGIN PAGE - JavaScript
    ======================================== */
 
+// Se nenhum admin existe ainda, redireciona para o setup inicial
+(async function checkSetup() {
+    try {
+        const res  = await fetch('/api/auth/setup/status');
+        const data = await res.json();
+        if (data.setupRequired) {
+            window.location.replace('setup.html');
+        }
+    } catch (e) { /* sem conectividade — deixa o login aparecer normalmente */ }
+})();
+
 // Aguarda o DOM carregar
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('login-form');

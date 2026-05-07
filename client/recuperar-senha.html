@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Senha - ADCON</title>
+    <link rel="stylesheet" href="css/global.css?v=2">
+    <link rel="stylesheet" href="css/login.css?v=2">
+    <style>
+        .input-pw-wrap { position: relative; }
+        .input-pw-wrap input { padding-right: 2.6rem; }
+        /* especificidade maior que .login-container button */
+        .login-container .btn-eye {
+            position: absolute; right: 0.6rem; top: 50%;
+            transform: translateY(-50%);
+            background: none !important;
+            border: none !important;
+            color: #94A3B8 !important;
+            width: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            font-size: 1rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .login-container .btn-eye:hover { color: #475569 !important; background: none !important; }
+        .hint {
+            font-size: 0.78rem; color: #64748B;
+            margin-top: 0.3rem; display: block;
+        }
+        .hint-error { font-size: 0.78rem; color: #DC2626; margin-top: 0.3rem; display: none; }
+        .back-link {
+            display: inline-block; margin-top: 1rem;
+            font-size: 0.875rem; color: #64748B; text-decoration: none;
+        }
+        .back-link:hover { color: #2563EB; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>🔑 ADCON</h1>
+
+        <form id="recover-form" autocomplete="off" novalidate>
+            <div class="form-group">
+                <label for="email">Email da conta</label>
+                <input type="email" id="email" class="form-control"
+                       required placeholder="seu@email.com" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="recoveryKey">Chave de recuperação</label>
+                <div class="input-pw-wrap">
+                    <input type="password" id="recoveryKey" class="form-control"
+                           required placeholder="Chave definida no servidor (.env)">
+                    <button type="button" class="btn-eye" data-target="recoveryKey">👁</button>
+                </div>
+                <span class="hint">Disponível no arquivo .env do servidor (RECOVERY_KEY).</span>
+            </div>
+            <div class="form-group">
+                <label for="novaSenha">Nova senha</label>
+                <div class="input-pw-wrap">
+                    <input type="password" id="novaSenha" class="form-control"
+                           required placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                    <button type="button" class="btn-eye" data-target="novaSenha">👁</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="confirmar">Confirmar nova senha</label>
+                <div class="input-pw-wrap">
+                    <input type="password" id="confirmar" class="form-control"
+                           required placeholder="Repita a nova senha" autocomplete="new-password">
+                    <button type="button" class="btn-eye" data-target="confirmar">👁</button>
+                </div>
+                <span class="hint-error" id="pw-mismatch">As senhas não conferem.</span>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-recover">
+                Redefinir senha
+            </button>
+        </form>
+
+        <div id="recover-message"></div>
+        <a href="login.html" class="back-link">← Voltar para o login</a>
+    </div>
+
+    <script src="js/pages/recuperar-senha.js"></script>
+</body>
+</html>

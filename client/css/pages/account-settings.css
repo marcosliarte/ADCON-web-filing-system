@@ -1,9 +1,9 @@
 /* Paleta e base */
 :root{
-  --primary:#3BA3FF; --primary-600:#1E88E5; --muted:#6b7280; --bg:#f7fbff; --border:#e9eef5; --card-shadow:0 2px 8px rgba(0,0,0,.06)
+  --primary:#2563EB; --primary-600:#1D4ED8; --muted:#64748B; --bg:#F8FAFC; --border:#E2E8F0; --card-shadow:0 1px 2px rgba(0,0,0,.05)
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:#333a40;min-height:100vh;display:flex;flex-direction:column}
+body{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:#0F172A;min-height:100vh;display:flex;flex-direction:column}
 
 /* Header e dropdown */
 .header{background:var(--primary);color:#fff;padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.08);position:sticky;top:0;z-index:10}

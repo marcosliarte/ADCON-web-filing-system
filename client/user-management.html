@@ -43,7 +43,18 @@
                     </div>
                     <div class="form-group">
                         <label for="senha">Senha</label>
-                        <input type="password" id="senha" name="senha" placeholder="Mínimo 6 caracteres" required>
+                        <div class="input-password-wrap">
+                            <input type="password" id="senha" name="senha" placeholder="Mínimo 6 caracteres" required>
+                            <button type="button" class="btn-toggle-pw" data-target="senha" title="Mostrar/ocultar senha">👁</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmarSenha">Confirmar Senha</label>
+                        <div class="input-password-wrap">
+                            <input type="password" id="confirmarSenha" name="confirmarSenha" placeholder="Repita a senha" required>
+                            <button type="button" class="btn-toggle-pw" data-target="confirmarSenha" title="Mostrar/ocultar senha">👁</button>
+                        </div>
+                        <span id="senha-mismatch" class="field-hint error" style="display:none;">As senhas não conferem.</span>
                     </div>
                     <div class="form-group">
                         <label for="role">Perfil</label>
@@ -53,6 +64,9 @@
                             <option value="empresario">Empresário</option>
                             <option value="admin">Administrador</option>
                         </select>
+                        <div id="aviso-admin" class="field-hint warning" style="display:none;">
+                            ⚠ Administradores têm acesso total ao sistema. Conceda com cautela.
+                        </div>
                     </div>
                     <div class="form-group" id="grupo-empresa-criar" style="display:none;">
                         <label for="empresaId">Empresa Vinculada</label>

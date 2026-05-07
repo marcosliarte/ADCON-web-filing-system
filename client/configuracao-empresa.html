@@ -102,6 +102,13 @@
                     <label for="nome_fantasia">Nome Fantasia</label>
                     <input type="text" id="nome_fantasia" name="nome_fantasia">
                 </div>
+                <div class="form-group form-group-full">
+                    <label for="nomeHeaderExibicao">Nome exibido no cabeçalho</label>
+                    <select id="nomeHeaderExibicao" name="nomeHeaderExibicao" style="width:100%;padding:0.7rem;border:1px solid #ccc;border-radius:4px;font-size:1rem;background:white;">
+                        <option value="nome_fantasia">Nome Fantasia</option>
+                        <option value="nome_empresarial">Nome Empresarial</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label for="porte">Porte</label>
                     <input type="text" id="porte" name="porte">
@@ -304,17 +311,18 @@
         }
 
         function populateForm(data) {
-            // Itera sobre as chaves do objeto de dados para preencher o formulário
             for (const key in data) {
-                if (typeof data[key] === 'object' && data[key] !== null) {
-                    for (const subKey in data[key]) {
-                        const fieldName = `${key}.${subKey}`;
-                        const field = document.querySelector(`[name="${fieldName}"]`);
-                        if (field) field.value = data[key][subKey] || '';
+                const val = data[key];
+                if (Array.isArray(val)) continue;
+                if (val && typeof val === 'object') {
+                    for (const subKey in val) {
+                        if (Array.isArray(val[subKey])) continue;
+                        const field = document.querySelector(`[name="${key}.${subKey}"]`);
+                        if (field) field.value = val[subKey] || '';
                     }
                 } else {
                     const field = document.querySelector(`[name="${key}"]`);
-                    if (field) field.value = data[key] || '';
+                    if (field) field.value = val || '';
                 }
             }
         }
@@ -576,12 +584,12 @@
         function toggleEditMode(isEditing) {
             const form = document.getElementById('form-configuracao');
             const inputs = form.querySelectorAll('input');
+            const selects = form.querySelectorAll('select');
             const logoActions = document.getElementById('logoActions');
             const logoActionsEmpty = document.getElementById('logoActionsEmpty');
 
-            inputs.forEach(input => {
-                input.readOnly = !isEditing;
-            });
+            inputs.forEach(input => { input.readOnly = !isEditing; });
+            selects.forEach(select => { select.disabled = !isEditing; });
 
             // Controla visibilidade dos botões de logo
             if (isEditing) {

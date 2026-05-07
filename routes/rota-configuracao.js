@@ -59,8 +59,21 @@ router.get('/', auth, async (req, res) => {
 // @access  Private (Admin, Gerente)
 router.put('/', [auth, adminAuth], async (req, res) => {
     try {
-        const { nomeEmpresa, nome_fantasia, cnpj, endereco, telefone, email, tema } = req.body;
-        const dadosAtualizados = { nomeEmpresa, nome_fantasia, cnpj, endereco, telefone, email, tema };
+        const {
+            nomeEmpresa, nome_empresarial, nome_fantasia, nomeHeaderExibicao,
+            cnpj, data_abertura, porte,
+            atividade_principal, natureza_juridica,
+            endereco, contato,
+            telefone, email, tema
+        } = req.body;
+
+        const dadosAtualizados = {
+            nomeEmpresa, nome_empresarial, nome_fantasia, nomeHeaderExibicao,
+            cnpj, data_abertura, porte,
+            atividade_principal, natureza_juridica,
+            endereco, contato,
+            telefone, email, tema
+        };
         Object.keys(dadosAtualizados).forEach(k => dadosAtualizados[k] === undefined && delete dadosAtualizados[k]);
 
         const config = await ConfiguracaoEmpresa.findOneAndUpdate(
@@ -73,7 +86,7 @@ router.put('/', [auth, adminAuth], async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        if (err.code === 11000) { // Erro de chave duplicada
+        if (err.code === 11000) {
             return res.status(400).json({ msg: 'Erro de consistência de dados. Tente novamente.' });
         }
         res.status(500).json({ msg: 'Erro no servidor ao atualizar os dados.' });

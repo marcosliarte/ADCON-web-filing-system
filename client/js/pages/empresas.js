@@ -110,10 +110,11 @@ async function carregarEmpresas() {
 
             // CORREÇÃO: Lógica de permissão para os botões de ação
             if (usuario && ['admin', 'gerente', 'funcionario'].includes(usuario.role)) {
+                acoesCell.className = 'actions';
                 acoesCell.innerHTML = `
-                    <button data-action="visualizar" data-id="${empresa._id}">Visualizar</button>
-                    <button data-action="editar" data-id="${empresa._id}" style="background-color: #ffc107; color: #212529;">Editar</button>
-                    <button data-action="excluir" data-id="${empresa._id}" class="delete-btn">Excluir</button>
+                    <button class="btn-acao btn-visualizar" data-action="visualizar" data-id="${empresa._id}">Visualizar</button>
+                    <button class="btn-acao btn-editar"     data-action="editar"     data-id="${empresa._id}">Editar</button>
+                    <button class="btn-acao btn-excluir"    data-action="excluir"    data-id="${empresa._id}">Excluir</button>
                 `;
             }
         });

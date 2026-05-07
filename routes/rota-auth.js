@@ -101,6 +101,112 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// ─────────────────────────────────────────────────────────────
+// FIRST-RUN SETUP — só funciona enquanto não há nenhum usuário
+// ─────────────────────────────────────────────────────────────
+
+// @route   GET  api/auth/setup/status
+// @desc    Informa se o sistema ainda precisa de configuração inicial
+// @access  Public
+router.get('/setup/status', async (req, res) => {
+  try {
+    const count = await Usuario.countDocuments();
+    res.json({ setupRequired: count === 0 });
+  } catch (err) {
+    res.status(500).json({ msg: 'Erro ao verificar status do sistema.' });
+  }
+});
+
+// @route   POST api/auth/setup
+// @desc    Cria o primeiro administrador do sistema
+// @access  Public — mas só aceita enquanto não existir nenhum usuário
+router.post(
+  '/setup',
+  [
+    authLimiter,
+    check('nome',  'O nome é obrigatório').not().isEmpty(),
+    check('email', 'Email inválido').isEmail(),
+    check('senha', 'A senha deve ter no mínimo 6 caracteres').isLength({ min: 6 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const count = await Usuario.countDocuments();
+      if (count > 0) {
+        return res.status(403).json({ msg: 'O sistema já foi configurado. Faça login normalmente.' });
+      }
+
+      const { nome, email, senha } = req.body;
+
+      const admin = new Usuario({
+        nome:  nome.trim(),
+        email: email.trim().toLowerCase(),
+        senha,
+        role:  'admin',
+      });
+
+      await admin.save();
+      res.status(201).json({ msg: 'Administrador criado com sucesso! Faça login para continuar.' });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ msg: 'Erro ao criar o administrador.' });
+    }
+  }
+);
+
+const recoveryLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5,
+  message: 'Muitas tentativas de recuperação. Tente novamente em 1 hora.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// @route   POST api/auth/recover-password
+// @desc    Redefine senha usando a chave de recuperação do .env
+// @access  Public — autenticado pela RECOVERY_KEY do servidor
+router.post(
+  '/recover-password',
+  [
+    recoveryLimiter,
+    check('email',       'Email inválido').isEmail(),
+    check('recoveryKey', 'Chave de recuperação é obrigatória').not().isEmpty(),
+    check('novaSenha',   'A nova senha deve ter no mínimo 6 caracteres').isLength({ min: 6 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const RECOVERY_KEY = process.env.RECOVERY_KEY;
+    if (!RECOVERY_KEY) {
+      return res.status(503).json({ msg: 'Recuperação de senha não está configurada neste servidor.' });
+    }
+
+    const { email, recoveryKey, novaSenha } = req.body;
+
+    if (recoveryKey.trim() !== RECOVERY_KEY.trim()) {
+      return res.status(401).json({ msg: 'Chave de recuperação incorreta.' });
+    }
+
+    try {
+      const usuario = await Usuario.findOne({ email: email.trim().toLowerCase() });
+      if (!usuario) {
+        return res.status(404).json({ msg: 'Nenhum usuário encontrado com este email.' });
+      }
+
+      usuario.senha = novaSenha;
+      await usuario.save();
+
+      res.json({ msg: 'Senha redefinida com sucesso! Faça login com a nova senha.' });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ msg: 'Erro ao redefinir a senha.' });
+    }
+  }
+);
+
 // @route   POST api/auth/register
 // @desc    Registrar um usuário
 // @access  Public

@@ -72,6 +72,41 @@
     box-shadow: 0 0 0 3px rgba(59, 163, 255, 0.15);
 }
 
+/* Password input com toggle */
+.input-password-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-password-wrap input {
+    padding-right: 2.5rem;
+}
+
+.btn-toggle-pw {
+    position: absolute;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.2rem;
+    color: #888;
+    line-height: 1;
+}
+
+.btn-toggle-pw:hover { color: #333; }
+
+/* Hints de campo */
+.field-hint {
+    display: block;
+    font-size: 0.78rem;
+    margin-top: 0.3rem;
+}
+
+.field-hint.error   { color: #dc2626; }
+.field-hint.warning { color: #92400e; background: #fef3c7; border-radius: 4px; padding: 0.35rem 0.6rem; }
+
 .btn-full {
     width: 100%;
     padding: 0.65rem;

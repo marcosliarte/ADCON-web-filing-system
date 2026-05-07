@@ -6,11 +6,11 @@
 .header {
     background-color: var(--bg-header);
     color: white;
-    padding: 1rem 2rem;
+    padding: 0.875rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.12);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -108,7 +108,7 @@
     background-color: var(--bg-sidebar);
     color: white;
     padding: var(--spacing-lg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: none;
     min-height: 100vh;
     position: sticky;
     top: 0;

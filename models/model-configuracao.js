@@ -1,7 +1,16 @@
 const mongoose = require('mongoose');
 
 const EnderecoSchema = new mongoose.Schema({
-    logradouro: String, numero: String, complemento: String, cep: String, bairro: String, cidade: String, uf: String,
+    logradouro: String, numero: String, complemento: String, cep: String,
+    bairro: String, bairro_distrito: String, cidade: String, municipio: String, uf: String,
+}, { _id: false });
+
+const AtividadeSchema = new mongoose.Schema({
+    codigo: String, descricao: String
+}, { _id: false });
+
+const ContatoSchema = new mongoose.Schema({
+    email: String, telefone: String
 }, { _id: false });
 
 const PagamentoFuncionarioSchema = new mongoose.Schema({
@@ -48,8 +57,16 @@ const TemaSchema = new mongoose.Schema({
 const ConfiguracaoEmpresaSchema = new mongoose.Schema({
     identificador: { type: String, default: 'adcon_config', unique: true },
     nomeEmpresa: String,
+    nome_empresarial: String,
+    nome_fantasia: String,
+    nomeHeaderExibicao: { type: String, enum: ['nome_empresarial', 'nome_fantasia'], default: 'nome_fantasia' },
     cnpj: String,
+    data_abertura: String,
+    porte: String,
+    atividade_principal: AtividadeSchema,
+    natureza_juridica: AtividadeSchema,
     endereco: EnderecoSchema,
+    contato: ContatoSchema,
     telefone: String,
     email: String,
     logotipoUrl: String,

@@ -9,9 +9,9 @@
 }
 
 body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: #f4f7f6;
-    color: #333;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #F8FAFC;
+    color: #0F172A;
     margin: 0;
     padding: 0;
     line-height: 1.6;
@@ -275,29 +275,25 @@ input[type="text"] {
 
 .print-header {
     text-align: center;
-    margin-bottom: 2.5rem;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    margin-bottom: 2rem;
+    padding: 1.5rem 1.5rem 1.25rem;
+    border-bottom: 2px solid #0F172A;
 }
 
 .print-header h2 {
-    color: white;
-    font-size: 2.2rem;
-    font-weight: 800;
-    margin-bottom: 0.75rem;
+    color: #0F172A;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
     text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.08em;
 }
 
 .print-header .periodo {
-    color: white;
-    font-size: 1.1rem;
+    color: #64748B;
+    font-size: 0.95rem;
     font-weight: 500;
-    margin-top: 0.5rem;
-    opacity: 0.95;
+    margin-top: 0.25rem;
 }
 
 /* Informações da empresa */
@@ -422,7 +418,15 @@ input[type="text"] {
 
 /* Estilos de Impressão */
 @media print {
-    .header {
+    .header,
+    footer,
+    .footer,
+    .back-btn,
+    .form-section,
+    .actions,
+    .error,
+    .success,
+    h1:not(.print-area h1) {
         display: none !important;
     }
 
@@ -430,6 +434,8 @@ input[type="text"] {
         background: white;
         padding: 0;
         margin: 0;
+        font-size: 10pt;
+        color: #000;
     }
 
     .page-content {
@@ -440,15 +446,7 @@ input[type="text"] {
         box-shadow: none;
         padding: 0;
         margin: 0;
-    }
-
-    h1,
-    .back-btn,
-    .form-section,
-    .actions,
-    .error,
-    .success {
-        display: none !important;
+        max-width: 100%;
     }
 
     .print-area {
@@ -459,39 +457,44 @@ input[type="text"] {
     }
 
     .print-header {
+        text-align: center;
         margin-bottom: 1.5rem;
-        padding: 1.2rem;
-        background: #333 !important;
+        padding: 0 0 1rem 0;
+        border-bottom: 2px solid #000;
+        background: none !important;
         border-radius: 0;
         box-shadow: none;
-        border: 3px solid #333;
         page-break-after: avoid;
     }
 
     .print-header h2 {
-        color: white !important;
-        font-size: 1.6rem;
-        margin-bottom: 0.5rem;
-        text-shadow: none;
+        color: #000 !important;
+        font-size: 14pt;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
     }
 
     .print-header .periodo {
-        color: white !important;
-        font-size: 1rem;
-        margin-top: 0.3rem;
-        opacity: 1;
+        color: #333 !important;
+        font-size: 10pt;
+        font-weight: 500;
+        margin-top: 0.2rem;
     }
 
     .empresa-info {
         margin-bottom: 1.2rem;
-        padding: 1rem;
+        padding: 0.75rem;
+        background: none !important;
+        border-left: 3px solid #000;
         page-break-after: avoid;
     }
 
     .empresa-info p {
-        margin: 0.35rem 0;
-        font-size: 1rem;
-        line-height: 1.5;
+        margin: 0.25rem 0;
+        font-size: 10pt;
+        line-height: 1.4;
         color: #000 !important;
     }
 
@@ -507,43 +510,17 @@ input[type="text"] {
 
     .faturamento-table th,
     .faturamento-table td {
-        padding: 0.4rem;
-        font-size: 0.85rem;
+        padding: 0.35rem 0.5rem;
+        font-size: 9pt;
         color: #000 !important;
-    }
-
-    /* Versão compacta para até 12 meses: garante 1 página */
-    .compact-12 .print-header {
-        margin-bottom: 1rem;
-        padding: 1rem;
-    }
-    .compact-12 .empresa-info {
-        margin-bottom: 0.8rem;
-        padding: 0.8rem;
-    }
-    .compact-12 .faturamento-table th,
-    .compact-12 .faturamento-table td {
-        padding: 0.3rem;
-        font-size: 0.8rem;
-    }
-    .compact-12 .faturamento-table .input-valor {
-        font-size: 0.8rem;
-    }
-    .compact-12 .signature-section {
-        margin-top: 0.8rem;
-        padding-top: 0.6rem;
-    }
-    .compact-12 .signature-line {
-        width: 260px;
-    }
-    .compact-12 .signature-name,
-    .compact-12 .signature-role,
-    .compact-12 .disclaimer {
-        font-size: 0.78rem !important;
+        border-color: #999 !important;
     }
 
     .faturamento-table th {
+        background: #e8e8e8 !important;
         font-weight: 700 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 
     .faturamento-table input[type="text"],
@@ -551,51 +528,91 @@ input[type="text"] {
         border: none;
         background: transparent;
         padding: 0;
-        font-size: 0.85rem;
+        font-size: 9pt;
+        color: #000 !important;
     }
 
     .faturamento-table .section-row td {
-        background: #ddd !important;
+        background: #d8d8d8 !important;
+        font-weight: 700 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
     .faturamento-table .future-row td {
         font-style: italic;
-        color: #000 !important;
+        color: #444 !important;
+    }
+
+    .faturamento-table .total-row td {
+        background: #efefef !important;
+        font-weight: 700 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 
     .faturamento-table tr {
         page-break-inside: avoid;
     }
 
+    /* Versão compacta para até 12 meses */
+    .compact-12 .print-header {
+        margin-bottom: 0.8rem;
+        padding-bottom: 0.75rem;
+    }
+    .compact-12 .empresa-info {
+        margin-bottom: 0.8rem;
+        padding: 0.6rem 0.75rem;
+    }
+    .compact-12 .faturamento-table th,
+    .compact-12 .faturamento-table td {
+        padding: 0.25rem 0.4rem;
+        font-size: 8.5pt;
+    }
+    .compact-12 .signature-section {
+        margin-top: 0.8rem;
+        padding-top: 0.5rem;
+    }
+    .compact-12 .signature-line {
+        width: 240px;
+    }
+    .compact-12 .signature-name,
+    .compact-12 .signature-role,
+    .compact-12 .disclaimer {
+        font-size: 8pt !important;
+    }
+
     .signature-section {
-        margin-top: 1rem;
+        margin-top: 1.5rem;
         padding-top: 0.75rem;
+        border-top: 1px solid #999;
         page-break-inside: avoid;
     }
 
     .signature-box {
-        margin-top: 1rem;
+        margin-top: 1.5rem;
     }
 
     .signature-line {
+        border-top: 1px solid #333;
         width: 280px;
+        margin: 0 auto 0.4rem;
     }
 
     .signature-name,
     .signature-role {
-        font-size: 0.8rem;
+        font-size: 8.5pt;
         color: #000 !important;
         font-weight: 600 !important;
     }
 
     .disclaimer {
         margin-top: 0.8rem !important;
-        padding: 0.6rem !important;
-        font-size: 0.8rem !important;
-        border-left-width: 3px !important;
+        padding: 0.5rem !important;
+        font-size: 8pt !important;
+        border-left-width: 2px !important;
         page-break-inside: avoid;
+        color: #333 !important;
     }
 
     @page {

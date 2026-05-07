@@ -118,8 +118,16 @@
                     <label for="input-empresa-busca">Empresa relacionada</label>
                     <input type="text" id="input-empresa-busca" placeholder="Digite o nome ou CNPJ para buscar..." autocomplete="off">
                     <input type="hidden" id="input-empresa-id">
+                    <input type="hidden" id="input-empresa-nao-cadastrada">
                     <div id="empresa-resultados" class="empresa-dropdown" style="display:none;"></div>
                     <div id="empresa-selecionada" class="empresa-tag" style="display:none;"></div>
+                    <div id="campo-nao-cadastrada" style="display:none; margin-top:0.5rem;">
+                        <input type="text" id="input-nao-cadastrada-nome" placeholder="Nome da empresa não cadastrada...">
+                        <div style="display:flex;gap:0.5rem;margin-top:0.4rem;align-items:center;">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="confirmarNaoCadastrada()">Confirmar</button>
+                            <button type="button" onclick="cancelarNaoCadastrada()" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:var(--text-secondary);padding:0;">← Voltar à busca</button>
+                        </div>
+                    </div>
                     <div id="empresa-nao-encontrada" style="display:none; margin-top:0.5rem;">
                         <span style="font-size:0.82rem; color:var(--text-secondary);">Empresa não cadastrada? </span>
                         <a href="cliente-formulario.html" target="_blank" class="link-cadastrar">Cadastrar nova empresa</a>

@@ -280,10 +280,18 @@ document.getElementById('createUserForm').addEventListener('submit', async funct
     const nome = document.getElementById('nome').value;
     const email = document.getElementById('email').value;
     const senha = document.getElementById('senha').value;
+    const confirmarSenha = document.getElementById('confirmarSenha').value;
     const role = document.getElementById('role').value;
     const empresaId = document.getElementById('empresaId').value || null;
     const createMessage = document.getElementById('createMessage');
     const btnCriar = document.getElementById('btnCriar');
+
+    if (senha !== confirmarSenha) {
+        document.getElementById('senha-mismatch').style.display = 'block';
+        document.getElementById('confirmarSenha').focus();
+        return;
+    }
+    document.getElementById('senha-mismatch').style.display = 'none';
 
     btnCriar.disabled = true;
     btnCriar.textContent = 'Criando...';
@@ -341,12 +349,31 @@ document.getElementById('resetPasswordModal').addEventListener('click', function
     if (e.target === this) closeResetModal();
 });
 
-// Mostrar/ocultar campo de empresa conforme perfil selecionado
+// Mostrar/ocultar campo de empresa e aviso de admin
 document.getElementById('role').addEventListener('change', function() {
     toggleEmpresaField(this.value, 'grupo-empresa-criar', 'empresaId');
+    document.getElementById('aviso-admin').style.display = this.value === 'admin' ? 'block' : 'none';
 });
 document.getElementById('modal-role').addEventListener('change', function() {
     toggleEmpresaField(this.value, 'grupo-empresa-editar', 'modal-empresaId');
+});
+
+// Toggle de visibilidade de senha
+document.querySelectorAll('.btn-toggle-pw').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const input = document.getElementById(this.dataset.target);
+        if (!input) return;
+        const mostrar = input.type === 'password';
+        input.type = mostrar ? 'text' : 'password';
+        this.textContent = mostrar ? '🙈' : '👁';
+    });
+});
+
+// Validação em tempo real da confirmação de senha
+document.getElementById('confirmarSenha')?.addEventListener('input', function() {
+    const senha = document.getElementById('senha').value;
+    const mismatch = document.getElementById('senha-mismatch');
+    mismatch.style.display = (this.value && this.value !== senha) ? 'block' : 'none';
 });
 
 document.addEventListener('DOMContentLoaded', setupPage);
