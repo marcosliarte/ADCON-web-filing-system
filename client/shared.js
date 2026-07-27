@@ -20,6 +20,15 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+// Rastreia o último momento de interação real do usuário
+let _ultimaAtividade = Date.now();
+(function _monitorarAtividade() {
+    const atualizar = () => { _ultimaAtividade = Date.now(); };
+    ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(ev =>
+        document.addEventListener(ev, atualizar, { passive: true })
+    );
+})();
+
 function _getTokenExpiry(token) {
     try {
         return JSON.parse(atob(token.split('.')[1])).exp * 1000;
@@ -35,8 +44,10 @@ async function _renovarTokenSeNecessario(token) {
     const expiry = _getTokenExpiry(token);
     if (!expiry) return token;
     const restante = expiry - Date.now();
-    // Renova se restar menos de 30 minutos e o token ainda for válido
-    if (restante > 0 && restante < 30 * 60 * 1000) {
+    const ativoRecentemente = (Date.now() - _ultimaAtividade) < 5 * 60 * 1000; // ativo nos últimos 5 min
+
+    // Só renova se: token ainda válido, restam menos de 10 min E usuário está ativo
+    if (restante > 0 && restante < 10 * 60 * 1000 && ativoRecentemente) {
         _renovandoToken = true;
         try {
             const res = await fetch('/api/auth/renovar', {
@@ -59,7 +70,7 @@ async function _renovarTokenSeNecessario(token) {
 
 /**
  * Função para fazer requisições à API com o token de autenticação.
- * Renova o token automaticamente quando resta menos de 30 minutos.
+ * Renova silenciosamente o token apenas se o usuário estiver ativo.
  */
 async function fetchWithAuth(url, options = {}) {
     let token = localStorage.getItem('token');
