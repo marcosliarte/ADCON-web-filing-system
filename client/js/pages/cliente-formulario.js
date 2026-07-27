@@ -64,7 +64,17 @@ function mudarEtapa(n) {
 function validateStep(step) {
     const currentStepDiv = document.getElementById(`step-${step}`);
     const inputs = currentStepDiv.querySelectorAll('input[required], select[required]');
+    const validatedRadioGroups = new Set();
+
     for (const input of inputs) {
+        if (input.type === 'radio') {
+            if (validatedRadioGroups.has(input.name)) continue;
+            validatedRadioGroups.add(input.name);
+            if (!currentStepDiv.querySelector(`input[name="${input.name}"]:checked`)) {
+                return false;
+            }
+            continue;
+        }
         if (!input.value.trim()) {
             input.style.borderColor = 'red';
             return false;

@@ -81,7 +81,8 @@ const DocumentosEmpresaSchema = new mongoose.Schema({
     senha: { type: String, select: false } // Senha não é retornada em queries
   },
   contratos: [ContratoSchema],
-  balancosPatrimoniais: [BalancoPatrimonialSchema], // Array de balanços anuais
+  balancosPatrimoniais: [BalancoPatrimonialSchema],
+  documentosDiversos: [DocumentoDiversoSchema],
   alvara: AlvaraSchema,
   certidaoPrefeitura: CertidaoSchema,
   certidaoReceita: CertidaoSchema,

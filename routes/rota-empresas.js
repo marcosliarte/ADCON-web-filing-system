@@ -160,6 +160,8 @@ router.post(
         atividade_principal_descricao: req.body.atividade_principal_descricao, // Adiciona a descrição do CNAE
         documentos: {
           contratos: [],
+          balancosPatrimoniais: [],
+          documentosDiversos: [],
         },
       };
 
@@ -290,9 +292,13 @@ router.post(
 
       res.status(201).json(novaEmpresa);
     } catch (err) {
+      if (err.name === 'ValidationError') {
+        const messages = Object.values(err.errors).map(e => e.message).join('. ');
+        return res.status(400).json({ msg: `Dados inválidos: ${messages}` });
+      }
       console.error(err.message);
-      console.error(err.stack); // Adiciona mais detalhes do erro no log
-      res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
+      console.error(err.stack);
+      res.status(500).json({ msg: 'Erro no servidor' });
     }
   }
 );
