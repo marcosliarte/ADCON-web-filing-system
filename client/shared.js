@@ -20,27 +20,63 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
+function _getTokenExpiry(token) {
+    try {
+        return JSON.parse(atob(token.split('.')[1])).exp * 1000;
+    } catch {
+        return null;
+    }
+}
+
+let _renovandoToken = false;
+
+async function _renovarTokenSeNecessario(token) {
+    if (_renovandoToken) return token;
+    const expiry = _getTokenExpiry(token);
+    if (!expiry) return token;
+    const restante = expiry - Date.now();
+    // Renova se restar menos de 30 minutos e o token ainda for válido
+    if (restante > 0 && restante < 30 * 60 * 1000) {
+        _renovandoToken = true;
+        try {
+            const res = await fetch('/api/auth/renovar', {
+                method: 'POST',
+                headers: { 'x-auth-token': token }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                localStorage.setItem('token', data.token);
+                return data.token;
+            }
+        } catch {
+            // ignora, usa token atual
+        } finally {
+            _renovandoToken = false;
+        }
+    }
+    return token;
+}
+
 /**
  * Função para fazer requisições à API com o token de autenticação.
- * Lida com redirecionamento para login se o token for inválido ou expirar.
+ * Renova o token automaticamente quando resta menos de 30 minutos.
  */
 async function fetchWithAuth(url, options = {}) {
-    const token = localStorage.getItem('token');
+    let token = localStorage.getItem('token');
     if (!token) {
         window.location.replace('login.html');
         return;
     }
+
+    token = await _renovarTokenSeNecessario(token);
 
     const headers = {
         ...options.headers,
         'x-auth-token': token
     };
 
-    // Adiciona o 'Content-Type' apenas se houver um corpo e ele não for FormData
-    // Isso corrige o erro em requisições GET, que não têm corpo.
-    // CORREÇÃO: A verificação `options.body` já é segura contra `undefined`.
     if (options && options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
-        headers['Content-Type'] = 'application/json'; // Garante que o cabeçalho seja adicionado apenas quando necessário.
+        headers['Content-Type'] = 'application/json';
     }
 
     try {
@@ -55,7 +91,7 @@ async function fetchWithAuth(url, options = {}) {
         return response;
     } catch (error) {
         console.error('Erro de conexão:', error);
-        throw error; // Propaga o erro para que seja tratado pelo código que chamou fetchWithAuth
+        throw error;
     }
 }
 

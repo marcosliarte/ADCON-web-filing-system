@@ -253,7 +253,7 @@ router.post(
       jwt.sign(
         payload,
         process.env.JWT_SECRET,
-        { expiresIn: 3600 },
+        { expiresIn: 28800 },
         (err, token) => {
           if (err) throw err;
           res.json({ token });
@@ -310,7 +310,7 @@ router.post(
       jwt.sign(
         payload,
         process.env.JWT_SECRET,
-        { expiresIn: 3600 },
+        { expiresIn: 28800 },
         (err, token) => {
           if (err) throw err;
           res.json({ token });
@@ -333,6 +333,27 @@ router.get('/', auth, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: 'Erro no servidor' }); // Padronizado para JSON
+  }
+});
+
+// @route   POST api/auth/renovar
+// @desc    Renova o token JWT enquanto o usuário está ativo
+// @access  Private
+router.post('/renovar', auth, async (req, res) => {
+  try {
+    const payload = {
+      usuario: {
+        id: req.usuario.id,
+        role: req.usuario.role,
+      },
+    };
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: 28800 }, (err, token) => {
+      if (err) throw err;
+      res.json({ token });
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro no servidor' });
   }
 });
 
