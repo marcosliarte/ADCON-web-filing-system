@@ -379,6 +379,26 @@ function toggleRegimeCasamento(select) {
     regimeDiv.style.display = select.value === 'casado' ? 'block' : 'none';
 }
 
+// === VALIDAÇÃO ===
+function validateForm() {
+    const validatedRadioGroups = new Set();
+    for (const input of document.querySelectorAll('#formulario-empresa input[required], #formulario-empresa select[required]')) {
+        if (!input.offsetParent) continue; // ignora campos dentro de contêineres ocultos
+        if (input.type === 'radio') {
+            if (validatedRadioGroups.has(input.name)) continue;
+            validatedRadioGroups.add(input.name);
+            if (!document.querySelector(`input[name="${input.name}"]:checked`)) return false;
+            continue;
+        }
+        if (!input.value.trim()) {
+            input.style.borderColor = 'red';
+            return false;
+        }
+        input.style.borderColor = '';
+    }
+    return true;
+}
+
 // === MENSAGENS ===
 function showMessage(text, type) {
     const messageEl = document.getElementById('message');
@@ -457,6 +477,10 @@ function setupEventListeners() {
     // Formulário
     document.getElementById('formulario-empresa').addEventListener('submit', async function(e) {
         e.preventDefault();
+        if (!validateForm()) {
+            showMessage('Por favor, preencha todos os campos obrigatórios.', 'error');
+            return;
+        }
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Salvando...';

@@ -10,7 +10,7 @@ const FilaServicoSchema = new mongoose.Schema({
   descricao: { type: String, trim: true },
   empresa: { type: mongoose.Schema.Types.ObjectId, ref: 'Empresa' },
   empresaNaoCadastrada: { type: String, trim: true },
-  funcionario: { type: mongoose.Schema.Types.ObjectId, ref: 'Funcionario' },
+  funcionario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
   responsavel: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
   criadoPor: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
   status: {

@@ -67,19 +67,27 @@ function validateStep(step) {
     const validatedRadioGroups = new Set();
 
     for (const input of inputs) {
+        // Ignora inputs dentro de containers ocultos
+        if (!input.offsetParent) continue;
+
         if (input.type === 'radio') {
             if (validatedRadioGroups.has(input.name)) continue;
             validatedRadioGroups.add(input.name);
             if (!currentStepDiv.querySelector(`input[name="${input.name}"]:checked`)) {
+                const label = currentStepDiv.querySelector(`label[for="${input.id}"]`)?.textContent || input.name;
+                alert(`Campo obrigatório não preenchido: ${label.replace(/\[.*/, '').trim()}`);
                 return false;
             }
             continue;
         }
         if (!input.value.trim()) {
             input.style.borderColor = 'red';
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const label = input.closest('.form-group')?.querySelector('label')?.textContent || input.name;
+            alert(`Campo obrigatório não preenchido: ${label.trim()}`);
             return false;
         }
-        input.style.borderColor = '#ccc';
+        input.style.borderColor = '';
     }
     return true;
 }
@@ -98,12 +106,18 @@ function toggleMatrizSelect() {
     // Controlar visibilidade do campo "Possui Filial?" - só para matrizes
     const possuiFilialGroup = document.querySelector('input[name="possui_filial"]')?.closest('.form-group');
     if (possuiFilialGroup) {
-        possuiFilialGroup.style.display = tipo === 'matriz' ? 'block' : 'none';
-        
-        // Se for filial, limpar a seleção
-        if (tipo === 'filial') {
-            document.querySelectorAll('input[name="possui_filial"]').forEach(radio => radio.checked = false);
-        }
+        const ehMatriz = tipo === 'matriz';
+        possuiFilialGroup.style.display = ehMatriz ? 'block' : 'none';
+
+        const possuiFilialRadios = document.querySelectorAll('input[name="possui_filial"]');
+        possuiFilialRadios.forEach((radio, i) => {
+            if (ehMatriz) {
+                if (i === 0) radio.setAttribute('required', '');
+            } else {
+                radio.removeAttribute('required');
+                radio.checked = false;
+            }
+        });
     }
 }
 
@@ -408,6 +422,7 @@ function setupEventListeners() {
             mensagemDiv.textContent = `Erro: ${error.message}`;
             mensagemDiv.className = 'error';
             mensagemDiv.style.display = 'block';
+            mensagemDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
             submitBtn.disabled = false;
             submitBtn.textContent = 'Finalizar Cadastro';
         }

@@ -79,6 +79,22 @@ router.get('/', [auth, checkAdminGerente], async (req, res) => {
   }
 });
 
+// @route   GET api/funcionarios/para-atribuicao
+// @desc    Lista todos os usuários disponíveis para atribuição de tarefas
+// @access  Private (Admin/Gerente)
+router.get('/para-atribuicao', [auth, checkAdminGerente], async (req, res) => {
+  try {
+    const usuarios = await Usuario.find({ role: { $in: ['admin', 'gerente', 'funcionario'] } })
+      .select('_id nome role')
+      .sort({ nome: 1 })
+      .lean();
+    res.json(usuarios);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro no servidor' });
+  }
+});
+
 // @route   GET api/funcionarios/:id
 // @desc    Obter um funcionário pelo ID - **NOVO**
 // @access  Private (Admin/Gerente)

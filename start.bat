@@ -24,12 +24,9 @@ echo.
 net session >nul 2>nul
 if %errorlevel% neq 0 (
     echo  Solicitando permissao de Administrador...
-    :: Cria VBScript temporario para re-abrir com elevacao mantendo a janela
-    set "VBSTMP=%TEMP%\adcon_elevate.vbs"
-    echo Set oShell = CreateObject("Shell.Application") > "%VBSTMP%"
-    echo oShell.ShellExecute "cmd.exe", "/k cd /d ""%~dp0"" && ""%~f0""", "", "runas", 1 >> "%VBSTMP%"
-    cscript //nologo "%VBSTMP%"
-    del "%VBSTMP%" >nul 2>nul
+    set "SELF=%~f0"
+    set "DIR=%~dp0"
+    powershell -NoProfile -Command "Start-Process -FilePath $env:SELF -WorkingDirectory $env:DIR -Verb RunAs"
     exit /b
 )
 

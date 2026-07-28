@@ -3,7 +3,6 @@ const router = express.Router();
 const { check, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const Usuario = require('../models/model-usuario');
-const Funcionario = require('../models/model-funcionario');
 const Notificacao = require('../models/model-notificacao');
 const FilaServico = require('../models/model-fila-servicos');
 
@@ -34,20 +33,16 @@ const checkAdminGerente = async (req, res, next) => {
 function popularServico(query) {
   return query
     .populate('empresa', 'nome cnpj')
-    .populate('funcionario', 'nome cargo usuario')
+    .populate('funcionario', 'nome role')
     .populate('responsavel', 'nome')
     .populate('criadoPor', 'nome');
 }
 
-async function notificarFuncionario(funcionarioId, servico) {
+async function notificarFuncionario(usuarioId, servico) {
   try {
-    const func = await Funcionario.findById(funcionarioId).select('usuario nome');
-    if (!func || !func.usuario) return;
-
     const tipoLabel = TIPOS_LABEL[servico.tipo] || servico.tipo;
-
     await Notificacao.create({
-      usuarioId: func.usuario,
+      usuarioId,
       tipo: 'sistema',
       titulo: 'Novo serviço atribuído a você',
       mensagem: `Você foi vinculado ao serviço "${servico.titulo}" (${tipoLabel}). Acesse a fila de serviços para mais detalhes.`,

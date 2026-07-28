@@ -154,10 +154,19 @@ router.post(
       // Mapeia os dados do body para o schema, incluindo objetos aninhados
       const dadosEmpresa = {
         ...req.body,
-        nome: req.body.nome_empresarial, // Mapeia o nome_empresarial do form para o campo 'nome' do schema
+        nome: req.body.nome_empresarial,
         inscricao_estadual: req.body.inscricao_estadual,
-        filiais: req.body.filiais || [], // Adiciona os dados das filiais
-        atividade_principal_descricao: req.body.atividade_principal_descricao, // Adiciona a descrição do CNAE
+        filiais: req.body.filiais || [],
+        atividade_principal_descricao: req.body.atividade_principal_descricao,
+        endereco: {
+          cep: req.body['endereco.cep'],
+          rua: req.body['endereco.rua'],
+          numero: req.body['endereco.numero'],
+          complemento: req.body['endereco.complemento'],
+          bairro: req.body['endereco.bairro'],
+          cidade: req.body['endereco.cidade'],
+          estado: req.body['endereco.estado'],
+        },
         documentos: {
           contratos: [],
           balancosPatrimoniais: [],
@@ -397,7 +406,7 @@ router.get('/:id', auth, async (req, res) => {
 
     empresa.matriz = empresa.matriz_id || null;
     // Busca as filiais SE a empresa for uma matriz
-    empresa.filiais = (empresa.tipo === 'matriz' || !empresa.tipo) ? await Empresa.find({ matriz_id: req.params.id }).select('nome nome_fantasia cnpj _id').lean() : [];
+    empresa.filiais = (empresa.tipo === 'matriz' || !empresa.tipo) ? await Empresa.find({ matriz_id: req.params.id }).lean() : [];
 
     res.json(empresa);
   } catch (err) {
@@ -522,6 +531,7 @@ router.put(
         cep: req.body['endereco.cep'],
         rua: req.body['endereco.rua'],
         numero: req.body['endereco.numero'],
+        complemento: req.body['endereco.complemento'],
         bairro: req.body['endereco.bairro'],
         cidade: req.body['endereco.cidade'],
         estado: req.body['endereco.estado']

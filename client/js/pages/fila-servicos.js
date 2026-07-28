@@ -142,14 +142,14 @@ async function carregarServicos() {
 
 async function carregarFuncionarios() {
   try {
-    const resp = await fetchWithAuth('/api/funcionarios');
+    const resp = await fetchWithAuth('/api/funcionarios/para-atribuicao');
     if (!resp || !resp.ok) return;
     funcionariosCache = await resp.json();
     const select = document.getElementById('input-funcionario');
     funcionariosCache.forEach(f => {
       const opt = document.createElement('option');
       opt.value = f._id;
-      opt.textContent = `${f.nome} (${f.cargo || 'sem cargo'})`;
+      opt.textContent = `${f.nome} (${f.role || 'funcionário'})`;
       select.appendChild(opt);
     });
   } catch (err) {
@@ -223,7 +223,7 @@ function abrirDetalhes(id) {
 
       <div class="detalhe-item">
         <span class="detalhe-label">Funcionário relacionado</span>
-        <span class="detalhe-valor">${s.funcionario ? escapeHtml(s.funcionario.nome) + (s.funcionario.cargo ? ` <span style="color:var(--text-secondary);font-size:0.82rem">(${escapeHtml(s.funcionario.cargo)})</span>` : '') : '–'}</span>
+        <span class="detalhe-valor">${s.funcionario ? escapeHtml(s.funcionario.nome) + (s.funcionario.role ? ` <span style="color:var(--text-secondary);font-size:0.82rem">(${escapeHtml(s.funcionario.role)})</span>` : '') : '–'}</span>
       </div>
 
       <div class="detalhe-item">

@@ -11,7 +11,7 @@
 
     <div class="container">
         <h1>Cadastro de Nova Empresa</h1>
-        <form id="formulario-empresa">
+        <form id="formulario-empresa" novalidate>
             <!-- ETAPA 1: DADOS DA EMPRESA -->
             <div id="step-1" class="step active">
                 <h2><span style="font-size: 1.5rem;">1.</span> Dados da Empresa</h2>
@@ -111,31 +111,31 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="cep">CEP</label>
-                        <input type="text" id="cep" name="endereco[cep]" placeholder="00000-000" required>
+                        <input type="text" id="cep" name="endereco.cep" placeholder="00000-000" required>
                     </div>
                     <div class="form-group form-group-full">
                         <label for="rua">Rua</label>
-                        <input type="text" id="rua" name="endereco[rua]" required>
+                        <input type="text" id="rua" name="endereco.rua" required>
                     </div>
                     <div class="form-group">
                         <label for="numero">Número</label>
-                        <input type="text" id="numero" name="endereco[numero]" required>
+                        <input type="text" id="numero" name="endereco.numero" required>
                     </div>
                     <div class="form-group">
                         <label for="complemento">Complemento (Opcional)</label>
-                        <input type="text" id="complemento" name="endereco[complemento]">
+                        <input type="text" id="complemento" name="endereco.complemento">
                     </div>
                     <div class="form-group">
                         <label for="bairro">Bairro</label>
-                        <input type="text" id="bairro" name="endereco[bairro]" required>
+                        <input type="text" id="bairro" name="endereco.bairro" required>
                     </div>
                     <div class="form-group">
                         <label for="cidade">Cidade</label>
-                        <input type="text" id="cidade" name="endereco[cidade]" required>
+                        <input type="text" id="cidade" name="endereco.cidade" required>
                     </div>
                     <div class="form-group">
                         <label for="estado">Estado</label>
-                        <input type="text" id="estado" name="endereco[estado]" required>
+                        <input type="text" id="estado" name="endereco.estado" required>
                     </div>
                 </div>
                  <h3>Contato</h3>
