@@ -8,6 +8,7 @@ const os = require('os');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const rateLimit = require('express-rate-limit');
+const { startMdnsResponder } = require('./utils/mdns');
 
 // Importar configurações de segurança
 const securityConfig = require('./config/security');
@@ -201,6 +202,8 @@ app.use(errorHandler);
 // -----------------------------
 //       INICIAR SERVIDOR
 // -----------------------------
+const mdnsResponder = isCloudDeployment ? null : startMdnsResponder('adcon', localIpAddress);
+
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(60));
     console.log('🚀 ADCON WEB FILING SYSTEM - SERVIDOR INICIADO');
@@ -243,6 +246,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('🛑 SIGTERM recebido, encerrando servidor...');
+  if (mdnsResponder) mdnsResponder.destroy();
   server.close(() => {
     console.log('✅ Servidor encerrado');
     (async () => {
@@ -260,6 +264,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('\n🛑 SIGINT recebido, encerrando servidor...');
+  if (mdnsResponder) mdnsResponder.destroy();
   server.close(() => {
     console.log('✅ Servidor encerrado');
     (async () => {
